@@ -1,0 +1,21 @@
+{
+  "name": "pbl",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "compile": "hardhat compile",
+    "ponzi": "hardhat run scripts/simulate_ponzi.js",
+    "normal": "hardhat run scripts/simulate_normal.js",
+    "rugpull": "hardhat run scripts/simulate_rugpull.js",
+    "laundering": "hardhat run scripts/simulate_laundering.js",
+    "pumpdump": "hardhat run scripts/simulate_pumpdump.js",
+    "flashloan": "hardhat run scripts/simulate_flashloan.js",
+    "analyze": "node analysis/pipeline.js"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox-viem": "^5.0.3",
+    "@nomicfoundation/hardhat-viem": "^3.0.4",
+    "hardhat": "^3.4.2",
+    "viem": "^2.47.17"
+  }
+}

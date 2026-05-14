@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChainGuard — 블록체인 사기 탐지</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<!-- 파이프라인이 생성하는 보고서 목록 (없으면 조용히 무시) -->
+<script src="reports/index.js" onerror="void 0"></script>
+<style>
+/* ── Variables ─────────────────────────────────── */
+:root {
+  --bg:#0d1117; --surf:#161b22; --bor:#30363d;
+  --tx:#c9d1d9; --mu:#8b949e; --hd:#e6edf3;
+  --bl:#388bfd; --gr:#3fb950; --re:#f85149;
+  --ye:#d29922; --pu:#bc8cff; --or:#e8722a;
+  --r:10px; --tr:.22s ease;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--tx);font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;height:100vh;overflow:hidden;}
+
+/* ── View Management ──────────────────────────── */
+.view{display:none;height:100vh;flex-direction:column;}
+.view.active{display:flex;}
+
+/* ── L0: Entry ────────────────────────────────── */
+#l0{align-items:center;justify-content:center;}
+.entry-card{background:var(--surf);border:1px solid var(--bor);border-radius:16px;padding:36px 44px;width:500px;max-width:94vw;}
+.entry-logo{font-size:26px;font-weight:700;color:var(--hd);margin-bottom:3px;}
+.entry-logo span{color:var(--bl);}
+.entry-sub{font-size:11px;color:var(--mu);margin-bottom:26px;}
+.elbl{font-size:11px;color:var(--mu);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;}
+.einput{width:100%;background:var(--bg);border:1px solid var(--bor);border-radius:8px;color:var(--tx);font-size:12px;padding:9px 12px;margin-bottom:18px;font-family:'Courier New',monospace;transition:border-color var(--tr);}
+.einput:focus{outline:none;border-color:var(--bl);}
+.type-pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:26px;}
+.tpill{padding:4px 13px;border-radius:18px;border:1px solid var(--bor);background:transparent;color:var(--mu);font-size:12px;cursor:pointer;transition:all var(--tr);}
+.tpill:hover{border-color:var(--bl);color:var(--bl);}
+.tpill.active{background:var(--bl);border-color:var(--bl);color:#fff;font-weight:600;}
+.tpill[data-type="normal"].active{background:var(--gr);border-color:var(--gr);}
+.abtn{width:100%;padding:11px;background:var(--bl);border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:opacity var(--tr);}
+.abtn:hover{opacity:.85;}
+
+/* ── L1: Summary ──────────────────────────────── */
+.topbar{background:var(--surf);border-bottom:1px solid var(--bor);padding:9px 18px;display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.bbtn{background:transparent;border:1px solid var(--bor);color:var(--mu);font-size:12px;padding:4px 12px;border-radius:18px;cursor:pointer;transition:all var(--tr);}
+.bbtn:hover{border-color:var(--bl);color:var(--bl);}
+.addr-txt{font-family:'Courier New',monospace;font-size:11px;color:var(--mu);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:300px;}
+.type-chip{margin-left:auto;font-size:11px;font-weight:600;padding:2px 9px;border-radius:9px;border:1px solid var(--re);color:var(--re);}
+.type-chip.safe{border-color:var(--gr);color:var(--gr);}
+.type-chip.med{border-color:var(--ye);color:var(--ye);}
+.l1-body{padding:16px;display:flex;flex-direction:column;gap:12px;flex:1;overflow-y:auto;}
+
+/* Signal row */
+.sig-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:16px;background:var(--surf);border:1px solid var(--bor);border-radius:var(--r);padding:14px 18px;}
+.sig-dot-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.sig-dot{width:48px;height:48px;border-radius:50%;background:var(--re);box-shadow:0 0 10px rgba(248,81,73,.35);}
+.sig-dot.med{background:var(--ye);box-shadow:0 0 10px rgba(210,153,34,.35);}
+.sig-dot.safe{background:var(--gr);box-shadow:0 0 10px rgba(63,185,80,.35);}
+.sig-dot-lbl{font-size:10px;font-weight:600;color:var(--mu);}
+.sig-verdict{font-size:15px;font-weight:700;color:var(--hd);margin-bottom:3px;}
+.sig-desc{font-size:11px;color:var(--mu);line-height:1.6;}
+.trust-mini{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.trust-num{font-size:26px;font-weight:700;color:var(--hd);line-height:1;}
+.trust-lbl{font-size:10px;color:var(--mu);}
+.trust-grade{font-size:12px;font-weight:700;padding:2px 7px;border-radius:4px;margin-top:2px;}
+
+/* Vector preview */
+.vec-preview{background:var(--surf);border:1px solid var(--bor);border-radius:var(--r);padding:12px 16px;}
+.vec-hdr{font-size:11px;color:var(--mu);margin-bottom:9px;text-transform:uppercase;letter-spacing:.4px;}
+.vec-rows{display:flex;flex-direction:column;gap:6px;}
+.vec-row{display:flex;align-items:center;gap:9px;}
+.vec-name{font-size:11px;color:var(--mu);width:100px;flex-shrink:0;}
+.vec-track{flex:1;height:5px;background:var(--bg);border-radius:3px;overflow:hidden;}
+.vec-fill{height:100%;border-radius:3px;transition:width .5s ease;}
+.vec-val{font-size:11px;font-weight:600;width:28px;text-align:right;}
+
+/* Anomaly badges (L1) */
+.anom-row{display:flex;gap:9px;}
+.ab{flex:1;background:var(--surf);border:1px solid var(--bor);border-radius:var(--r);padding:10px 12px;text-align:center;cursor:pointer;transition:all var(--tr);}
+.ab:hover{border-color:var(--mu);}
+.ab.on{border-color:var(--re);background:rgba(248,81,73,.08);}
+.ab.on:hover{background:rgba(248,81,73,.13);}
+.ab-ico{font-size:18px;margin-bottom:3px;}
+.ab-nm{font-size:10px;font-weight:700;letter-spacing:.4px;color:var(--mu);}
+.ab.on .ab-nm{color:var(--re);}
+.ab-vl{font-size:10px;color:var(--mu);margin-top:1px;}
+.ab.on .ab-vl{color:var(--re);}
+
+/* Thumbnails */
+.thumb-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.tcard{background:var(--surf);border:1px solid var(--bor);border-radius:var(--r);padding:12px;cursor:pointer;transition:all var(--tr);display:flex;flex-direction:column;gap:7px;height:140px;}
+.tcard:hover{border-color:var(--bl);}
+.tcard-hdr{display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.tcard-name{font-size:12px;font-weight:600;color:var(--hd);}
+.tcard-arrow{font-size:10px;color:var(--bl);}
+.tcard-body{flex:1;position:relative;min-height:0;}
+.tcard-body canvas{position:absolute;inset:0;width:100%;height:100%;}
+.tcard-static{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;flex-wrap:wrap;}
+
+/* ── L2: Panel Overlay ────────────────────────── */
+.p-overlay{display:none;position:fixed;inset:0;background:var(--bg);flex-direction:column;z-index:200;}
+.p-overlay.open{display:flex;}
+.p-topbar{background:var(--surf);border-bottom:1px solid var(--bor);padding:9px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap;}
+.p-title{font-size:13px;font-weight:600;color:var(--hd);}
+.type-sw{margin-left:auto;display:flex;gap:5px;flex-wrap:wrap;}
+.swbtn{padding:3px 10px;border-radius:16px;border:1px solid var(--bor);background:transparent;color:var(--mu);font-size:11px;cursor:pointer;transition:all var(--tr);}
+.swbtn.cur{font-weight:600;}
+.p-body{flex:1;overflow:hidden;position:relative;}
+.psec{display:none;width:100%;height:100%;}
+.psec.active{display:flex;flex-direction:column;}
+
+/* P1 Network */
+#p1{overflow:hidden;}
+#net-svg{width:100%;height:100%;}
+.nd circle{stroke-width:2;cursor:pointer;}
+.nd text{font-size:9px;fill:var(--mu);pointer-events:none;}
+.lk{stroke-opacity:.7;}
+.net-legend{position:absolute;bottom:10px;right:12px;display:flex;gap:10px;font-size:10px;color:var(--mu);}
+.leg-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:3px;vertical-align:middle;}
+
+/* P2 Radar */
+#p2 .psec-inner{padding:14px;display:grid;grid-template-columns:150px 1fr;gap:14px;flex:1;overflow-y:auto;}
+#wlist{display:flex;flex-direction:column;gap:5px;}
+.wtag{font-size:11px;padding:5px 11px;border-radius:6px;border:1px solid var(--bor);cursor:pointer;white-space:nowrap;transition:all var(--tr);}
+.wtag.sel{border-color:var(--pu);color:var(--pu);background:rgba(188,140,255,.07);}
+.wtag.hi{border-color:var(--re);color:var(--re);}
+.wtag.md{border-color:var(--ye);color:var(--ye);}
+.wtag.lo{border-color:var(--gr);color:var(--gr);}
+.p2-right{display:flex;flex-direction:column;gap:10px;}
+#grade-bar{border-radius:6px;padding:9px 14px;font-size:13px;font-weight:600;text-align:center;}
+.radar-wrap{height:260px;position:relative;}
+.radar-wrap canvas{position:absolute;inset:0;}
+.vd-rows{display:flex;flex-direction:column;gap:6px;}
+.vd-row{display:flex;align-items:center;gap:8px;}
+.vd-lbl{font-size:11px;color:var(--mu);width:115px;flex-shrink:0;}
+.vd-track{flex:1;height:6px;background:var(--bg);border-radius:3px;overflow:hidden;}
+.vd-fill{height:100%;border-radius:3px;}
+.vd-num{font-size:11px;font-weight:600;width:32px;text-align:right;}
+.vd-wt{font-size:9px;padding:1px 5px;border-radius:3px;margin-left:3px;}
+.vd-warn{font-size:10px;color:var(--re);margin-left:4px;}
+
+/* P3 Time Series */
+#p3-ctrl{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--bor);flex-shrink:0;}
+#p3-ctrl label{font-size:11px;color:var(--mu);white-space:nowrap;}
+#bslider{flex:1;accent-color:var(--bl);}
+#bslider-lbl{font-size:11px;color:var(--bl);min-width:90px;text-align:right;white-space:nowrap;}
+.zone-leg{display:flex;gap:12px;font-size:10px;color:var(--mu);}
+.zdot{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:2px;vertical-align:middle;}
+#ts-grid{flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr 1fr;gap:7px;padding:10px;overflow:hidden;}
+.mw{position:relative;min-height:0;}
+.mw canvas{position:absolute;inset:0;}
+.ml{position:absolute;top:3px;left:5px;font-size:10px;color:var(--mu);z-index:1;pointer-events:none;}
+.ma{position:absolute;top:3px;right:5px;font-size:10px;color:var(--re);z-index:1;display:none;}
+
+/* P4 Anomaly */
+#p4-inner{padding:14px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;}
+.p4-stitle{font-size:11px;color:var(--mu);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;}
+.bg4{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;}
+.b4{border-radius:8px;padding:11px;border:1px solid var(--bor);text-align:center;transition:all .3s;}
+.b4 .bi{font-size:20px;}
+.b4 .bn{font-size:10px;font-weight:700;letter-spacing:.4px;color:var(--mu);margin-top:3px;}
+.b4 .bv{font-size:10px;color:var(--mu);margin-top:2px;}
+.b4.on{border-color:var(--re);background:rgba(248,81,73,.09);}
+.b4.on .bn,.b4.on .bv{color:var(--re);}
+.sg4{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.sc{background:var(--bg);border-radius:7px;padding:9px;}
+.sc-l{font-size:10px;color:var(--mu);}
+.sc-v{font-size:17px;font-weight:700;color:var(--hd);margin-top:1px;}
+.pbox{background:var(--bg);border-radius:7px;padding:11px;font-size:12px;color:var(--mu);line-height:1.7;}
+.pbox strong{color:var(--tx);}
+
+/* Tooltip */
+#tip{position:fixed;background:#1c2128;border:1px solid var(--bor);border-radius:6px;padding:5px 9px;font-size:11px;pointer-events:none;display:none;z-index:999;max-width:200px;line-height:1.6;}
+
+/* ── Pipeline Report Loader (L0) ─────────────────── */
+.rpt-loader{border-top:1px solid var(--bor);margin-top:14px;padding-top:14px;margin-bottom:18px;}
+.rpt-row{display:flex;gap:7px;}
+#rpt-sel{flex:1;background:var(--bg);border:1px solid var(--bor);border-radius:8px;color:var(--tx);font-size:12px;padding:7px 10px;cursor:pointer;}
+#rpt-sel:focus{outline:none;border-color:var(--bl);}
+.rl-btn{padding:7px 14px;background:var(--bl);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:opacity var(--tr);white-space:nowrap;}
+.rl-btn:hover{opacity:.85;}
+#rpt-status{font-size:10px;color:var(--mu);margin-top:5px;min-height:14px;}
+
+/* ── Pipeline Score Strip (L1, visible when report loaded) ── */
+#pipe-strip{background:rgba(56,139,253,.07);border-bottom:1px solid rgba(56,139,253,.3);padding:7px 18px;align-items:center;gap:14px;flex-shrink:0;display:none;}
+#pipe-strip.show{display:flex;}
+.ps-grade{font-size:22px;font-weight:700;line-height:1;}
+.ps-glbl{font-size:10px;font-weight:700;letter-spacing:.5px;margin-top:1px;}
+.ps-lbl{font-size:10px;color:var(--mu);display:block;}
+.ps-val{font-size:12px;font-weight:600;display:block;}
+.ps-spacer{flex:1;}
+.ps-src-lbl{font-size:10px;color:var(--mu);margin-left:auto;}
+</style>
+</head>
+<body>
+
+<!-- ═══════ Level 0: Entry ═══════ -->
+<div id="l0" class="view active">
+  <div class="entry-card">
+    <div class="entry-logo">체인가드 <span>ChainGuard</span></div>
+    <div class="entry-sub">스마트 컨트랙트 보안 검증 및 온체인 신뢰 인증 시스템</div>
+    <div class="elbl">컨트랙트 주소</div>
+    <input id="addr-in" class="einput" placeholder="0x1234...abcd  (아래에서 샘플 선택 후 입력됩니다)">
+    <div class="elbl">탐지 유형 선택 (Demo)</div>
+    <div class="type-pills">
+      <button class="tpill active" data-type="ponzi">폰지 사기</button>
+      <button class="tpill" data-type="rugpull">러그풀</button>
+      <button class="tpill" data-type="laundering">자금세탁</button>
+      <button class="tpill" data-type="pumpdump">펌프앤덤프</button>
+      <button class="tpill" data-type="flashloan">플래시론</button>
+      <button class="tpill" data-type="normal">정상 스테이킹</button>
+    </div>
+    <div class="rpt-loader" id="rpt-loader">
+      <div class="elbl">파이프라인 보고서 불러오기 (선택)</div>
+      <div class="rpt-row">
+        <select id="rpt-sel"><option value="">-- 보고서 선택 --</option></select>
+        <button class="rl-btn" onclick="loadReport()">불러오기</button>
+      </div>
+      <div id="rpt-status"></div>
+    </div>
+    <button class="abtn" onclick="startAnalysis()">분석 시작 →</button>
+  </div>
+</div>
+
+<!-- ═══════ Level 1: Summary ═══════ -->
+<div id="l1" class="view">
+  <div class="topbar">
+    <button class="bbtn" onclick="goL0()">← 돌아가기</button>
+    <span id="l1-addr" class="addr-txt"></span>
+    <span id="l1-chip" class="type-chip"></span>
+  </div>
+  <div id="pipe-strip">
+    <div><span class="ps-grade" id="ps-grade">—</span><div class="ps-glbl" id="ps-glbl"></div></div>
+    <div><span class="ps-lbl">정적 위험도</span><span class="ps-val" id="ps-s">—</span></div>
+    <div><span class="ps-lbl">동적 위험도</span><span class="ps-val" id="ps-d">—</span></div>
+    <div><span class="ps-lbl">신뢰 점수</span><span class="ps-val" id="ps-t">—</span></div>
+    <div class="ps-spacer"></div>
+    <span class="ps-src-lbl">📊 파이프라인 분석 결과</span>
+  </div>
+  <div class="l1-body">
+    <!-- Signal -->
+    <div class="sig-row">
+      <div class="sig-dot-wrap">
+        <div id="sdot" class="sig-dot"></div>
+        <div id="sdot-lbl" class="sig-dot-lbl">위험</div>
+      </div>
+      <div>
+        <div id="sig-verdict" class="sig-verdict"></div>
+        <div id="sig-desc" class="sig-desc"></div>
+      </div>
+      <div class="trust-mini">
+        <div id="t-num" class="trust-num">—</div>
+        <div class="trust-lbl">Trust Score</div>
+        <div id="t-grade" class="trust-grade">—</div>
+      </div>
+    </div>
+    <!-- Vector bars -->
+    <div class="vec-preview">
+      <div class="vec-hdr">신뢰 벡터 (Trust Vector) — 배포자 지갑</div>
+      <div class="vec-rows" id="vec-rows"></div>
+    </div>
+    <!-- Anomaly badges -->
+    <div class="anom-row">
+      <div class="ab" id="ab-drop" onclick="openPanel(4)"><div class="ab-ico">📉</div><div class="ab-nm">BALANCE DROP</div><div class="ab-vl" id="ab-drop-v">미감지</div></div>
+      <div class="ab" id="ab-flow" onclick="openPanel(4)"><div class="ab-ico">🌊</div><div class="ab-nm">FLOW SPIKE</div><div class="ab-vl" id="ab-flow-v">미감지</div></div>
+      <div class="ab" id="ab-maxtx" onclick="openPanel(4)"><div class="ab-ico">⚡</div><div class="ab-nm">MAX TX ALERT</div><div class="ab-vl" id="ab-maxtx-v">미감지</div></div>
+    </div>
+    <!-- Thumbnail grid -->
+    <div class="thumb-grid">
+      <div class="tcard" onclick="openPanel(1)">
+        <div class="tcard-hdr"><span class="tcard-name">① 자금 흐름 네트워크</span><span class="tcard-arrow">확대 →</span></div>
+        <div class="tcard-body"><canvas id="t-balance"></canvas></div>
+      </div>
+      <div class="tcard" onclick="openPanel(2)">
+        <div class="tcard-hdr"><span class="tcard-name">② 지갑 신뢰 벡터</span><span class="tcard-arrow">확대 →</span></div>
+        <div class="tcard-body"><canvas id="t-radar"></canvas></div>
+      </div>
+      <div class="tcard" onclick="openPanel(3)">
+        <div class="tcard-hdr"><span class="tcard-name">③ 시계열 대시보드</span><span class="tcard-arrow">확대 →</span></div>
+        <div class="tcard-body"><canvas id="t-flow"></canvas></div>
+      </div>
+      <div class="tcard" onclick="openPanel(4)">
+        <div class="tcard-hdr"><span class="tcard-name">④ 이상 신호 탐지기</span><span class="tcard-arrow">확대 →</span></div>
+        <div id="t-badges" class="tcard-static"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ Level 2: Panel Overlay ═══════ -->
+<div id="l2" class="p-overlay">
+  <div class="p-topbar">
+    <button class="bbtn" onclick="closePanel()">← 요약으로</button>
+    <span id="p-title" class="p-title"></span>
+    <div id="type-sw" class="type-sw"></div>
+  </div>
+  <div class="p-body">
+    <!-- P1: Network -->
+    <div id="p1" class="psec"><svg id="net-svg"></svg>
+      <div class="net-legend">
+        <span><span class="leg-dot" style="background:var(--bl)"></span>사용자</span>
+        <span><span class="leg-dot" style="background:var(--gr)"></span>컨트랙트</span>
+        <span><span class="leg-dot" style="background:var(--ye)"></span>오너</span>
+      </div>
+    </div>
+    <!-- P2: Radar -->
+    <div id="p2" class="psec">
+      <div class="psec-inner">
+        <div id="wlist"></div>
+        <div class="p2-right">
+          <div id="grade-bar"></div>
+          <div class="radar-wrap"><canvas id="radarCanvas"></canvas></div>
+          <div class="vd-rows" id="vd-rows"></div>
+        </div>
+      </div>
+    </div>
+    <!-- P3: TimeSeries -->
+    <div id="p3" class="psec">
+      <div id="p3-ctrl">
+        <label>블록 탐색:</label>
+        <input type="range" id="bslider" min="0" max="100" value="100">
+        <span id="bslider-lbl">Block ?</span>
+        <div class="zone-leg">
+          <span><span class="zdot" style="background:rgba(63,185,80,.35)"></span>과거</span>
+          <span><span class="zdot" style="background:rgba(56,139,253,.3)"></span>현재</span>
+          <span><span class="zdot" style="background:rgba(210,153,34,.25)"></span>미래 예측</span>
+        </div>
+      </div>
+      <div id="ts-grid">
+        <div class="mw"><span class="ml">누적잔고 ETH</span><span class="ma" id="ma-bal">▼ DROP</span><canvas id="c-balance"></canvas></div>
+        <div class="mw"><span class="ml">순입금 흐름</span><canvas id="c-netflow"></canvas></div>
+        <div class="mw"><span class="ml">입금 / 출금</span><canvas id="c-inout"></canvas></div>
+        <div class="mw"><span class="ml">최대 단일 TX</span><span class="ma" id="ma-tx">⚡ ALERT</span><canvas id="c-maxtx"></canvas></div>
+        <div class="mw"><span class="ml">참여자 수</span><canvas id="c-parts"></canvas></div>
+        <div class="mw"><span class="ml">미래 잔고 예측</span><canvas id="c-future"></canvas></div>
+      </div>
+    </div>
+    <!-- P4: Anomaly -->
+    <div id="p4" class="psec">
+      <div id="p4-inner">
+        <div><div class="p4-stitle">이상 신호 감지</div>
+          <div class="bg4">
+            <div class="b4" id="p4b-drop"><div class="bi">📉</div><div class="bn">BALANCE DROP</div><div class="bv" id="p4v-drop">미감지</div></div>
+            <div class="b4" id="p4b-flow"><div class="bi">🌊</div><div class="bn">FLOW SPIKE</div><div class="bv" id="p4v-flow">미감지</div></div>
+            <div class="b4" id="p4b-maxtx"><div class="bi">⚡</div><div class="bn">MAX TX ALERT</div><div class="bv" id="p4v-maxtx">미감지</div></div>
+          </div>
+        </div>
+        <div><div class="p4-stitle">통계 요약</div><div class="sg4" id="p4-stats"></div></div>
+        <div><div class="p4-stitle">패턴 설명</div><div class="pbox" id="p4-pat"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="tip"></div>
+
+<script>
+/* ══════════════════════════════════════════════════
+   CONSTANTS & DATA
+══════════════════════════════════════════════════ */
+const OWN = '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266';
+const W = [
+  '0x70997970c51812dc3a010c7d01b50e0d17dc79c8',
+  '0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc',
+  '0x90f79bf6eb2c4f870365e785982e1f101e93b906',
+  '0x15d34aaf54267db7d7c367839aaf71a00a2c6a65',
+  '0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc',
+  '0x976ea74026e726554db657fa54763abd0c3a0aa9',
+  '0x14dc79964da2c08b23698b3d3cc7ca32193d9955',
+  '0x23618e81e3f5cdf7f54c3d65f7fbc0abf5b21e8f',
+  '0xa0ee7a142d267c1f36714e4a8f75612f20a79720',
+  '0xbcd4042de499d14e55001ccbb24a551f3b954096',
+  '0x71be63f3384f5fb98995898a86b02fb2426c5788',
+  '0xfabb0ac9d68b0b445fb7357272ff202c5651694a',
+  '0x1cbd3b2770909d4e10f157cabc84c7264073c9ec',
+  '0xdf3e18d64bc6a983f673ab319ccae4f1a57c7097',
+  '0xcd3b766ccdd6ae721141f452c550ca635964ce71',
+  '0x8626f6940e2eb28930efb4cef49b2d1f2c9c1199',
+  '0xdd2fd4581271e230360230f9337d5c0430bf44c0',
+  '0x8c0e36d3f50f40f28bb4a5e4ca1e9e34e2e19dcf',
+  '0xf4a2cef33c3b55a1a9d3a01b5c3b3a05e2d7a4d6'
+];
+const CA = {
+  ponzi:      '0x5fbdb2315678afecb367f032d93f642f64180aa3',
+  normal:     '0x5fbdb2315678afecb367f032d93f642f64180aa3',
+  rugpull:    '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512',
+  laundering: '0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0',
+  pumpdump:   '0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9',
+  flashloan:  '0xdc64a140aa3e981100a9beca4e685f962f0cf6c9'
+};
+const DEPOSIT_ACTS  = new Set(['deposit','stake','fund_reward_pool']);
+const WITHDRAW_ACTS = new Set(['withdraw','unstake','owner_withdraw_all']);
+
+// Trust Score axes (in order)
+const AX_LABELS  = ['블랙리스트 연관도','자금 이동 패턴','스캠 연루 이력','활동 기간','거래 다양성'];
+const AX_SHORT   = ['BL 연관도','이동 패턴','스캠 이력','활동 기간','거래 다양성'];
+const AX_WEIGHTS = [0.30, 0.25, 0.15, 0.15, 0.15];
+const AX_WT_LBL  = ['30%','25%','15%','15%','15%'];
+
+// Per-fraud-type highlight axes (0-indexed), used to flag key risk indicators
+const HL_AXES = { ponzi:[1], rugpull:[0], laundering:[0,2], pumpdump:[4], flashloan:[1], normal:[] };
+
+// Base Trust Score vectors per fraud type [blacklist, flow, scam, age, diversity]
+const BASE_VEC = {
+  ponzi:      [68, 18, 62, 40, 52],
+  rugpull:    [12, 35, 20, 78, 60],
+  laundering: [10, 34, 18, 68, 22],
+  pumpdump:   [58, 28, 48, 36, 15],
+  flashloan:  [72,  8, 62, 82, 88],
+  normal:     [92, 88, 95, 90, 88],
+};
+
+const FRAUD_META = {
+  ponzi:      { label:'폰지 사기',    color:'#f85149', risk:'high' },
+  rugpull:    { label:'러그풀',        color:'#f85149', risk:'high' },
+  laundering: { label:'자금세탁',     color:'#f85149', risk:'high' },
+  pumpdump:   { label:'펌프앤덤프',   color:'#d29922', risk:'med'  },
+  flashloan:  { label:'플래시론',     color:'#d29922', risk:'med'  },
+  normal:     { label:'정상 스테이킹', color:'#3fb950', risk:'low' },
+};
+
+const PATTERNS = {
+  ponzi:      { verdict:'폰지 사기 의심', desc:'<strong>신규 입금자의 자금</strong>이 기존 참여자 출금에 직접 사용됩니다. 신규 참여가 끊기면 잔고가 즉시 소멸하며 대기자는 원금을 잃습니다.' },
+  rugpull:    { verdict:'러그풀 위험 감지', desc:'관리자 지갑이 <strong>컨트랙트 전체 잔고를 단번에 인출</strong>하는 백도어 함수가 확인되었습니다. 참여자가 충분히 모인 시점에 실행됩니다.' },
+  laundering: { verdict:'자금세탁 패턴 감지', desc:'<strong>다수 지갑의 소액 분산 입금</strong> 후 <strong>단일 지갑 대규모 집계 인출</strong>. 주소 분산을 통한 자금 출처 은닉(레이어링) 기법입니다.' },
+  pumpdump:   { verdict:'펌프앤덤프 의심', desc:'<strong>내부자 대량 입금(pump)</strong> → 후발자 유입 → <strong>내부자 자신의 입금액 이상 인출(dump)</strong>. 후발자는 0 ETH 손실.' },
+  flashloan:  { verdict:'플래시론 악용 의심', desc:'<strong>동일 블록 내 대규모 입금 + 즉시 전액 인출</strong> 반복. 담보 없이 일시적 유동성을 확보하는 플래시론 악용 패턴입니다.' },
+  normal:     { verdict:'정상 컨트랙트', desc:'입출금이 <strong>전체 참여자에게 고르게 분산</strong>되며 잔고가 완만하게 감소합니다. 블랙리스트 연관성이 없고 활동 이력이 안정적입니다.' },
+};
+
+/* ── Sample Data (원본 유지) ──────────────────── */
+const RAW_DATA = {
+  ponzi:[
+    {block:4, from:W[0],to:CA.ponzi,action:'deposit',amount_eth:1.0,contract_balance_eth:1.0, participant_count:1},
+    {block:7, from:W[1],to:CA.ponzi,action:'deposit',amount_eth:1.0,contract_balance_eth:2.0, participant_count:2},
+    {block:10,from:W[2],to:CA.ponzi,action:'deposit',amount_eth:1.0,contract_balance_eth:3.0, participant_count:3},
+    {block:13,from:W[3],to:CA.ponzi,action:'deposit',amount_eth:1.0,contract_balance_eth:4.0, participant_count:4},
+    {block:16,from:W[4],to:CA.ponzi,action:'deposit',amount_eth:1.0,contract_balance_eth:5.0, participant_count:5},
+    {block:19,from:W[5],to:CA.ponzi,action:'deposit',amount_eth:1.0,contract_balance_eth:6.0, participant_count:6},
+    {block:22,from:W[6],to:CA.ponzi,action:'deposit',amount_eth:1.0,contract_balance_eth:7.0, participant_count:7},
+    {block:25,from:W[7],to:CA.ponzi,action:'deposit',amount_eth:1.0,contract_balance_eth:8.0, participant_count:8},
+    {block:28,from:W[8],to:CA.ponzi,action:'deposit',amount_eth:1.0,contract_balance_eth:9.0, participant_count:9},
+    {block:31,from:W[9],to:CA.ponzi,action:'deposit',amount_eth:1.0,contract_balance_eth:10.0,participant_count:10},
+    {block:33,from:CA.ponzi,to:W[0],action:'withdraw',amount_eth:1.1,contract_balance_eth:8.9, participant_count:10},
+    {block:35,from:CA.ponzi,to:W[1],action:'withdraw',amount_eth:1.1,contract_balance_eth:7.8, participant_count:10},
+    {block:37,from:CA.ponzi,to:W[2],action:'withdraw',amount_eth:1.1,contract_balance_eth:6.7, participant_count:10},
+    {block:41,from:CA.ponzi,to:OWN, action:'owner_withdraw_all',amount_eth:6.7,contract_balance_eth:0.0,participant_count:10}
+  ],
+  normal:[
+    {block:1, from:OWN,  to:CA.normal,action:'fund_reward_pool',amount_eth:5.0,contract_balance_eth:5.0, participant_count:0},
+    {block:4, from:W[0], to:CA.normal,action:'stake',amount_eth:1.0,contract_balance_eth:6.0, participant_count:1},
+    {block:7, from:W[1], to:CA.normal,action:'stake',amount_eth:1.0,contract_balance_eth:7.0, participant_count:2},
+    {block:10,from:W[2], to:CA.normal,action:'stake',amount_eth:1.0,contract_balance_eth:8.0, participant_count:3},
+    {block:13,from:W[3], to:CA.normal,action:'stake',amount_eth:1.0,contract_balance_eth:9.0, participant_count:4},
+    {block:16,from:W[4], to:CA.normal,action:'stake',amount_eth:1.0,contract_balance_eth:10.0,participant_count:5},
+    {block:53,from:CA.normal,to:W[0],action:'unstake',amount_eth:1.049,contract_balance_eth:8.951,participant_count:5},
+    {block:55,from:CA.normal,to:W[1],action:'unstake',amount_eth:1.048,contract_balance_eth:7.903,participant_count:5},
+    {block:57,from:CA.normal,to:W[2],action:'unstake',amount_eth:1.047,contract_balance_eth:6.856,participant_count:5},
+    {block:59,from:CA.normal,to:W[3],action:'unstake',amount_eth:1.046,contract_balance_eth:5.810,participant_count:5},
+    {block:61,from:CA.normal,to:W[4],action:'unstake',amount_eth:1.045,contract_balance_eth:4.765,participant_count:5}
+  ],
+  rugpull:[
+    {block:4, from:W[0],to:CA.rugpull,action:'deposit',amount_eth:1.0,contract_balance_eth:1.0, participant_count:1},
+    {block:7, from:W[1],to:CA.rugpull,action:'deposit',amount_eth:1.2,contract_balance_eth:2.2, participant_count:2},
+    {block:10,from:W[2],to:CA.rugpull,action:'deposit',amount_eth:1.4,contract_balance_eth:3.6, participant_count:3},
+    {block:13,from:W[3],to:CA.rugpull,action:'deposit',amount_eth:1.6,contract_balance_eth:5.2, participant_count:4},
+    {block:16,from:W[4],to:CA.rugpull,action:'deposit',amount_eth:1.8,contract_balance_eth:7.0, participant_count:5},
+    {block:19,from:W[5],to:CA.rugpull,action:'deposit',amount_eth:2.0,contract_balance_eth:9.0, participant_count:6},
+    {block:22,from:W[6],to:CA.rugpull,action:'deposit',amount_eth:2.2,contract_balance_eth:11.2,participant_count:7},
+    {block:25,from:W[7],to:CA.rugpull,action:'deposit',amount_eth:2.4,contract_balance_eth:13.6,participant_count:8},
+    {block:28,from:W[8],to:CA.rugpull,action:'deposit',amount_eth:2.6,contract_balance_eth:16.2,participant_count:9},
+    {block:31,from:W[9],to:CA.rugpull,action:'deposit',amount_eth:2.8,contract_balance_eth:19.0,participant_count:10},
+    {block:35,from:CA.rugpull,to:OWN,action:'owner_withdraw_all',amount_eth:19.0,contract_balance_eth:0.0,participant_count:10}
+  ],
+  laundering:[
+    {block:3, from:W[0], to:CA.laundering,action:'deposit',amount_eth:0.10,contract_balance_eth:0.10,participant_count:1},
+    {block:4, from:W[1], to:CA.laundering,action:'deposit',amount_eth:0.15,contract_balance_eth:0.25,participant_count:2},
+    {block:5, from:W[2], to:CA.laundering,action:'deposit',amount_eth:0.20,contract_balance_eth:0.45,participant_count:3},
+    {block:6, from:W[3], to:CA.laundering,action:'deposit',amount_eth:0.12,contract_balance_eth:0.57,participant_count:4},
+    {block:7, from:W[4], to:CA.laundering,action:'deposit',amount_eth:0.18,contract_balance_eth:0.75,participant_count:5},
+    {block:8, from:W[5], to:CA.laundering,action:'deposit',amount_eth:0.25,contract_balance_eth:1.00,participant_count:6},
+    {block:9, from:W[6], to:CA.laundering,action:'deposit',amount_eth:0.11,contract_balance_eth:1.11,participant_count:7},
+    {block:10,from:W[7], to:CA.laundering,action:'deposit',amount_eth:0.30,contract_balance_eth:1.41,participant_count:8},
+    {block:11,from:W[8], to:CA.laundering,action:'deposit',amount_eth:0.13,contract_balance_eth:1.54,participant_count:9},
+    {block:12,from:W[9], to:CA.laundering,action:'deposit',amount_eth:0.22,contract_balance_eth:1.76,participant_count:10},
+    {block:13,from:W[10],to:CA.laundering,action:'deposit',amount_eth:0.17,contract_balance_eth:1.93,participant_count:11},
+    {block:14,from:W[11],to:CA.laundering,action:'deposit',amount_eth:0.19,contract_balance_eth:2.12,participant_count:12},
+    {block:20,from:W[17],to:CA.laundering,action:'deposit',amount_eth:0.27,contract_balance_eth:3.28,participant_count:13},
+    {block:21,from:W[18],to:CA.laundering,action:'deposit',amount_eth:0.23,contract_balance_eth:3.51,participant_count:14},
+    {block:25,from:CA.laundering,to:W[0],action:'owner_withdraw_all',amount_eth:3.51,contract_balance_eth:0.0,participant_count:14}
+  ],
+  pumpdump:[
+    {block:3, from:W[0],to:CA.pumpdump,action:'deposit',amount_eth:4.0,contract_balance_eth:4.0, participant_count:1},
+    {block:4, from:W[1],to:CA.pumpdump,action:'deposit',amount_eth:4.0,contract_balance_eth:8.0, participant_count:2},
+    {block:5, from:W[2],to:CA.pumpdump,action:'deposit',amount_eth:4.0,contract_balance_eth:12.0,participant_count:3},
+    {block:6, from:W[3],to:CA.pumpdump,action:'deposit',amount_eth:1.5,contract_balance_eth:13.5,participant_count:4},
+    {block:7, from:W[4],to:CA.pumpdump,action:'deposit',amount_eth:1.5,contract_balance_eth:15.0,participant_count:5},
+    {block:8, from:W[5],to:CA.pumpdump,action:'deposit',amount_eth:1.5,contract_balance_eth:16.5,participant_count:6},
+    {block:9, from:W[6],to:CA.pumpdump,action:'deposit',amount_eth:1.5,contract_balance_eth:18.0,participant_count:7},
+    {block:10,from:W[7],to:CA.pumpdump,action:'deposit',amount_eth:1.5,contract_balance_eth:19.5,participant_count:8},
+    {block:11,from:CA.pumpdump,to:W[0],action:'withdraw',amount_eth:6.5,contract_balance_eth:13.0,participant_count:8},
+    {block:12,from:CA.pumpdump,to:W[1],action:'withdraw',amount_eth:6.5,contract_balance_eth:6.5, participant_count:8},
+    {block:13,from:CA.pumpdump,to:W[2],action:'withdraw',amount_eth:6.5,contract_balance_eth:0.0, participant_count:8}
+  ],
+  flashloan:[
+    {block:3, from:W[0],to:CA.flashloan,action:'deposit', amount_eth:10.0,contract_balance_eth:10.0,participant_count:1},
+    {block:3, from:CA.flashloan,to:W[0],action:'withdraw',amount_eth:10.0,contract_balance_eth:0.0, participant_count:1},
+    {block:5, from:W[1],to:CA.flashloan,action:'deposit', amount_eth:15.0,contract_balance_eth:15.0,participant_count:2},
+    {block:5, from:CA.flashloan,to:W[1],action:'withdraw',amount_eth:15.0,contract_balance_eth:0.0, participant_count:2},
+    {block:7, from:W[2],to:CA.flashloan,action:'deposit', amount_eth:8.0, contract_balance_eth:8.0, participant_count:3},
+    {block:7, from:CA.flashloan,to:W[2],action:'withdraw',amount_eth:8.0, contract_balance_eth:0.0, participant_count:3},
+    {block:9, from:W[3],to:CA.flashloan,action:'deposit', amount_eth:20.0,contract_balance_eth:20.0,participant_count:4},
+    {block:9, from:CA.flashloan,to:W[3],action:'withdraw',amount_eth:20.0,contract_balance_eth:0.0, participant_count:4}
+  ]
+};
+
+/* ══════════════════════════════════════════════════
+   CORE COMPUTATION
+══════════════════════════════════════════════════ */
+function computeMetrics(rows) {
+  const bm = new Map();
+  for (const r of rows) {
+    if (!bm.has(r.block)) bm.set(r.block,[]);
+    bm.get(r.block).push(r);
+  }
+  return [...bm.keys()].sort((a,b)=>a-b).map(b=>{
+    const sub = bm.get(b);
+    const ti = sub.filter(r=>DEPOSIT_ACTS.has(r.action)).reduce((s,r)=>s+r.amount_eth,0);
+    const to = sub.filter(r=>WITHDRAW_ACTS.has(r.action)).reduce((s,r)=>s+r.amount_eth,0);
+    return {
+      block:b, total_in:ti, total_out:to, net_flow:ti-to,
+      balance:sub[sub.length-1].contract_balance_eth,
+      max_single_tx:Math.max(...sub.map(r=>r.amount_eth)),
+      participant_count:sub[sub.length-1].participant_count
+    };
+  });
+}
+
+function detectAnomalies(metrics) {
+  const r = {drop:false,flow:false,maxtx:false,dropBlock:null,flowBlock:null,maxtxBlock:null};
+  for (let i=1;i<metrics.length;i++){
+    const p=metrics[i-1],c=metrics[i];
+    if(p.balance>0 && (p.balance-c.balance)/p.balance>0.8 && !r.drop){r.drop=true;r.dropBlock=c.block;}
+    if(p.balance>0 && c.net_flow<-(p.balance*0.5) && !r.flow){r.flow=true;r.flowBlock=c.block;}
+    if((c.balance===0&&c.max_single_tx>0)||(c.balance>0&&Math.abs(c.max_single_tx-c.balance)<0.001)){
+      if(!r.maxtx){r.maxtx=true;r.maxtxBlock=c.block;}
+    }
+  }
+  return r;
+}
+
+// ── NEW: Trust Score 5-axis wallet vectors ─────────
+function computeWalletVectors(rows, contractAddr, fraudType) {
+  const base = BASE_VEC[fraudType] || BASE_VEC.normal;
+  const seen = new Set();
+  for(const r of rows){seen.add(r.from);seen.add(r.to);}
+  seen.delete(contractAddr);
+
+  const result = {};
+  for(const addr of seen){
+    const jit = (i,s) => {
+      const h = addr.split('').reduce((a,c,j)=>a+(j%3===0?c.charCodeAt(0):0),0);
+      return Math.round(((h*(i+3)*7)%(s*2))-s);
+    };
+    const v = base.map((b,i) => Math.max(0,Math.min(100,b+jit(i,12))));
+    const raw = v.reduce((s,x,i)=>s+x*AX_WEIGHTS[i],0);
+    const score = Math.round(raw);
+    const grade = v[0]<20?'F':score>=70?'A':score>=55?'B':score>=40?'C':score>=25?'D':'F';
+    result[addr] = {
+      blacklist_assoc:v[0], flow_pattern:v[1], scam_history:v[2],
+      activity_age:v[3], tx_diversity:v[4],
+      trustScore:score, grade,
+      risk: score<40?'high':score<55?'med':'low'
+    };
+  }
+  return result;
+}
+
+function computeOwnerVector(fraudType){
+  const rows = RAW_DATA[fraudType], ca = CA[fraudType];
+  const vecs = computeWalletVectors(rows,ca,fraudType);
+  return Object.values(vecs)[0] || {blacklist_assoc:50,flow_pattern:50,scam_history:50,activity_age:50,tx_diversity:50,trustScore:50,grade:'C',risk:'med'};
+}
+
+function gradeColor(g){ return {A:'#3fb950',B:'#388bfd',C:'#d29922',D:'#e8722a',F:'#f85149'}[g]||'#8b949e'; }
+
+function shortAddr(a){ return a.slice(0,6)+'…'+a.slice(-4); }
+
+function linearReg(pts){
+  if(pts.length<2) return {slope:0,intercept:pts[0]?.y||0};
+  const n=pts.length,sx=pts.reduce((s,p)=>s+p.x,0),sy=pts.reduce((s,p)=>s+p.y,0);
+  const sxy=pts.reduce((s,p)=>s+p.x*p.y,0),sx2=pts.reduce((s,p)=>s+p.x*p.x,0);
+  const sl=(n*sxy-sx*sy)/(n*sx2-sx**2||1);
+  return{slope:sl,intercept:(sy-sl*sx)/n};
+}
+
+/* ══════════════════════════════════════════════════
+   CHART STATE
+══════════════════════════════════════════════════ */
+let curType   = 'ponzi';
+let curPanel  = null;
+let radarCh   = null;
+const tsC     = {};
+const thumbC  = {};
+let simul     = null;
+
+/* ══════════════════════════════════════════════════
+   PANEL 1 — NETWORK
+══════════════════════════════════════════════════ */
+function renderNetwork(type){
+  const svg = d3.select('#net-svg');
+  svg.selectAll('*').remove();
+  const el = document.getElementById('net-svg');
+  const W=el.clientWidth||640, H=el.clientHeight||400;
+  const rows=RAW_DATA[type], ca=CA[type];
+
+  const volMap={};
+  rows.forEach(r=>{volMap[r.from]=(volMap[r.from]||0)+r.amount_eth;volMap[r.to]=(volMap[r.to]||0)+r.amount_eth;});
+  const nodes=[...new Set([...rows.map(r=>r.from),...rows.map(r=>r.to)])].map(id=>({id,vol:volMap[id]||0}));
+  const maxV=Math.max(...nodes.map(n=>n.vol),1);
+  const links=rows.map((r,i)=>({source:r.from,target:r.to,amount:r.amount_eth,action:r.action,id:i}));
+  const maxA=Math.max(...links.map(l=>l.amount),1);
+
+  const defs=svg.append('defs');
+  [['dep','#388bfd'],['wit','#f85149'],['own','#e6edf3']].forEach(([k,c])=>{
+    defs.append('marker').attr('id','a-'+k).attr('viewBox','0 -5 10 10')
+      .attr('refX',18).attr('refY',0).attr('markerWidth',6).attr('markerHeight',6).attr('orient','auto')
+      .append('path').attr('d','M0,-5L10,0L0,5').attr('fill',c).attr('opacity',.8);
+  });
+
+  const g=svg.append('g');
+  svg.call(d3.zoom().scaleExtent([.3,3]).on('zoom',e=>g.attr('transform',e.transform)));
+
+  const le=g.append('g').selectAll('line').data(links).join('line')
+    .attr('class','lk')
+    .attr('stroke',d=>DEPOSIT_ACTS.has(d.action)?'#388bfd':d.action.includes('owner')?'#e6edf3':'#f85149')
+    .attr('stroke-width',d=>Math.max(1,(d.amount/maxA)*7))
+    .attr('marker-end',d=>'url(#a-'+(DEPOSIT_ACTS.has(d.action)?'dep':d.action.includes('owner')?'own':'wit')+')')
+    .on('mouseover',(e,d)=>showTip(e,`${shortAddr(d.source.id||d.source)} → ${shortAddr(d.target.id||d.target)}<br>${d.action}<br>${d.amount.toFixed(3)} ETH`))
+    .on('mouseout',hideTip);
+
+  const ne=g.append('g').selectAll('g').data(nodes).join('g').attr('class','nd')
+    .call(d3.drag()
+      .on('start',(e,d)=>{if(!e.active)simul.alphaTarget(.3).restart();d.fx=d.x;d.fy=d.y;})
+      .on('drag', (e,d)=>{d.fx=e.x;d.fy=e.y;})
+      .on('end',  (e,d)=>{if(!e.active)simul.alphaTarget(0);d.fx=null;d.fy=null;}))
+    .on('click',(_,d)=>{if(d.id!==ca){openPanel(2,d.id);}})
+    .on('mouseover',(e,d)=>showTip(e,`${shortAddr(d.id)}<br>${d.id===ca?'📜 컨트랙트':d.id===OWN?'👑 오너':'👤 지갑'}<br>Vol: ${d.vol.toFixed(3)} ETH<br><span style="font-size:10px;color:#8b949e">클릭 → 신뢰 벡터</span>`))
+    .on('mouseout',hideTip);
+
+  ne.append('circle')
+    .attr('r',d=>Math.max(7,(d.vol/maxV)*20))
+    .attr('fill',d=>d.id===ca?'#3fb950':d.id===OWN?'#d29922':'#388bfd')
+    .attr('stroke','#0d1117').attr('opacity',.9);
+  ne.append('text').attr('y',d=>Math.max(7,(d.vol/maxV)*20)+11).attr('text-anchor','middle')
+    .text(d=>d.id===ca?'CONTRACT':d.id===OWN?'OWNER':shortAddr(d.id));
+
+  if(simul) simul.stop();
+  simul=d3.forceSimulation(nodes)
+    .force('link',d3.forceLink(links).id(d=>d.id).distance(80))
+    .force('charge',d3.forceManyBody().strength(-200))
+    .force('center',d3.forceCenter(W/2,H/2))
+    .force('collision',d3.forceCollide().radius(d=>Math.max(7,(d.vol/maxV)*20)+8))
+    .on('tick',()=>{
+      le.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+      ne.attr('transform',d=>`translate(${d.x},${d.y})`);
+    });
+}
+
+/* ══════════════════════════════════════════════════
+   PANEL 2 — RADAR (5 Trust Score axes)
+══════════════════════════════════════════════════ */
+function updateWalletList(type, selAddr){
+  const vecs = computeWalletVectors(RAW_DATA[type],CA[type],type);
+  const el = document.getElementById('wlist'); el.innerHTML='';
+  Object.keys(vecs).forEach(addr=>{
+    const v=vecs[addr];
+    const b=document.createElement('div');
+    b.className=`wtag ${v.risk==='high'?'hi':v.risk==='med'?'md':'lo'}${addr===selAddr?' sel':''}`;
+    b.textContent=shortAddr(addr)+' ('+v.grade+')';
+    b.title=addr;
+    b.onclick=()=>renderRadar(addr,type);
+    el.appendChild(b);
+  });
+}
+
+function renderRadar(addr, type){
+  updateWalletList(type, addr);
+  const vecs = computeWalletVectors(RAW_DATA[type],CA[type],type);
+  const v = vecs[addr]||Object.values(vecs)[0]; if(!v) return;
+  const gc = gradeColor(v.grade);
+  const hl = HL_AXES[type]||[];
+
+  // Grade bar
+  const gb=document.getElementById('grade-bar');
+  gb.textContent=`${shortAddr(addr)} — Trust Score ${v.trustScore}점 (${v.grade}등급)`;
+  gb.style.cssText=`background:${gc}1a;border:1px solid ${gc}44;color:${gc};border-radius:6px;padding:9px 14px;font-size:13px;font-weight:600;text-align:center;`;
+
+  // Point colors: highlight key risk axes
+  const vec=[v.blacklist_assoc,v.flow_pattern,v.scam_history,v.activity_age,v.tx_diversity];
+  const ptCol=vec.map((x,i)=>hl.includes(i)&&x<45?'#f85149':x<45?'#d29922':'#3fb950');
+
+  if(radarCh){radarCh.destroy();radarCh=null;}
+  const canvas=document.getElementById('radarCanvas');
+  radarCh=new Chart(canvas,{
+    type:'radar',
+    data:{
+      labels:AX_SHORT,
+      datasets:[{data:vec,backgroundColor:gc+'22',borderColor:gc,borderWidth:2,pointBackgroundColor:ptCol,pointRadius:5}]
+    },
+    options:{
+      animation:false,responsive:true,maintainAspectRatio:false,
+      scales:{r:{min:0,max:100,grid:{color:'#30363d'},angleLines:{color:'#30363d'},ticks:{display:false,stepSize:25},pointLabels:{color:'#8b949e',font:{size:10}}}},
+      plugins:{legend:{display:false}}
+    }
+  });
+
+  // Vector detail
+  const rows=document.getElementById('vd-rows'); rows.innerHTML='';
+  vec.forEach((x,i)=>{
+    const col=x<45?'#f85149':x<70?'#d29922':'#3fb950';
+    const isHL=hl.includes(i)&&x<45;
+    rows.innerHTML+=`<div class="vd-row">
+      <span class="vd-lbl">${AX_LABELS[i]}<span class="vd-wt" style="background:${col}22;color:${col}">${AX_WT_LBL[i]}</span></span>
+      <div class="vd-track"><div class="vd-fill" style="width:${x}%;background:${col}"></div></div>
+      <span class="vd-num" style="color:${col}">${x}</span>
+      ${isHL?`<span class="vd-warn">⚠ 핵심 위험</span>`:''}
+    </div>`;
+  });
+}
+
+/* ══════════════════════════════════════════════════
+   PANEL 3 — TIME SERIES
+══════════════════════════════════════════════════ */
+const TS_OPT={animation:false,responsive:true,maintainAspectRatio:false,
+  plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false}},
+  scales:{x:{ticks:{color:'#8b949e',font:{size:8}},grid:{color:'#30363d'}},
+          y:{ticks:{color:'#8b949e',font:{size:8}},grid:{color:'#30363d'},beginAtZero:true}}};
+
+function mkChart(id,type,color,extra={}){
+  const canvas=document.getElementById(id); if(!canvas) return;
+  if(tsC[id]) tsC[id].destroy();
+  const opt=JSON.parse(JSON.stringify(TS_OPT));
+  Object.assign(opt,extra);
+  tsC[id]=new Chart(canvas,{type,data:{labels:[],datasets:[{data:[],backgroundColor:color+'55',borderColor:color,borderWidth:1.5,pointRadius:2}]},options:opt});
+}
+
+function initTS(){
+  mkChart('c-balance','line','#388bfd');
+  mkChart('c-netflow','bar', '#3fb950');
+  mkChart('c-inout',  'bar', '#388bfd');
+  mkChart('c-maxtx',  'line','#bc8cff');
+  mkChart('c-parts',  'line','#d29922');
+  mkChart('c-future', 'line','#388bfd');
+}
+
+function renderTS(type, pct){
+  const metrics=computeMetrics(RAW_DATA[type]);
+  const ci=Math.round(pct/100*(metrics.length-1));
+  const vis=metrics.slice(0,ci+1);
+  const anom=detectAnomalies(vis);
+  const labels=vis.map(m=>m.block+'');
+
+  document.getElementById('bslider-lbl').textContent =
+    vis.length?`Block ${vis[vis.length-1].block}`:'Block ?';
+
+  // Anomaly markers
+  document.getElementById('ma-bal').style.display  = anom.drop ?'block':'none';
+  document.getElementById('ma-tx').style.display   = anom.maxtx?'block':'none';
+
+  const ptCol=(data,ab,col)=>data.map((_,i)=>vis[i]?.block===ab?'#f85149':col);
+  const ptRad=(data,ab)=>data.map((_,i)=>vis[i]?.block===ab?6:2);
+
+  const upd=(id,data,ab=null,col='#388bfd')=>{
+    const ch=tsC[id]; if(!ch) return;
+    ch.data.labels=labels; ch.data.datasets[0].data=data;
+    if(ab){ch.data.datasets[0].pointBackgroundColor=ptCol(data,ab,col);ch.data.datasets[0].pointRadius=ptRad(data,ab);}
+    ch.update('none');
+  };
+  upd('c-balance',vis.map(m=>+m.balance.toFixed(3)),    anom.dropBlock,'#388bfd');
+  upd('c-netflow',vis.map(m=>+m.net_flow.toFixed(3)),   anom.flowBlock,'#3fb950');
+  upd('c-maxtx',  vis.map(m=>+m.max_single_tx.toFixed(3)),anom.maxtxBlock,'#bc8cff');
+  upd('c-parts',  vis.map(m=>m.participant_count));
+
+  // In/out combo
+  const io=tsC['c-inout'];
+  if(io){
+    io.data.labels=labels;
+    io.data.datasets[0].data=vis.map(m=>+m.total_in.toFixed(3));
+    if(io.data.datasets.length<2) io.data.datasets.push({data:[],backgroundColor:'#f8514966',borderColor:'#f85149',borderWidth:1.5});
+    io.data.datasets[1].data=vis.map(m=>+(-m.total_out).toFixed(3));
+    io.update('none');
+  }
+
+  // Future projection (linear regression on last 5 blocks)
+  const fut=tsC['c-future'];
+  if(fut&&vis.length>0){
+    const tail=vis.slice(-Math.min(5,vis.length));
+    const reg=linearReg(tail.map(m=>({x:m.block,y:m.balance})));
+    const lb=tail[tail.length-1].block;
+    const pb=[lb+2,lb+4,lb+6,lb+8];
+    const pv=pb.map(b=>+Math.max(0,reg.slope*b+reg.intercept).toFixed(3));
+    const fl=[...labels,...pb.map(b=>b+'↗')];
+    fut.data.labels=fl;
+    fut.data.datasets[0].data=[...vis.map(m=>+m.balance.toFixed(3)),null,null,null,null];
+    if(fut.data.datasets.length<2) fut.data.datasets.push({data:[],borderColor:'#d29922',borderDash:[4,4],backgroundColor:'transparent',borderWidth:1.5,pointRadius:2,fill:false});
+    const pf=[...vis.map(()=>null),...pv]; pf[vis.length-1]=vis[vis.length-1].balance;
+    fut.data.datasets[1].data=pf.slice(0,fl.length);
+    fut.update('none');
+    if(reg.slope<0){
+      const zb=Math.ceil(-reg.intercept/reg.slope);
+      if(zb>lb&&zb<lb+30) document.getElementById('bslider-lbl').textContent+=`  ⚠ 소진 ~B${zb}`;
+    }
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   PANEL 4 — ANOMALY
+══════════════════════════════════════════════════ */
+function renderP4(type){
+  const metrics=computeMetrics(RAW_DATA[type]);
+  const anom=detectAnomalies(metrics);
+  const rows=RAW_DATA[type];
+  const pat=PATTERNS[type];
+
+  const setB=(bid,vid,on,block)=>{
+    document.getElementById(bid).className='b4'+(on?' on':'');
+    document.getElementById(vid).textContent=on?`Block ${block}에서 감지`:'미감지';
+  };
+  setB('p4b-drop','p4v-drop',anom.drop,anom.dropBlock);
+  setB('p4b-flow','p4v-flow',anom.flow,anom.flowBlock);
+  setB('p4b-maxtx','p4v-maxtx',anom.maxtx,anom.maxtxBlock);
+
+  const ti=rows.filter(r=>DEPOSIT_ACTS.has(r.action)).reduce((s,r)=>s+r.amount_eth,0);
+  const to=rows.filter(r=>WITHDRAW_ACTS.has(r.action)).reduce((s,r)=>s+r.amount_eth,0);
+  const pk=Math.max(...metrics.map(m=>m.balance));
+  const un=new Set([...rows.map(r=>r.from),...rows.map(r=>r.to)]).size;
+  document.getElementById('p4-stats').innerHTML=`
+    <div class="sc"><div class="sc-l">총 입금</div><div class="sc-v">${ti.toFixed(2)} ETH</div></div>
+    <div class="sc"><div class="sc-l">총 출금</div><div class="sc-v">${to.toFixed(2)} ETH</div></div>
+    <div class="sc"><div class="sc-l">최고 잔고</div><div class="sc-v">${pk.toFixed(2)} ETH</div></div>
+    <div class="sc"><div class="sc-l">참여 주소</div><div class="sc-v">${un}개</div></div>`;
+  document.getElementById('p4-pat').innerHTML=pat.desc;
+}
+
+/* ══════════════════════════════════════════════════
+   LEVEL 1 SUMMARY
+══════════════════════════════════════════════════ */
+function renderL1(type){
+  const meta=FRAUD_META[type];
+  const ov=computeOwnerVector(type);
+  const metrics=computeMetrics(RAW_DATA[type]);
+  const anom=detectAnomalies(metrics);
+  const pat=PATTERNS[type];
+  const gc=gradeColor(ov.grade);
+
+  // Topbar
+  document.getElementById('l1-addr').textContent=CA[type];
+  const chip=document.getElementById('l1-chip');
+  chip.textContent=meta.label; chip.style.cssText=`border-color:${meta.color};color:${meta.color};`;
+  chip.className='type-chip'+(meta.risk==='low'?' safe':meta.risk==='med'?' med':'');
+
+  // Signal
+  const sd=document.getElementById('sdot');
+  sd.className='sig-dot'+(meta.risk==='low'?' safe':meta.risk==='med'?' med':'');
+  document.getElementById('sdot-lbl').textContent=meta.risk==='low'?'안전':meta.risk==='med'?'주의':'위험';
+  document.getElementById('sig-verdict').textContent=pat.verdict;
+  const cnt=[anom.drop,anom.flow,anom.maxtx].filter(Boolean).length;
+  document.getElementById('sig-desc').textContent=`Trust Score ${ov.trustScore}점 · ${ov.grade}등급 · 이상 신호 ${cnt}개`;
+
+  // Trust Score
+  document.getElementById('t-num').textContent=ov.trustScore;
+  document.getElementById('t-num').style.color=gc;
+  const tg=document.getElementById('t-grade');
+  tg.textContent=ov.grade+'등급'; tg.style.cssText=`background:${gc}22;color:${gc};`;
+
+  // Vector bars
+  const hl=HL_AXES[type]||[];
+  const vec=[ov.blacklist_assoc,ov.flow_pattern,ov.scam_history,ov.activity_age,ov.tx_diversity];
+  const vr=document.getElementById('vec-rows'); vr.innerHTML='';
+  vec.forEach((x,i)=>{
+    const col=x<45?'#f85149':x<70?'#d29922':'#3fb950';
+    vr.innerHTML+=`<div class="vec-row">
+      <span class="vec-name" style="${hl.includes(i)&&x<45?'color:#f85149;font-weight:600':''}">${AX_LABELS[i]}</span>
+      <div class="vec-track"><div class="vec-fill" style="width:${x}%;background:${col}"></div></div>
+      <span class="vec-val" style="color:${col}">${x}</span>
+    </div>`;
+  });
+
+  // Anomaly badges
+  const setAB=(id,vid,on,block)=>{
+    document.getElementById(id).className='ab'+(on?' on':'');
+    document.getElementById(vid).textContent=on?`Block ${block}`:'미감지';
+  };
+  setAB('ab-drop','ab-drop-v',anom.drop,anom.dropBlock);
+  setAB('ab-flow','ab-flow-v',anom.flow,anom.flowBlock);
+  setAB('ab-maxtx','ab-maxtx-v',anom.maxtx,anom.maxtxBlock);
+
+  // Thumbnail charts
+  renderThumbs(type, vec, metrics, anom);
+}
+
+function mkThumb(id,type,data,color){
+  if(thumbC[id]){thumbC[id].destroy();}
+  const c=document.getElementById(id); if(!c) return;
+  c.width=c.parentElement.clientWidth||120;
+  c.height=c.parentElement.clientHeight||90;
+  thumbC[id]=new Chart(c,{type,data:{labels:data.map((_,i)=>i+''),datasets:[{data,borderColor:color,backgroundColor:color+'44',borderWidth:1.5,pointRadius:0,fill:true}]},
+    options:{animation:false,responsive:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:false,beginAtZero:true}}}});
+}
+
+function renderThumbs(type, vec, metrics, anom){
+  // Thumb 1: balance sparkline
+  mkThumb('t-balance','line',metrics.map(m=>+m.balance.toFixed(2)),'#388bfd');
+  // Thumb 3: net_flow bar
+  mkThumb('t-flow','bar',metrics.map(m=>+m.net_flow.toFixed(2)),'#3fb950');
+  // Thumb 2: mini radar
+  if(thumbC['t-radar']){thumbC['t-radar'].destroy();}
+  const tr=document.getElementById('t-radar'); if(tr){
+    tr.width=tr.parentElement.clientWidth||120;
+    tr.height=tr.parentElement.clientHeight||90;
+    const gc2=gradeColor(computeOwnerVector(type).grade);
+    thumbC['t-radar']=new Chart(tr,{type:'radar',
+      data:{labels:['BL','흐름','스캠','기간','다양'],datasets:[{data:vec,backgroundColor:gc2+'33',borderColor:gc2,borderWidth:1.5,pointRadius:0}]},
+      options:{animation:false,responsive:false,plugins:{legend:{display:false}},
+        scales:{r:{min:0,max:100,grid:{color:'#30363d'},angleLines:{color:'#30363d'},ticks:{display:false},pointLabels:{color:'#8b949e',font:{size:7}}}}}});
+  }
+  // Thumb 4: static badges
+  const mk=(lbl,on)=>`<div style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;border:1px solid ${on?'#f85149':'#30363d'};color:${on?'#f85149':'#8b949e'};background:${on?'rgba(248,81,73,.1)':'transparent'}">${lbl}</div>`;
+  document.getElementById('t-badges').innerHTML=mk('DROP',anom.drop)+mk('FLOW',anom.flow)+mk('MAX TX',anom.maxtx);
+}
+
+/* ══════════════════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════════════════ */
+const P_TITLES={1:'① 자금 흐름 네트워크',2:'② 지갑 신뢰 벡터',3:'③ 시계열 대시보드',4:'④ 이상 신호 탐지기'};
+
+function showView(id){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  const el=document.getElementById(id); if(el) el.classList.add('active');
+}
+
+function goL0(){ showView('l0'); }
+
+function startAnalysis(){
+  showView('l1');
+  renderL1(curType);
+}
+
+function buildTypeSw(pid){
+  const sw=document.getElementById('type-sw'); sw.innerHTML='';
+  Object.entries(FRAUD_META).forEach(([t,m])=>{
+    const b=document.createElement('button');
+    b.className='swbtn'+(t===curType?' cur':'');
+    b.style.cssText=t===curType?`border-color:${m.color};color:${m.color}`:'';
+    b.textContent=m.label;
+    b.onclick=()=>{ curType=t; buildTypeSw(pid); renderPanel(pid); renderL1(curType); };
+    sw.appendChild(b);
+  });
+}
+
+function renderPanel(id, walletId=null){
+  if(id===1) renderNetwork(curType);
+  if(id===2){
+    const vecs=computeWalletVectors(RAW_DATA[curType],CA[curType],curType);
+    const w=walletId||Object.keys(vecs)[0];
+    renderRadar(w,curType);
+  }
+  if(id===3){ initTS(); renderTS(curType,parseInt(document.getElementById('bslider').value)); }
+  if(id===4) renderP4(curType);
+}
+
+function openPanel(id, walletId=null){
+  curPanel=id;
+  document.getElementById('l2').classList.add('open');
+  document.querySelectorAll('.psec').forEach(s=>s.classList.remove('active'));
+  document.getElementById('p'+id).classList.add('active');
+  document.getElementById('p-title').textContent=P_TITLES[id];
+  buildTypeSw(id);
+  setTimeout(()=>renderPanel(id,walletId),40);
+}
+
+function closePanel(){
+  document.getElementById('l2').classList.remove('open');
+}
+
+/* ══════════════════════════════════════════════════
+   TOOLTIP
+══════════════════════════════════════════════════ */
+const tip=document.getElementById('tip');
+function showTip(e,html){tip.innerHTML=html;tip.style.display='block';tip.style.left=(e.clientX+12)+'px';tip.style.top=(e.clientY-10)+'px';}
+function hideTip(){tip.style.display='none';}
+document.addEventListener('mousemove',e=>{if(tip.style.display!=='none'){tip.style.left=(e.clientX+12)+'px';tip.style.top=(e.clientY-10)+'px';}});
+
+/* ══════════════════════════════════════════════════
+   EVENT BINDINGS & INIT
+══════════════════════════════════════════════════ */
+document.querySelectorAll('.tpill').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.tpill').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    curType=b.dataset.type;
+    document.getElementById('addr-in').value=CA[curType];
+  });
+});
+
+document.getElementById('bslider').addEventListener('input',e=>{
+  if(curPanel===3) renderTS(curType,parseInt(e.target.value));
+});
+
+// Init default address
+document.getElementById('addr-in').value=CA.ponzi;
+
+/* ══════════════════════════════════════════════════
+   PIPELINE REPORT LOADER
+══════════════════════════════════════════════════ */
+(function initRptSel(){
+  const sel=document.getElementById('rpt-sel');
+  const names=(typeof window.AVAILABLE_REPORTS!=='undefined')?window.AVAILABLE_REPORTS:[];
+  names.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o);});
+  if(!names.length) document.getElementById('rpt-loader').style.display='none';
+})();
+
+const _TYPE_MAP={ponzi:'ponzi',rugpull:'rugpull',laundering:'laundering',pumpdump:'pumpdump',flashloan:'flashloan',normal:'normal'};
+const _GRADE_COLORS={A:'var(--gr)',B:'var(--bl)',C:'var(--ye)',D:'var(--or)',F:'var(--re)'};
+const _GRADE_LABELS={A:'SAFE',B:'LOW_RISK',C:'MODERATE',D:'HIGH_RISK',F:'CRITICAL'};
+
+async function loadReport(){
+  const sel=document.getElementById('rpt-sel');
+  const name=sel.value;
+  const status=document.getElementById('rpt-status');
+  if(!name){status.textContent='보고서를 선택하세요.';status.style.color='var(--ye)';return;}
+  status.textContent='불러오는 중...';status.style.color='var(--mu)';
+  try{
+    const res=await fetch('reports/'+name+'_report.json');
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const rpt=await res.json();
+
+    // sync type pill
+    const t=_TYPE_MAP[rpt.type]||'ponzi';
+    curType=t;
+    document.querySelectorAll('.tpill').forEach(b=>b.classList.toggle('active',b.dataset.type===t));
+    document.getElementById('addr-in').value=CA[t]||'';
+
+    // navigate to L1
+    showView('l1');
+    renderL1(curType);
+    document.getElementById('l1-addr').textContent=name;
+
+    // override L1 trust display with real pipeline data
+    const tr=rpt.trust;
+    if(tr&&!tr.error&&tr.wallet_scores&&tr.wallet_scores.length){
+      const ov=tr.overall_trust_score;
+      const og=tr.trust_grade; // A-F
+      const gc3=gradeColor(og);
+      const tnEl=document.getElementById('t-num');
+      tnEl.textContent=ov; tnEl.style.color=gc3;
+      const tgEl=document.getElementById('t-grade');
+      tgEl.textContent=og+'등급'; tgEl.style.cssText=`background:${gc3}22;color:${gc3};`;
+      document.getElementById('sig-desc').textContent=
+        `Trust Score ${ov}점 · ${og}등급 (${['SAFE','LOW_RISK','MODERATE','HIGH_RISK','CRITICAL'][['A','B','C','D','F'].indexOf(og)]||og}) · 파이프라인 실측`;
+      // vec-rows: use most suspicious wallet's breakdown
+      const sortedW=[...tr.wallet_scores].sort((a,b)=>a.trust_score-b.trust_score);
+      const repW=sortedW[0];
+      if(repW&&repW.breakdown){
+        const axes=['blacklist_assoc','flow_pattern','scam_history','activity_age','tx_diversity'];
+        const vec2=axes.map(k=>repW.breakdown[k]?.score??50);
+        const hl2=HL_AXES[curType]||[];
+        const vr2=document.getElementById('vec-rows'); vr2.innerHTML='';
+        vec2.forEach((x,i)=>{
+          const col=x<45?'#f85149':x<70?'#d29922':'#3fb950';
+          vr2.innerHTML+=`<div class="vec-row">
+            <span class="vec-name" style="${hl2.includes(i)&&x<45?'color:#f85149;font-weight:600':''}">${AX_LABELS[i]}</span>
+            <div class="vec-track"><div class="vec-fill" style="width:${x}%;background:${col}"></div></div>
+            <span class="vec-val" style="color:${col}">${x}</span>
+          </div>`;
+        });
+      }
+    }
+
+    // populate pipeline score strip
+    const g=rpt.overall_grade||'?';
+    document.getElementById('ps-grade').textContent=g;
+    document.getElementById('ps-grade').style.color=_GRADE_COLORS[g]||'var(--mu)';
+    document.getElementById('ps-glbl').textContent=_GRADE_LABELS[g]||'';
+    document.getElementById('ps-glbl').style.color=_GRADE_COLORS[g]||'var(--mu)';
+    document.getElementById('ps-s').textContent=(rpt.static!=null?rpt.static.static_risk_score:'—')+'/100';
+    document.getElementById('ps-d').textContent=(rpt.dynamic!=null?rpt.dynamic.dynamic_risk_score:'—')+'/100';
+    document.getElementById('ps-t').textContent=(rpt.trust!=null?rpt.trust.overall_trust_score:'—')+'/100';
+    document.getElementById('pipe-strip').classList.add('show');
+
+    status.textContent='✅ '+name+' 보고서 로드 완료';
+    status.style.color='var(--gr)';
+  }catch(e){
+    status.textContent='❌ 불러오기 실패: '+e.message;
+    status.style.color='var(--re)';
+  }
+}
+</script>
+</body>
+</html>
