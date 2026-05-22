@@ -1,0 +1,129 @@
+{
+  "contract": "FlashLoanPattern",
+  "type": "flashloan",
+  "timestamp": "2026-05-06T10:11:35.736Z",
+  "overall_grade": "B",
+  "static": {
+    "file": "FlashLoanPattern.sol",
+    "triggered_rules": [
+      {
+        "id": "RAPID_EXIT_MECHANISM",
+        "description": "즉시 전액 인출 함수 — 파라미터 없음 (플래시론/이탈 패턴)",
+        "weight": 30
+      }
+    ],
+    "static_risk_score": 30,
+    "verdict": "MEDIUM_RISK"
+  },
+  "dynamic": {
+    "csv": "flashloan_log.csv",
+    "rows_analyzed": 10,
+    "metrics": {
+      "total_in_eth": 65,
+      "total_out_eth": 65,
+      "net_flow_eth": 0,
+      "peak_balance_eth": 20,
+      "final_balance_eth": 0,
+      "max_single_withdraw_eth": 20
+    },
+    "triggered_rules": [
+      {
+        "id": "OSCILLATING_BALANCE",
+        "description": "잔고 0 → 복구 → 0 반복 (플래시론 순환 패턴)",
+        "weight": 30
+      }
+    ],
+    "dynamic_risk_score": 30,
+    "verdict": "MEDIUM_RISK",
+    "fraud_type_hint": "flash_loan"
+  },
+  "trust": {
+    "csv": "flashloan_log.csv",
+    "wallet_count": 5,
+    "wallet_scores": [
+      {
+        "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "deposited_eth": 10,
+        "received_eth": 10,
+        "profit_ratio": 1,
+        "is_drainer": false,
+        "blocks_active": 2,
+        "trust_score": 87,
+        "components": {
+          "blacklist": 100,
+          "fundFlow": 100,
+          "scamHist": 100,
+          "activity": 10,
+          "diversity": 100
+        }
+      },
+      {
+        "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+        "deposited_eth": 15,
+        "received_eth": 15,
+        "profit_ratio": 1,
+        "is_drainer": false,
+        "blocks_active": 2,
+        "trust_score": 87,
+        "components": {
+          "blacklist": 100,
+          "fundFlow": 100,
+          "scamHist": 100,
+          "activity": 10,
+          "diversity": 100
+        }
+      },
+      {
+        "address": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+        "deposited_eth": 8,
+        "received_eth": 8,
+        "profit_ratio": 1,
+        "is_drainer": false,
+        "blocks_active": 2,
+        "trust_score": 87,
+        "components": {
+          "blacklist": 100,
+          "fundFlow": 100,
+          "scamHist": 100,
+          "activity": 10,
+          "diversity": 100
+        }
+      },
+      {
+        "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+        "deposited_eth": 20,
+        "received_eth": 20,
+        "profit_ratio": 1,
+        "is_drainer": false,
+        "blocks_active": 2,
+        "trust_score": 87,
+        "components": {
+          "blacklist": 100,
+          "fundFlow": 100,
+          "scamHist": 100,
+          "activity": 10,
+          "diversity": 100
+        }
+      },
+      {
+        "address": "0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc",
+        "deposited_eth": 12,
+        "received_eth": 12,
+        "profit_ratio": 1,
+        "is_drainer": false,
+        "blocks_active": 2,
+        "trust_score": 87,
+        "components": {
+          "blacklist": 100,
+          "fundFlow": 100,
+          "scamHist": 100,
+          "activity": 10,
+          "diversity": 100
+        }
+      }
+    ],
+    "overall_trust_score": 87,
+    "trust_grade": "SAFE",
+    "summary_ko": "총 5개 지갑 분석. 평균 신뢰 점수 87/100 (최저: 87). 등급: SAFE."
+  }
+}

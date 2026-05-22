@@ -1,0 +1,270 @@
+{
+  "generated_at": "2026-05-21T00:13:01.548Z",
+  "note": "Red-team blind-spot analysis — Hardhat simulation only, not for mainnet",
+  "results": [
+    {
+      "contract_name": "PonziLab",
+      "csv_file": "ponzi_log.csv",
+      "is_evasive": false,
+      "dynamic_risk_score": 100,
+      "verdict": "HIGH_RISK",
+      "trust_grade": "C",
+      "overall_trust_score": 49,
+      "triggered_rules": [
+        "BALANCE_DROP",
+        "FLOW_SPIKE",
+        "CONCENTRATION_DRAIN"
+      ],
+      "evaded_rules": [],
+      "fraud_type_hint": "ponzi_or_laundering",
+      "metrics": {
+        "total_in_eth": 10,
+        "total_out_eth": 10,
+        "net_flow_eth": 0,
+        "peak_balance_eth": 10,
+        "final_balance_eth": 0,
+        "max_single_withdraw_eth": 6.7
+      },
+      "missing_csv": false
+    },
+    {
+      "contract_name": "NormalStaking",
+      "csv_file": "normal_log.csv",
+      "is_evasive": false,
+      "dynamic_risk_score": 0,
+      "verdict": "LOW_RISK",
+      "trust_grade": "A",
+      "overall_trust_score": 86,
+      "triggered_rules": [],
+      "evaded_rules": [],
+      "fraud_type_hint": "normal_staking",
+      "metrics": {
+        "total_in_eth": 15,
+        "total_out_eth": 10.445,
+        "net_flow_eth": 4.555,
+        "peak_balance_eth": 15,
+        "final_balance_eth": 4.555,
+        "max_single_withdraw_eth": 1.049
+      },
+      "missing_csv": false
+    },
+    {
+      "contract_name": "RugPull",
+      "csv_file": "rugpull_log.csv",
+      "is_evasive": false,
+      "dynamic_risk_score": 100,
+      "verdict": "HIGH_RISK",
+      "trust_grade": "C",
+      "overall_trust_score": 46,
+      "triggered_rules": [
+        "BALANCE_DROP",
+        "FLOW_SPIKE",
+        "CONCENTRATION_DRAIN"
+      ],
+      "evaded_rules": [],
+      "fraud_type_hint": "rug_pull",
+      "metrics": {
+        "total_in_eth": 19,
+        "total_out_eth": 19,
+        "net_flow_eth": 0,
+        "peak_balance_eth": 19,
+        "final_balance_eth": 0,
+        "max_single_withdraw_eth": 19
+      },
+      "missing_csv": false
+    },
+    {
+      "contract_name": "MoneyLaundering",
+      "csv_file": "laundering_log.csv",
+      "is_evasive": false,
+      "dynamic_risk_score": 100,
+      "verdict": "HIGH_RISK",
+      "trust_grade": "B",
+      "overall_trust_score": 57,
+      "triggered_rules": [
+        "BALANCE_DROP",
+        "FLOW_SPIKE",
+        "CONCENTRATION_DRAIN",
+        "PROFIT_EXTRACTION"
+      ],
+      "evaded_rules": [],
+      "fraud_type_hint": "rug_pull",
+      "metrics": {
+        "total_in_eth": 3.51,
+        "total_out_eth": 3.51,
+        "net_flow_eth": 0,
+        "peak_balance_eth": 3.51,
+        "final_balance_eth": 0,
+        "max_single_withdraw_eth": 3.51
+      },
+      "missing_csv": false
+    },
+    {
+      "contract_name": "PumpDump",
+      "csv_file": "pumpdump_log.csv",
+      "is_evasive": false,
+      "dynamic_risk_score": 60,
+      "verdict": "MEDIUM_RISK",
+      "trust_grade": "A",
+      "overall_trust_score": 72,
+      "triggered_rules": [
+        "CONCENTRATION_DRAIN",
+        "PROFIT_EXTRACTION"
+      ],
+      "evaded_rules": [],
+      "fraud_type_hint": "pump_dump",
+      "metrics": {
+        "total_in_eth": 19.5,
+        "total_out_eth": 19.5,
+        "net_flow_eth": 0,
+        "peak_balance_eth": 19.5,
+        "final_balance_eth": 0,
+        "max_single_withdraw_eth": 6.5
+      },
+      "missing_csv": false
+    },
+    {
+      "contract_name": "FlashLoan",
+      "csv_file": "flashloan_log.csv",
+      "is_evasive": false,
+      "dynamic_risk_score": 30,
+      "verdict": "MEDIUM_RISK",
+      "trust_grade": "A",
+      "overall_trust_score": 87,
+      "triggered_rules": [
+        "OSCILLATING_BALANCE"
+      ],
+      "evaded_rules": [],
+      "fraud_type_hint": "flash_loan",
+      "metrics": {
+        "total_in_eth": 65,
+        "total_out_eth": 65,
+        "net_flow_eth": 0,
+        "peak_balance_eth": 20,
+        "final_balance_eth": 0,
+        "max_single_withdraw_eth": 20
+      },
+      "missing_csv": false
+    },
+    {
+      "contract_name": "EvasiveA",
+      "csv_file": "evasive_A_log.csv",
+      "is_evasive": true,
+      "dynamic_risk_score": 0,
+      "verdict": "LOW_RISK",
+      "trust_grade": "B",
+      "overall_trust_score": 55,
+      "triggered_rules": [],
+      "evaded_rules": [
+        "BALANCE_DROP",
+        "FLOW_SPIKE",
+        "CONCENTRATION_DRAIN",
+        "PROFIT_EXTRACTION",
+        "OSCILLATING_BALANCE"
+      ],
+      "fraud_type_hint": "unknown",
+      "metrics": {
+        "total_in_eth": 10,
+        "total_out_eth": 9.6,
+        "net_flow_eth": 0.4,
+        "peak_balance_eth": 10,
+        "final_balance_eth": 0.4,
+        "max_single_withdraw_eth": 2.4
+      },
+      "missing_csv": false
+    },
+    {
+      "contract_name": "EvasiveB",
+      "csv_file": "evasive_B_log.csv",
+      "is_evasive": true,
+      "dynamic_risk_score": 65,
+      "verdict": "HIGH_RISK",
+      "trust_grade": "C",
+      "overall_trust_score": 46,
+      "triggered_rules": [
+        "FLOW_SPIKE",
+        "CONCENTRATION_DRAIN"
+      ],
+      "evaded_rules": [
+        "BALANCE_DROP",
+        "PROFIT_EXTRACTION",
+        "OSCILLATING_BALANCE"
+      ],
+      "fraud_type_hint": "unknown",
+      "metrics": {
+        "total_in_eth": 10,
+        "total_out_eth": 8.9,
+        "net_flow_eth": 1.1,
+        "peak_balance_eth": 10,
+        "final_balance_eth": 1.1,
+        "max_single_withdraw_eth": 8.9
+      },
+      "missing_csv": false
+    },
+    {
+      "contract_name": "EvasiveC",
+      "csv_file": "evasive_C_log.csv",
+      "is_evasive": true,
+      "dynamic_risk_score": 60,
+      "verdict": "MEDIUM_RISK",
+      "trust_grade": "A",
+      "overall_trust_score": 70,
+      "triggered_rules": [
+        "CONCENTRATION_DRAIN",
+        "PROFIT_EXTRACTION"
+      ],
+      "evaded_rules": [
+        "BALANCE_DROP",
+        "FLOW_SPIKE",
+        "OSCILLATING_BALANCE"
+      ],
+      "fraud_type_hint": "pump_dump",
+      "metrics": {
+        "total_in_eth": 10,
+        "total_out_eth": 9.6,
+        "net_flow_eth": 0.4,
+        "peak_balance_eth": 10,
+        "final_balance_eth": 0.4,
+        "max_single_withdraw_eth": 2.4
+      },
+      "missing_csv": false
+    }
+  ],
+  "blind_spots": {
+    "approach": "All three evasive scenarios use only standard action strings (deposit/withdraw/owner_withdraw_all). Evasion is achieved purely through indicator-design and rule-threshold weaknesses, not action-label manipulation.",
+    "scenario_A": {
+      "name": "분산 출금 (Distributed Drain)",
+      "result": "0/100 LOW_RISK despite 96% extraction",
+      "weaknesses": [
+        "FLOW_SPIKE uses maxSingleWithdraw (single-tx peak) instead of cumulative outflow: 4×2.4 ETH each stays below 50% threshold",
+        "CONCENTRATION_DRAIN has a hard 80% cliff: 4 equal recipients produce 75% top-3 concentration, just below the threshold"
+      ]
+    },
+    "scenario_B": {
+      "name": "임계값 절벽 (Threshold Cliff)",
+      "result": "65/100 HIGH_RISK (borderline) with primary rule BALANCE_DROP (+45) silent",
+      "weaknesses": [
+        "BALANCE_DROP has a binary 90% cliff: extracting 89% (finalBal=1.1 > peak×0.1=1.0) silences the highest-weight rule entirely despite near-total drainage",
+        "A 0.1 ETH buffer is treated as categorically different from a 0.1 ETH deficit"
+      ]
+    },
+    "scenario_C": {
+      "name": "점수 가중치 격차 + 시간 무감각 (Score Weight Gap + Temporal Blindness)",
+      "result": "60/100 MEDIUM_RISK despite 96% extraction and suspicious temporal pattern",
+      "weaknesses": [
+        "CONCENTRATION_DRAIN(+30) + PROFIT_EXTRACTION(+30) = 60, falling 5 points short of HIGH_RISK threshold — 'who received what' rules cannot alone reach HIGH_RISK",
+        "BALANCE_DROP gates on the literal string 'owner_withdraw_all' via hasOwnerDrain: using 'withdraw' (also in WITHDRAW_ACTIONS) bypasses this gate",
+        "FLOW_SPIKE single-tx metric: 4×2.4 ETH stays below 50% threshold",
+        "No rule measures temporal patterns: 50-block gap between deposit and drain phases is completely invisible to the detection system"
+      ]
+    },
+    "recommended_fixes": [
+      "FLOW_SPIKE: replace maxSingleWithdraw with cumulative extraction ratio (totalOut/totalIn)",
+      "BALANCE_DROP: remove or broaden hasOwnerDrain gate to all WITHDRAW_ACTIONS members",
+      "CONCENTRATION_DRAIN: replace 80% cliff with continuous concentration score",
+      "Score rebalancing: raise CONCENTRATION_DRAIN and PROFIT_EXTRACTION weights so their combined score can reach HIGH_RISK threshold independently",
+      "Add temporal indicators: measure block-gap between deposit phase and withdrawal phase, flag high extraction velocity (ETH/block)",
+      "Apply thresholds directly to contract_balance_eth time series regardless of action labels"
+    ]
+  }
+}
