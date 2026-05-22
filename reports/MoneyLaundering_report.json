@@ -1,0 +1,368 @@
+{
+  "contract": "MoneyLaundering",
+  "type": "laundering",
+  "timestamp": "2026-05-06T10:11:46.169Z",
+  "overall_grade": "D",
+  "static": {
+    "file": "MoneyLaundering.sol",
+    "triggered_rules": [
+      {
+        "id": "UNCONSTRAINED_OWNER_DRAIN",
+        "description": "오너가 전액을 외부로 인출할 수 있는 함수 (러그풀/폰지 핵심 위험)",
+        "weight": 50
+      }
+    ],
+    "static_risk_score": 50,
+    "verdict": "HIGH_RISK"
+  },
+  "dynamic": {
+    "csv": "laundering_log.csv",
+    "rows_analyzed": 20,
+    "metrics": {
+      "total_in_eth": 3.51,
+      "total_out_eth": 3.51,
+      "net_flow_eth": 0,
+      "peak_balance_eth": 3.51,
+      "final_balance_eth": 0,
+      "max_single_withdraw_eth": 3.51
+    },
+    "triggered_rules": [
+      {
+        "id": "BALANCE_DROP",
+        "description": "오너 액션으로 잔고 90%+ 급락 (러그풀/폰지 탈출)",
+        "weight": 45
+      },
+      {
+        "id": "FLOW_SPIKE",
+        "description": "단일 출금이 총 입금의 50% 이상 (일거에 자금 흡수)",
+        "weight": 35
+      },
+      {
+        "id": "CONCENTRATION_DRAIN",
+        "description": "상위 3개 지갑이 총 출금의 80% 이상 집중 수령",
+        "weight": 30
+      },
+      {
+        "id": "PROFIT_EXTRACTION",
+        "description": "입금 대비 130% 이상 수령한 지갑 존재 (부당 수익 탈취)",
+        "weight": 30
+      }
+    ],
+    "dynamic_risk_score": 100,
+    "verdict": "HIGH_RISK",
+    "fraud_type_hint": "rug_pull"
+  },
+  "trust": {
+    "csv": "laundering_log.csv",
+    "wallet_count": 19,
+    "wallet_scores": [
+      {
+        "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "deposited_eth": 0.1,
+        "received_eth": 3.51,
+        "profit_ratio": 35.1,
+        "is_drainer": true,
+        "blocks_active": 40,
+        "trust_score": 30,
+        "components": {
+          "blacklist": 0,
+          "fundFlow": 0,
+          "scamHist": 0,
+          "activity": 100,
+          "diversity": 100
+        }
+      },
+      {
+        "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+        "deposited_eth": 0.15,
+        "received_eth": 0,
+        "profit_ratio": 0,
+        "is_drainer": false,
+        "blocks_active": 1,
+        "trust_score": 78,
+        "components": {
+          "blacklist": 100,
+          "fundFlow": 100,
+          "scamHist": 100,
+          "activity": 5,
+          "diversity": 50
+        }
+      },
+      {
+        "address": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+        "deposited_eth": 0.2,
+        "received_eth": 0,
+        "profit_ratio": 0,
+        "is_drainer": false,
+        "blocks_active": 1,
+        "trust_score": 78,
+        "components": {
+          "blacklist": 100,
+          "fundFlow": 100,
+          "scamHist": 100,
+          "activity": 5,
+          "diversity": 50
+        }
+      },
+      {
+        "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+        "deposited_eth": 0.12,
+        "received_eth": 0,
+        "profit_ratio": 0,
+        "is_drainer": false,
+        "blocks_active": 1,
+        "trust_score": 78,
+        "components": {
+          "blacklist": 100,
+          "fundFlow": 100,
+          "scamHist": 100,
+          "activity": 5,
+          "diversity": 50
+        }
+      },
+      {
+        "address": "0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc",
+        "deposited_eth": 0.18,
+        "received_eth": 0,
+        "profit_ratio": 0,
+        "is_drainer": false,
+        "blocks_active": 1,
+        "trust_score": 78,
+        "components": {
+          "blacklist": 100,
+          "fundFlow": 100,
+          "scamHist": 100,
+          "activity": 5,
+          "diversity": 50
+        }
+      },
+      {
+        "address": "0x976ea74026e726554db657fa54763abd0c3a0aa9",
+        "deposited_eth": 0.25,
+        "received_eth": 0,
+        "profit_ratio": 0,
+        "is_drainer": false,
+        "blocks_active": 1,
+        "trust_score": 78,
+        "components": {
+          "blacklist": 100,
+          "fundFlow": 100,
+          "scamHist": 100,
+          "activity": 5,
+          "diversity": 50
+        }
+      },
+      {
+        "address": "0x14dc79964da2c08b23698b3d3cc7ca32193d9955",
+        "deposited_eth": 0.11,
+        "received_eth": 0,
+        "profit_ratio": 0,
+        "is_drainer": false,
+        "blocks_active": 1,
+        "trust_score": 78,
+        "components": {
+          "blacklist": 100,
+          "fundFlow": 100,
+          "scamHist": 100,
+          "activity": 5,
+          "diversity": 50
+        }
+      },
+      {
+        "address": "0x23618e81e3f5cdf7f54c3d65f7fbc0abf5b21e8f",
+        "deposited_eth": 0.3,
+        "received_eth": 0,
+        "profit_ratio": 0,
+        "is_drainer": false,
+        "blocks_active": 1,
+        "trust_score": 78,
+        "components": {
+          "blacklist": 100,
+          "fundFlow": 100,
+          "scamHist": 100,
+          "activity": 5,
+          "diversity": 50
+        }
+      },
+      {
+        "address": "0xa0ee7a142d267c1f36714e4a8f75612f20a79720",
+        "deposited_eth": 0.13,
+        "received_eth": 0,
+        "profit_ratio": 0,
+        "is_drainer": false,
+        "blocks_active": 1,
+        "trust_score": 78,
+        "components": {
+          "blacklist": 100,
+          "fundFlow": 100,
+          "scamHist": 100,
+          "activity": 5,
+          "diversity": 50
+        }
+      },
+      {
+        "address": "0xbcd4042de499d14e55001ccbb24a551f3b954096",
+        "deposited_eth": 0.22,
+        "received_eth": 0,
+        "profit_ratio": 0,
+        "is_drainer": false,
+        "blocks_active": 1,
+        "trust_score": 78,
+        "components": {
+          "blacklist": 100,
+          "fundFlow": 100,
+          "scamHist": 100,
+          "activity": 5,
+          "diversity": 50
+        }
+      },
+      {
+        "address": "0x71be63f3384f5fb98995898a86b02fb2426c5788",
+        "deposited_eth": 0.17,
+        "received_eth": 0,
+        "profit_ratio": 0,
+        "is_drainer": false,
+        "blocks_active": 1,
+        "trust_score": 78,
+        "components": {
+          "blacklist": 100,
+          "fundFlow": 100,
+          "scamHist": 100,
+          "activity": 5,
+          "diversity": 50
+        }
+      },
+      {
+        "address": "0xfabb0ac9d68b0b445fb7357272ff202c5651694a",
+        "deposited_eth": 0.19,
+        "received_eth": 0,
+        "profit_ratio": 0,
+        "is_drainer": false,
+        "blocks_active": 1,
+        "trust_score": 78,
+        "components": {
+          "blacklist": 100,
+          "fundFlow": 100,
+          "scamHist": 100,
+          "activity": 5,
+          "diversity": 50
+        }
+      },
+      {
+        "address": "0x1cbd3b2770909d4e10f157cabc84c7264073c9ec",
+        "deposited_eth": 0.14,
+        "received_eth": 0,
+        "profit_ratio": 0,
+        "is_drainer": false,
+        "blocks_active": 1,
+        "trust_score": 78,
+        "components": {
+          "blacklist": 100,
+          "fundFlow": 100,
+          "scamHist": 100,
+          "activity": 5,
+          "diversity": 50
+        }
+      },
+      {
+        "address": "0xdf3e18d64bc6a983f673ab319ccae4f1a57c7097",
+        "deposited_eth": 0.28,
+        "received_eth": 0,
+        "profit_ratio": 0,
+        "is_drainer": false,
+        "blocks_active": 1,
+        "trust_score": 78,
+        "components": {
+          "blacklist": 100,
+          "fundFlow": 100,
+          "scamHist": 100,
+          "activity": 5,
+          "diversity": 50
+        }
+      },
+      {
+        "address": "0xcd3b766ccdd6ae721141f452c550ca635964ce71",
+        "deposited_eth": 0.16,
+        "received_eth": 0,
+        "profit_ratio": 0,
+        "is_drainer": false,
+        "blocks_active": 1,
+        "trust_score": 78,
+        "components": {
+          "blacklist": 100,
+          "fundFlow": 100,
+          "scamHist": 100,
+          "activity": 5,
+          "diversity": 50
+        }
+      },
+      {
+        "address": "0x2546bcd3c84621e976d8185a91a922ae77ecec30",
+        "deposited_eth": 0.21,
+        "received_eth": 0,
+        "profit_ratio": 0,
+        "is_drainer": false,
+        "blocks_active": 1,
+        "trust_score": 78,
+        "components": {
+          "blacklist": 100,
+          "fundFlow": 100,
+          "scamHist": 100,
+          "activity": 5,
+          "diversity": 50
+        }
+      },
+      {
+        "address": "0xbda5747bfd65f08deb54cb465eb87d40e51b197e",
+        "deposited_eth": 0.1,
+        "received_eth": 0,
+        "profit_ratio": 0,
+        "is_drainer": false,
+        "blocks_active": 1,
+        "trust_score": 78,
+        "components": {
+          "blacklist": 100,
+          "fundFlow": 100,
+          "scamHist": 100,
+          "activity": 5,
+          "diversity": 50
+        }
+      },
+      {
+        "address": "0xdd2fd4581271e230360230f9337d5c0430bf44c0",
+        "deposited_eth": 0.27,
+        "received_eth": 0,
+        "profit_ratio": 0,
+        "is_drainer": false,
+        "blocks_active": 1,
+        "trust_score": 78,
+        "components": {
+          "blacklist": 100,
+          "fundFlow": 100,
+          "scamHist": 100,
+          "activity": 5,
+          "diversity": 50
+        }
+      },
+      {
+        "address": "0x8626f6940e2eb28930efb4cef49b2d1f2c9c1199",
+        "deposited_eth": 0.23,
+        "received_eth": 0,
+        "profit_ratio": 0,
+        "is_drainer": false,
+        "blocks_active": 1,
+        "trust_score": 78,
+        "components": {
+          "blacklist": 100,
+          "fundFlow": 100,
+          "scamHist": 100,
+          "activity": 5,
+          "diversity": 50
+        }
+      }
+    ],
+    "overall_trust_score": 75,
+    "trust_grade": "SAFE",
+    "summary_ko": "총 19개 지갑 분석. 평균 신뢰 점수 75/100 (최저: 30). 오너 드레인 지갑 1개 탐지. 과도한 수익 추출 지갑 1개 탐지. 등급: SAFE."
+  }
+}
