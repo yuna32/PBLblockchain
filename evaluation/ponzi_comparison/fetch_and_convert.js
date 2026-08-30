@@ -195,7 +195,13 @@ function aggregateByBlock(normalTxs, internalTxs, address) {
   }
 
   // 일반 트랜잭션: 컨트랙트가 받는 ETH (to == contract)
+  // isError==="1" (실패/리버트)인 트랜잭션은 제외한다 — Etherscan은 실패한
+  // 트랜잭션도 목록에 포함시키며 value 필드에 "의도했던" 금액을 그대로
+  // 채워두는데, 리버트된 트랜잭션은 실제로 ETH가 이동하지 않았으므로 이를
+  // 그대로 합산하면 cumulative_balance가 왜곡된다(음수/비현실적 값의 한 원인
+  // 으로 확인됨 — EVASION_ANALYSIS.md 참고).
   for (const tx of normalTxs) {
+    if (tx.isError === '1') continue;
     const val = weiToEth(tx.value);
     if (!tx.to || !tx.blockNumber) continue;
     if (tx.to.toLowerCase()   === addr) record(+tx.blockNumber, true,  val, tx.from);
@@ -203,7 +209,9 @@ function aggregateByBlock(normalTxs, internalTxs, address) {
   }
 
   // 내부 트랜잭션: 컨트랙트가 보내는 ETH (from == contract) 및 받는 ETH
+  // 마찬가지로 실패한 내부 호출(isError==="1")은 제외.
   for (const tx of internalTxs) {
+    if (tx.isError === '1') continue;
     const val = weiToEth(tx.value);
     if (!tx.blockNumber) continue;
     if (tx.from?.toLowerCase() === addr) record(+tx.blockNumber, false, val, tx.to);
@@ -236,7 +244,7 @@ function aggregateByBlock(normalTxs, internalTxs, address) {
 }
 
 // ── Process a single address ──────────────────────────────────────────────────
-async function processOne(address) {
+export async function processOne(address) {
   // 1. getsourcecode → 컨트랙트 & 검증 여부 확인
   let srcResp;
   try   { srcResp = await getSourceCode(address); }
@@ -365,4 +373,9 @@ async function main() {
   console.log(`  sources → ${SOURCES_DIR}`);
 }
 
-main().catch(err => { console.error(err); process.exit(1); });
+// CLI 직접 실행시에만 main() 구동 — 다른 스크립트가 processOne()을 import해도
+// 부수효과(전체 272건 재실행) 없음. (evaluation/hoplaundering/fetch_and_convert_v2.js
+// 와 동일한 관례.)
+if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
+  main().catch(err => { console.error(err); process.exit(1); });
+}

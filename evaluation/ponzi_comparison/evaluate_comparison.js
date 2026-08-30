@@ -331,9 +331,27 @@ async function main() {
   let raw = fs.readFileSync(labelsPath, 'utf8');
   if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
 
-  const entries = raw.trim().split(/\r?\n/).slice(1)
+  let entries = raw.trim().split(/\r?\n/).slice(1)
     .map(l => { const [a, lbl] = l.split(','); return { address: a?.trim(), label: parseInt(lbl?.trim()) }; })
     .filter(e => e.address && !isNaN(e.label));
+
+  // EXCLUDE_ADDRESSES: 쉼표로 구분된 주소 목록을 평가 대상에서 제외.
+  // known_outliers.csv에 기록된 물리적으로 불가능한 이상치(예: 이더리움
+  // 전체 유통량을 초과하는 잔고)처럼, 데이터 자체가 손상되어 어떤 규칙을
+  // 쓰든 의미 있는 결과를 낼 수 없는 주소를 결과 집계에서 빼기 위한
+  // 것이다. 자동으로 known_outliers.csv를 참조하지 않고 명시적 env var로만
+  // 동작한다 — 어떤 주소가 왜 빠졌는지 실행할 때마다 명확히 드러나도록.
+  const excludeSet = new Set(
+    (process.env.EXCLUDE_ADDRESSES ?? '')
+      .split(',')
+      .map(a => a.trim().toLowerCase())
+      .filter(Boolean)
+  );
+  if (excludeSet.size > 0) {
+    const before = entries.length;
+    entries = entries.filter(e => !excludeSet.has(e.address.toLowerCase()));
+    console.log(`[EXCLUDE_ADDRESSES] ${before - entries.length}개 주소 제외 (${entries.length}/${before}건 평가)`);
+  }
 
   // 2. Load baseline predictions (address → {pred, score})
   const basePath = path.join(RESULTS_DIR, 'baseline_predictions.csv');

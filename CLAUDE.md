@@ -162,6 +162,45 @@ Phase 3에서 확인된 3가지 구조적 부재(라벨셋 없음/주소 데이�
   참고. **코드 수정은 하지 않았음 — 데이터 파이프라인 정합성 점검과
   `isOrganicUnstake` 실데이터 호환 재설계 둘 다 별도 승인 필요.**
 
+## Phase 1.5/2 — 이상치 격리 + isOrganicUnstake 재설계 검토 (2026-08-30)
+
+위 disagreement 원인 분석의 후속 작업. 상세는 `EVASION_ANALYSIS.md`의
+"Phase 1.5" / "Phase 2" 절 참고. 요약:
+
+- **`fetch_and_convert.js` 버그 수정**: `aggregateByBlock()`이 Etherscan의
+  `isError`(실패 트랜잭션 여부)를 확인하지 않아 리버트된 트랜잭션까지
+  잔고에 합산되던 버그를 고쳤다. `processOne()`을 export하고 `main()`을
+  CLI 가드로 감싸 재사용 가능하게 함. **효과는 제한적**: 이상 5건 중
+  1건(`0xcafe1a77`)만 완전히 해결됐고, 나머지 4건은 원인이 다른 것으로
+  확인됨(추정: selfdestruct 등 Etherscan API가 포착 못하는 자금 이동
+  경로 — 코드로 고칠 수 없음). 심지어 해결된 1건도 재검증 결과 진짜로
+  peak→0 완전 소진이었음이 드러나 여전히 오탐으로 분류된다 — **데이터
+  수정만으로는 신규 오탐 27건 중 0건도 해소되지 않음.**
+- **이상치 레지스트리 신설**: `evaluation/ponzi_comparison/data/
+  known_outliers.csv`(13건: resolved_genuine 1, unresolved_corrupt 4,
+  unreviewed 8). `unreviewed` 8건은 **다음 세션 작업 후보**로 명시적으로
+  남겨둔 상태 — 이번 세션에서 재조사하지 않았다.
+- **`EXCLUDE_ADDRESSES` 환경변수 추가** (`evaluate_comparison.js`) —
+  물리적으로 불가능한 값(이더리움 전체 유통량 초과 등)을 가진 주소를
+  평가에서 제외하기 위함. `known_outliers.csv`를 자동 참조하지 않고
+  명시적 지정만 지원(실행할 때마다 뭐가 왜 빠졌는지 드러나도록). 현재는
+  `unresolved_corrupt` 4건 중 `0xd0a6e6c5` 한 건만 실제로 제외 대상으로
+  씀 — 나머지 3건은 오차가 작아(peak 대비 십수%) 판정 전체를 무효화할
+  근거가 약하다고 판단.
+- **`isOrganicUnstake` 재설계는 검토만 하고 구현하지 않았다.** 주소
+  네임스페이스 문제만 고치는 두 설계안(주소 대신 입금이력 기반 판정 /
+  실데이터·시뮬레이션 경로 분리)을 실제 26건(27건 중 `0xd0a6e6c5` 제외)
+  에 시뮬레이션한 결과 **0/26건 해소** — 진짜 병목은 주소가 아니라
+  "금액 균등성" 조건(`maxW ≤ minW×2.5`, 21/26건이 여기 걸림, 실제
+  데이터는 정상적으로도 인출액이 크게 들쭉날쭉하기 때문)과
+  `convertToPerTx`가 잔고 급락을 보고 마지막 출금을 자동으로
+  `owner_withdraw_all`로 잘못 라벨링하는 문제(11/26건)였다. 게다가 주소
+  조건만 제거하는 안은 `evasive_A_log`를 다시 조직적 정상 환급으로
+  오판정시키는 **회귀까지 확인됨**(4개 신규 주소가 우연히 균등 금액·
+  고성공률 조건을 만족). 사용자가 이 결과를 보고 **구현 보류를
+  결정** — 의미 있는 해결은 원래 검토 범위(주소)를 넘어 균등성 조건과
+  오라벨링까지 재설계해야 하므로, 별도 세션에서 재논의하기로 함.
+
 ## scenarios/ 폴더 상태 점검 (2026-08-30)
 
 `scenarios/generate_scenarios.js`(+ `param_ranges.js`)로 유형당 5개씩

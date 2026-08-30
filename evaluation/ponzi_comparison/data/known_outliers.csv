@@ -1,0 +1,14 @@
+address,min_balance_or_peak_issue,status
+0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf,"minBal=-7211719.84 ETH (peak=21.00) — 이더리움 전체 유통량을 초과하는 물리적으로 불가능한 값. isError 필터 적용 후에도 원인 불명(내부 트랜잭션이 모두 isError=0으로 기록됨). fetch_and_convert.js 수정으로도 해결 안 됨",unresolved_corrupt
+0x05240da139d30034eaae15737610bfbe68b97910,"minBal=-82.02 ETH (peak=621.01). isError 필터 적용 후 거의 불변(-81.91→-82.02) — 원인 미상, 추정: selfdestruct 등 txlist/txlistinternal이 포착 못하는 자금 이동 경로",unresolved_corrupt
+0x1d979bd0b663040f2fe8a9854a8569919ae153ac,"minBal=-14.30 ETH (peak=71.66). 실패 트랜잭션 0건 확인 — isError 필터와 무관, 원인 미상",unresolved_corrupt
+0xbc9ccc8a46d424de38b2e4df5f4a5001321c5d4c,"minBal=-11.36 ETH (peak=0.11). isError 필터 적용 후 거의 불변(-11.37→-11.36) — 원인 미상",unresolved_corrupt
+0xcafe1a77e84698c83ca8931f54a755176ef75f2c,"minBal=-24948.83 ETH (peak=277199.00) → isError 필터 적용 후 minBal=0.0000으로 완전 정상화. 재검증 결과 peak→0 완전 소진이 실제 패턴으로 확인됨(데이터 오류 아니었음)",resolved_genuine
+0xf45717552f12ef7cb65e95476f217ea008167ae3,"minBal=-25279.93 ETH (peak=1243.89) — 2026-08-30 전체 272건 스캔에서 신규 발견, 미조사",unreviewed
+0x582e3d8dcd41f586fbcc6559f16476d20b2a3b95,"minBal=-17244.51 ETH (peak=2032.62) — 2026-08-30 전체 272건 스캔에서 신규 발견, 미조사",unreviewed
+0x5fb3d432bae33fcd418ede263d98d7440e7fa3ea,"minBal=-3818.01 ETH (peak=4914.38) — 2026-08-30 전체 272건 스캔에서 신규 발견, 미조사",unreviewed
+0x20d42f2e99a421147acf198d775395cac2e8b03d,"minBal=-2113.55 ETH (peak=26002.86) — 2026-08-30 전체 272건 스캔에서 신규 발견, 미조사",unreviewed
+0x9a2e9235f7a7ac7b899e5f3208fbb13c6985171a,"minBal=-147.82 ETH (peak=55.80) — 2026-08-30 전체 272건 스캔에서 신규 발견, 미조사",unreviewed
+0x109c4f2ccc82c4d77bde15f306707320294aea3f,"minBal=-77.01 ETH (peak=196.80) — 2026-08-30 전체 272건 스캔에서 신규 발견, 미조사",unreviewed
+0xa502f8112b2491718855f01a01a60462cc97a0d5,"minBal=-8.24 ETH (peak=167.00) — 2026-08-30 전체 272건 스캔에서 신규 발견, 미조사",unreviewed
+0x2c2e3baa2191cf325a28a01ff42340f2ae677572,"minBal=-2.89 ETH (peak=1.80) — 2026-08-30 전체 272건 스캔에서 신규 발견, 미조사",unreviewed
