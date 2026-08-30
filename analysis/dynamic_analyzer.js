@@ -9,6 +9,17 @@ const DEPOSIT_ACTIONS   = new Set(["deposit", "stake", "fund_reward_pool"]);
 const WITHDRAW_ACTIONS  = new Set(["withdraw", "unstake", "owner_withdraw_all"]);
 const HIGH_RISK_ACTIONS = new Set(["owner_withdraw_all"]);
 
+// HopLaundering bothSides 판정에서 제외할 범용 DEX 라우터/애그리게이터.
+// EthereumHeist 파일럿(n=8, evaluation/hoplaundering/)에서 BELLE Honeypot Rug Pull
+// 케이스의 bothSides 3개 중 2개가 아래 주소로 확인됨 — 활성 지갑이면 거의 누구나
+// 상호작용하는 범용 인프라라 "양방향 주소"로 잡히는 게 세탁 의도가 아니라 정상
+// 스왑의 부산물일 가능성이 큼. 범위는 이번에 실증된 주소로 한정(과확장 방지) —
+// 새 주소 추가 시 실제로 bothSides에 걸린 사례를 근거로만 추가할 것.
+const DEX_WHITELIST = new Set([
+  "0x7a250d5630b4cf539739df2c5dacb4c659f2488d", // Uniswap V2: Router 2
+  "0xdef1c0ded9bec7f1a1670819833240f027b25eff", // 0x: Exchange Proxy
+]);
+
 function parseCSV(csvPath) {
   if (!fs.existsSync(csvPath)) return [];
   const lines = fs.readFileSync(csvPath, "utf8").trim().split("\n");
@@ -437,7 +448,11 @@ function detectEvasionSubclass(rows, baseFraudType) {
     );
     const withdrawAddrs = [...new Set(withdrawals.map(r => r.from))];
     const hopAddrs  = withdrawAddrs.filter(a => !depositAddrs.has(a));
-    const bothSides = withdrawAddrs.filter(a => depositAddrs.has(a));
+    const bothSides = withdrawAddrs.filter(a => depositAddrs.has(a) && !DEX_WHITELIST.has(a));
+    const whitelistedHits = withdrawAddrs.filter(a => depositAddrs.has(a) && DEX_WHITELIST.has(a));
+    if (whitelistedHits.length > 0) {
+      console.log(`[DEX_WHITELIST] MoneyLaundering 판정에서 제외된 주소: ${whitelistedHits.join(', ')}`);
+    }
     if (hopAddrs.length >= 1 && bothSides.length >= 2) {
       scores.HopLaundering = Math.min(100, hopAddrs.length * 30 + bothSides.length * 20);
     }

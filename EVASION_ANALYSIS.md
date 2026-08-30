@@ -736,4 +736,143 @@ pumpdump,normal}_log.csv`에 덮어쓴다는 것을 뒤늦게 인지했다 — �
 
 ---
 
+## DEX_WHITELIST — HopLaundering bothSides 오탐 완화 (2026-08-30, Phase 1~3)
+
+### Phase 1 — 조사
+
+`MoneyLaundering_HopLaundering` 서브클래스(경유 지갑 판정)는
+`analysis/dynamic_analyzer.js`의 `detectEvasionScores()` 내부(변경 전
+439-444번 줄)에 구현되어 있다. 조건은 집합 멤버십 비교뿐이다:
+
+```
+hopAddrs  = 출금 주소 중 입금 주소 집합에 없는 주소 (경유 지갑 후보, ≥1)
+bothSides = 출금 주소 중 입금 주소 집합에도 있는 주소 (양방향 주소, ≥2)
+발동 조건: hopAddrs.length >= 1 AND bothSides.length >= 2
+score = min(100, hopAddrs.length*30 + bothSides.length*20)
+```
+
+`analysis/analysis/dynamic_analyzer.js`(중첩 디렉터리, `detectEvasionSubclass()`
+내부)에도 동일 조건식이 존재하지만, `analysis/` 자체가 별도의 독립 git
+저장소(origin: `yuna32/PBLblockchain`)이고 그 안에 프로젝트 전체가
+한 번 더 clone된 흔적이다. `run_all_scenarios.js`/`pipeline.js`/
+`compare_evasion.js`/`evaluate_comparison.js` 전부 최상위 버전만
+import하므로 **중첩 버전은 죽은 코드** — 이번 작업에서 건드리지 않았다.
+
+**N=272 실데이터(XBlock, `evaluate_comparison.js`)에는 이 조건을 실행할
+입력 자체가 없다** — MoneyLaundering 라벨이 없고, `fetch_and_convert.js`의
+블록 집계 과정에서 실제 주소가 저장되지 않으며, 합성 주소는 순번 기반이라
+hop 판정 대상이 되지 않는다(이전 세션 `evaluation/ponzi_comparison/results/
+hoplaundering_review.md`에서 확인한 내용을 재확인).
+
+주소 단위 데이터가 존재하는 유일한 곳은 EthereumHeist 파일럿(n=8,
+`evaluation/hoplaundering/`)이다. bothSides≥2 SET조건 충족은 8건 중 2건:
+
+| 케이스 | bothSides 주소 | Etherscan 공개 라벨 |
+|---|---|---|
+| Plus Token Ponzi 1 | `0x6ce110b2...` | Plus Token Ponzi 1(동일 세탁 클러스터) |
+| | `0x32b0ccd7...` | 라벨 없음(EOA) |
+| BELLE Honeypot Rug Pull | `0x7a250d56...` | **Uniswap V2: Router 2** |
+| | `0xdef1c0de...` | **0x: Exchange Proxy** |
+| | `0x44fe4535...` | 라벨 없음(EOA) |
+
+**라벨 정정**: 기존 `evaluation/hoplaundering/results/pilot_report.md`가
+`0xdef1c0ded9bec7f1a1670819833240f027b25eff`를 "1inch Router"로 기록해뒀는데,
+Etherscan 재확인 결과 이는 1inch가 아니라 **0x Protocol의 "0x: Exchange
+Proxy"**다(둘 다 DEX 애그리게이터 계열이지만 다른 프로젝트) — 화이트리스트에는
+정정된 라벨로 반영했다.
+
+BELLE 케이스는 bothSides 3개 중 2개가 범용 DEX 인프라와 겹친다. 다만 이
+파일럿은 "8개 사건이 MoneyLaundering으로 분류돼야 한다"를 검증하는 게
+아니라 bothSides 계산 로직이 실제 자금 흐름에서 계산 가능한지를 본
+것이므로(파일럿 스코프 노트), **실제 파이프라인이 이 데이터를 통과시켜
+정상 스왑을 세탁으로 오판한 사례를 관측한 것은 아니다** — N=272 쪽은
+애초에 주소 데이터가 없어 이 조건이 프로덕션에서 발동한 적 자체가 없다.
+따라서 이번 화이트리스트는 **"잠재 위험"에 대한 선제 조치**로 분류했고,
+n=8 규모를 근거로 범위를 과도하게 넓히지 않았다(1inch·PancakeSwap 등
+아직 실제로 걸리지 않은 다른 DEX는 추가하지 않음).
+
+*(참고: hopAddrs 쪽에 반복 등장한 `0x722122df12d4e14e13ac3b6895a86e84145b6967`
+= Tornado Cash 라우터는 믹서지 DEX가 아니므로 화이트리스트 대상이 아니다 —
+오히려 반대로 의심 신호에 가까움. 혼동 방지차 기록.)*
+
+### Phase 2/3 — 설계 및 구현
+
+**개입 지점**: 판정 후 후처리가 아니라, `bothSides` 집합이 만들어지는
+필터 조건 안에서 걸러야 트리거 여부와 점수가 둘 다 정확해진다(후처리
+방식은 `hopAddrs.length*30 + bothSides.length*20` 점수 계산 자체가
+왜곡된 개수를 그대로 쓰게 됨).
+
+**구현**: `analysis/dynamic_analyzer.js` 상단에 하드코딩 상수
+`DEX_WHITELIST`(Set, 2개 주소) 추가 + `bothSides` 필터에
+`&& !DEX_WHITELIST.has(a)` 조건 추가. 제외된 주소는 기존
+`EXCLUDE_ADDRESSES`(`evaluate_comparison.js`)와 동일한 "실행할 때마다
+로그에 드러나야 한다"는 투명성 관례에 맞춰 `console.log`로 출력한다.
+범위는 이번에 실증된 2개 주소로 한정:
+
+```js
+const DEX_WHITELIST = new Set([
+  "0x7a250d5630b4cf539739df2c5dacb4c659f2488d", // Uniswap V2: Router 2
+  "0xdef1c0ded9bec7f1a1670819833240f027b25eff", // 0x: Exchange Proxy
+]);
+```
+
+### Phase 3-2 — 회귀 테스트 결과
+
+**방법론 참고**: `pilot_hoplaundering.js`는 `chain_graph.js`(별도의
+독립적인 bothSides 재구현)를 통해 파일럿을 재실행하며, `dynamic_analyzer.js`를
+전혀 import하지 않는다 — 즉 파일럿을 그대로 재실행해도 이번 변경이 반영되지
+않는다. 대신 `evaluation/hoplaundering/results/pilot_result.json`에 이미
+기록된 실제 hopAddrs/bothSides 주소 배열(ground truth)에, 소스 파일에서
+그대로 추출한 `DEX_WHITELIST`와 변경된 필터·점수 산식을 프로그램적으로
+적용해 검증했다(수동 재입력에 의한 오류 방지).
+
+| 케이스 | hopAddrs | bothSides(전) | bothSides(후) | 화이트리스트 발동 | 점수(전) | 점수(후) |
+|---|---:|---:|---:|:---:|---:|---:|
+| AnubisDAO Liquidity Rug 1 | 9 | 1 | 1 | — | 0 | 0 |
+| BadgerDAO Exploiter | 0 | 0 | 0 | — | 0 | 0 |
+| Bitmart Hacker | 2 | 0 | 0 | — | 0 | 0 |
+| PolyNetwork Exploiter 1 | 1 | 0 | 0 | — | 0 | 0 |
+| Kucoin Hacker | 5 | 1 | 1 | — | 0 | 0 |
+| Plus Token Ponzi 1 | 175 | 2 | 2 | 없음 | 100 | 100 |
+| Cream Finance Flash Loan Exploiter | 3 | 0 | 0 | — | 0 | 0 |
+| **BELLE Honeypot Rug Pull** | 4 | **3** | **1** | Uniswap V2 Router 2, 0x Exchange Proxy | **100** | **0** |
+
+BELLE 케이스는 bothSides가 3→1로 줄면서 `bothSides.length>=2` 조건 자체가
+깨져 HopLaundering 점수가 100 → 0으로 완전히 꺼진다(단순 감점이 아니라
+트리거 자체가 해제됨). Plus Token은 bothSides 두 주소 모두 화이트리스트에
+없어 완전히 불변(100→100) — 예상대로다.
+
+**기존 시나리오/실데이터 회귀 없음 확인**:
+- `analysis/pipeline.js --contract MoneyLaundering`(시뮬레이션 로그):
+  `dynamic_risk_score`/`verdict`/`fraud_type_hint`/`evasion_subclass`/
+  `evasion_all_scores` 전부 변경 전후 완전히 동일(byte-identical JSON).
+  시뮬레이션 로그는 bothSides 조건 자체가 원래 발동하지 않으므로
+  (`evasion_all_scores: {}`) 화이트리스트가 개입할 지점이 없다.
+- `analysis/compare_evasion.js`(6개 기본 컨트랙트 + 3개 회피 시나리오
+  A/B/C, 총 9종): 콘솔 출력·`evasion_comparison.json` 전부 변경 전후
+  byte-identical(`diff` 결과 없음).
+- `evaluation/ponzi_comparison/evaluate_comparison.js`(XBlock 실데이터,
+  `EXCLUDE_ADDRESSES=0xd0a6e6c5...` 기준 499건 평가): P/R/F1(Exact·
+  Superclass 둘 다), `disagreement_cases.csv`, `ontology_predictions.csv`
+  전부 변경 전후 byte-identical(리포트 헤더의 생성 타임스탬프만 다름).
+  Phase 1에서 예측한 대로 이 데이터셋엔 애초에 bothSides 계산 대상 주소가
+  없어 회귀 자체가 발생할 수 없는 구조.
+
+**결론: 화이트리스트는 BELLE 파일럿 케이스 1건에서만 관측 가능한 효과를
+내고, 기존 검증된 9개 시나리오와 N=272 실데이터에는 어떤 영향도 주지
+않는다.**
+
+### Phase 3-3 — 설계서 반영 메모
+
+온톨로지 설계서(`온톨로지_방법론_letter.docx`)는 바이너리 포맷이라 이
+세션에서 직접 편집하지 않았다(python-docx 등 라이브러리 설치가 이 환경에서
+실패, zip/XML 직접 조작은 결과를 시각적으로 검증할 수 없어 서식이 깨질
+위험이 있어 사용자 확인 후 보류). 대신 `ontology/CHANGELOG_v0.3.md`에
+반영 내용을 기록했다 — docx에 수동 반영 시 "이 외에 기존에 파악한 한계도
+남아 있다..." 단락(HopLaundering 시뮬레이션 데이터 제약 서술) 바로 뒤,
+"본 실데이터 비교는..." 단락 앞에 삽입하는 것을 권장한다(상세는 해당
+파일 참고).
+
+---
+
 *이 문서와 코드는 탐지 시스템 개선 연구 목적으로만 사용하며, 실제 스마트 컨트랙트 공격에 적용하는 것은 엄격히 금지합니다.*

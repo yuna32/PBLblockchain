@@ -284,6 +284,35 @@ nvm에 22.22.2 있지만 비대화형 셸엔 자동 로드 안 됨(`ETHERSCAN_AP
 scenarios 파이프라인을 다시 돌릴 때는 먼저 `analysis/logs/`를 백업하거나
 시나리오별 출력 경로로 분리할 것.**
 
+## DEX_WHITELIST — HopLaundering bothSides 오탐 완화 (2026-08-30)
+
+`MoneyLaundering_HopLaundering` 서브클래스(경유 지갑 판정, `analysis/
+dynamic_analyzer.js` 변경 전 439-444번 줄)는 순수 집합 멤버십
+비교(`hopAddrs>=1 AND bothSides>=2`)만 한다는 걸 재확인했다. 죽은
+코드로 이미 확인된 `analysis/analysis/dynamic_analyzer.js`(중첩,
+별도 git 저장소) 쪽 동일 로직은 건드리지 않았다.
+
+- **조사**: EthereumHeist 파일럿(n=8, `evaluation/hoplaundering/`)에서
+  SET조건 충족 2건 중 BELLE Honeypot Rug Pull 케이스의 bothSides
+  3개 중 2개가 Uniswap V2: Router 2 / 0x: Exchange Proxy로 확인됐다
+  (기존 파일럿 리포트의 "1inch Router" 표기는 오류 — Etherscan
+  재확인 결과 0x Protocol이 맞음, 정정함). N=272 XBlock 실데이터에는
+  주소 단위 데이터 자체가 없어 이 조건이 발동한 적이 없다 — 이번
+  발견은 실증된 오탐이 아니라 메커니즘 차원의 잠재 위험으로 기록.
+- **구현**: `analysis/dynamic_analyzer.js` 상단에 하드코딩 `DEX_WHITELIST`
+  (2개 주소)를 추가하고 bothSides 필터에서 제외, 제외 시 `console.log`로
+  노출(기존 `EXCLUDE_ADDRESSES` 투명성 관례와 통일). 범위는 이번에
+  실증된 2개 주소로 한정 — n=8 규모를 근거로 과확장하지 않음.
+- **회귀 확인**: BELLE 케이스 HopLaundering 점수 100→0(bothSides
+  3→1로 트리거 조건 자체가 깨짐), Plus Token Ponzi 1은 100→100 불변.
+  기존 6개 컨트랙트+3개 회피 시나리오(`compare_evasion.js`)와 N=272
+  실데이터(`evaluate_comparison.js`, EXCLUDE_ADDRESSES 기존 설정 유지)는
+  변경 전후 출력이 byte-identical — 회귀 없음.
+- **문서**: 온톨로지 설계서(`온톨로지_방법론_letter.docx`)는 바이너리라
+  이 세션에서 직접 편집하지 않고 `ontology/CHANGELOG_v0.3.md`에 별도
+  기록(수동 반영 위치 명시). 상세는 `EVASION_ANALYSIS.md`의
+  "DEX_WHITELIST — HopLaundering bothSides 오탐 완화" 절 참고.
+
 ## Known issues
 
 - **NormalStaking 오탐성 예측 신호**: `analysis/analysis/prevention_reasoner.js`의
