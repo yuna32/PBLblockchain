@@ -24,6 +24,67 @@ function detectContractAddress(rows) {
   return depositRow ? depositRow.to : null;
 }
 
+function clamp(x, lo, hi) {
+  return Math.max(lo, Math.min(hi, x));
+}
+
+// EVASION_ANALYSIS.md 권고 2/6/7 적용 후 신설/변경되는 "얼마나/언제" 계열 규칙
+// (BALANCE_DROP, FLOW_SPIKE, TEMPORAL_PATTERN, BALANCE_TIMESERIES_DRAIN)의 공용
+// 억제 게이트. 기존에는 detectInflowStop() 내부에만 지역적으로 존재하던
+// isNormalUnstake 판정을 이 함수로 추출·확장했다 — 단일 로직으로 통합해
+// 두 군데서 조건이 미묘하게 갈리는 것을 방지한다.
+//
+// 확장한 조건 (기존: uniqueWithdrawers>=3, 금액 균등, 성공률>=80%):
+//   - HIGH_RISK_ACTIONS(owner_withdraw_all)가 전혀 없을 것
+//   - 출금액의 90% 이상이 원래 예치자 본인에게 돌아갈 것 (자금이 시스템 밖으로
+//     나가지 않고 예치자에게 환급되는 패턴인지 확인)
+//   - 금액 균등 조건의 경계값을 매우 근소한 차이로 비켜가는 것을 막기 위해
+//     strict(<) 대신 <=로 완화 (flashloan_log에서 maxW(20)가 minW(8)*2.5와
+//     정확히 같아 strict 비교로는 조직적 패턴이 누락되는 경계 버그 발견·수정)
+function computeIsOrganicUnstake(rows, depositorMap, totalOut) {
+  const withdrawals = rows.filter(r => WITHDRAW_ACTIONS.has(r.action));
+  if (withdrawals.length === 0) return false;
+  if (rows.some(r => HIGH_RISK_ACTIONS.has(r.action))) return false;
+
+  const uniqueWithdrawers = new Set(withdrawals.map(r => r.to)).size;
+  if (uniqueWithdrawers < 3) return false;
+
+  const withdrawAmounts = withdrawals.map(r => parseFloat(r.amount_eth) || 0).filter(a => a > 0);
+  if (withdrawAmounts.length === 0) return false;
+  const successRatio = withdrawAmounts.length / withdrawals.length;
+  if (successRatio < 0.8) return false;
+
+  const maxW = Math.max(...withdrawAmounts);
+  const minW = Math.min(...withdrawAmounts);
+  if (maxW > minW * 2.5) return false;
+
+  if (totalOut < 0.01) return false;
+  let toDepositors = 0;
+  for (const r of withdrawals) {
+    if (depositorMap.has(r.to)) toDepositors += parseFloat(r.amount_eth) || 0;
+  }
+  return (toDepositors / totalOut) >= 0.9;
+}
+
+// 권고 7: action 문자열과 무관하게 잔고 시계열만으로 급락 구간을 탐지.
+// maxBlockSpan 블록 이내에서 발생한 최대 상대 하락폭을 반환.
+function maxWindowedDrawdown(rows, maxBlockSpan) {
+  let maxDrop = 0;
+  for (let i = 0; i < rows.length; i++) {
+    const blockI = parseInt(rows[i].block);
+    const balI = parseFloat(rows[i].contract_balance_eth) || 0;
+    if (balI <= 0) continue;
+    for (let j = i + 1; j < rows.length; j++) {
+      const blockJ = parseInt(rows[j].block);
+      if (blockJ - blockI > maxBlockSpan) break;
+      const balJ = parseFloat(rows[j].contract_balance_eth) || 0;
+      const drop = (balI - balJ) / balI;
+      if (drop > maxDrop) maxDrop = drop;
+    }
+  }
+  return maxDrop;
+}
+
 function checkOscillating(rows) {
   let nearZero = false;
   let recovered = false;
@@ -44,30 +105,42 @@ function checkOscillating(rows) {
 const RULES = [
   {
     id: "BALANCE_DROP",
-    description: "오너 액션으로 잔고 90%+ 급락 (러그풀/폰지 탈출)",
-    detect: ({ peak, finalBal, rows }) => {
-      const hasOwnerDrain = rows.some(r => HIGH_RISK_ACTIONS.has(r.action));
-      return peak > 0 && finalBal < peak * 0.1 && hasOwnerDrain;
+    // EVASION_ANALYSIS.md 권고 2/3: hasOwnerDrain 게이트를 WITHDRAW_ACTIONS 전체로
+    // 확장하고, peak*0.1(90%) 바이너리 클리프 대신 (1 - finalBal/peak) 기반 연속
+    // 가중치로 전환. 50% 미만 하락은 0점, 100% 하락(완전 탈취)에서 만점.
+    description: "출금 발생 후 잔고 급락 — 하락폭에 비례한 연속 점수 (러그풀/폰지 탈출)",
+    detect: (ctx) => {
+      if (ctx.isOrganicUnstake) return 0;
+      const hasWithdrawal = ctx.rows.some(r => WITHDRAW_ACTIONS.has(r.action));
+      if (!(ctx.peak > 0 && hasWithdrawal)) return 0;
+      const drop = 1 - ctx.finalBal / ctx.peak;
+      return clamp((drop - 0.5) / 0.5, 0, 1);
     },
-    weight: 45
+    weight: 40
   },
   {
     id: "FLOW_SPIKE",
-    description: "단일 출금이 총 입금의 50% 이상 (일거에 자금 흡수)",
-    detect: ({ totalIn, maxSingleWithdraw }) =>
-      totalIn > 0 && maxSingleWithdraw >= totalIn * 0.5,
-    weight: 35
+    // 권고 1: 단일-최대 출금(maxSingleWithdraw) 대신 누적 유출 비율(totalOut/totalIn)로
+    // 교체 — 동일 금액을 여러 건으로 분산 인출해도 정확히 포착됨.
+    description: "누적 출금이 총 입금의 50% 이상 (분산 인출 포함, 일거에 자금 흡수)",
+    detect: (ctx) => {
+      if (ctx.isOrganicUnstake) return false;
+      return ctx.totalIn > 0 && (ctx.totalOut / ctx.totalIn) >= 0.5;
+    },
+    weight: 30
   },
   {
     id: "CONCENTRATION_DRAIN",
-    description: "상위 3개 지갑이 총 출금의 80% 이상 집중 수령",
+    // 권고 4: top3/totalOut >= 0.8 클리프 대신 허핀달-허쉬만 지수(HHI) 기반 연속 점수.
+    description: "출금 수령 집중도(HHI) — 소수 지갑에 집중될수록 높은 연속 점수",
     detect: ({ totalOut, recipientMap }) => {
-      if (totalOut < 0.01) return false;
-      const sorted = [...recipientMap.values()].sort((a, b) => b - a);
-      const top3 = sorted.slice(0, 3).reduce((s, v) => s + v, 0);
-      return top3 / totalOut >= 0.8;
+      if (totalOut < 0.01) return 0;
+      const hhi = [...recipientMap.values()]
+        .map(v => v / totalOut)
+        .reduce((s, share) => s + share * share, 0);
+      return clamp((hhi - 0.2) / 0.6, 0, 1);
     },
-    weight: 30
+    weight: 35
   },
   {
     id: "PROFIT_EXTRACTION",
@@ -80,13 +153,55 @@ const RULES = [
       }
       return false;
     },
-    weight: 30
+    weight: 35
   },
   {
     id: "OSCILLATING_BALANCE",
     description: "잔고 0 → 복구 → 0 반복 (플래시론 순환 패턴)",
     detect: ({ rows }) => checkOscillating(rows),
     weight: 30
+  },
+  {
+    id: "TEMPORAL_PATTERN",
+    // 권고 6: 시간 지표 신설. (a) 입금 종료 후 출금 시작까지의 대기(dormancy)
+    // 구간이 전체 수명의 20%+인 경우, 또는 (b) 출금 구간의 ETH/block 속도가
+    // peak 대비 15%+로 급격한 경우 중 더 높은 쪽을 채택.
+    description: "입금 종료 후 장기 대기 뒤 인출 또는 급격한 인출 속도 (시간 패턴 이상)",
+    detect: (ctx) => {
+      if (ctx.isOrganicUnstake) return 0;
+      const withdrawals = ctx.rows.filter(r => WITHDRAW_ACTIONS.has(r.action));
+      const deposits = ctx.rows.filter(r => DEPOSIT_ACTIONS.has(r.action));
+      if (withdrawals.length === 0 || deposits.length === 0) return 0;
+
+      const lastDepositBlock = Math.max(...deposits.map(r => parseInt(r.block)));
+      const wBlocks = withdrawals.map(r => parseInt(r.block));
+      const firstWithdrawBlock = Math.min(...wBlocks);
+      const lastWithdrawBlock = Math.max(...wBlocks);
+      const firstBlock = parseInt(ctx.rows[0].block);
+      const lastBlock = parseInt(ctx.rows[ctx.rows.length - 1].block);
+      const totalBlocks = Math.max(1, lastBlock - firstBlock);
+
+      const gapRatio = Math.max(0, firstWithdrawBlock - lastDepositBlock) / totalBlocks;
+      const withdrawSpan = Math.max(1, lastWithdrawBlock - firstWithdrawBlock);
+      const velocityRatio = ctx.peak > 0 ? (ctx.totalOut / withdrawSpan) / ctx.peak : 0;
+
+      const fractionDormancy = clamp((gapRatio - 0.2) / 0.3, 0, 1);
+      const fractionVelocity = clamp((velocityRatio - 0.15) / 0.35, 0, 1);
+      return Math.max(fractionDormancy, fractionVelocity);
+    },
+    weight: 20
+  },
+  {
+    id: "BALANCE_TIMESERIES_DRAIN",
+    // 권고 7: action 문자열과 무관하게 잔고 시계열만으로 급락 탐지 (안전망 규칙).
+    // 15블록 이내 구간에서 50% 이상 상대 하락이 있으면 연속 점수 부여.
+    description: "action 종류와 무관하게 15블록 이내 잔고 50%+ 급락 탐지",
+    detect: (ctx) => {
+      if (ctx.isOrganicUnstake) return 0;
+      const maxDrop = maxWindowedDrawdown(ctx.rows, 15);
+      return clamp((maxDrop - 0.5) / 0.4, 0, 1);
+    },
+    weight: 20
   }
 ];
 
@@ -225,7 +340,7 @@ function hintFraudType(rows, triggered) {
 
 // ── InflowStop signal ─────────────────────────────────────────────────────────
 
-function detectInflowStop(rows) {
+function detectInflowStop(rows, isOrganicUnstake) {
   const deposits = rows.filter(r => DEPOSIT_ACTIONS.has(r.action));
   if (deposits.length === 0) {
     return { detected: false, stop_ratio: 0, last_deposit_block: null, last_block: null };
@@ -241,21 +356,12 @@ function detectInflowStop(rows) {
     .filter(r => parseInt(r.block) > lastDepositBlock)
     .some(r => parseFloat(r.contract_balance_eth) > 0);
 
-  // Guard: normal unstaking — many unique recipients, roughly equal amounts, high success rate
-  // Uses r.to (recipient) because in the CSV withdraw/unstake rows have from=contract, to=user
-  const withdrawals      = rows.filter(r => WITHDRAW_ACTIONS.has(r.action));
-  const uniqueWithdrawers = new Set(withdrawals.map(r => r.to)).size;
-  const withdrawAmounts  = withdrawals.map(r => parseFloat(r.amount_eth) || 0).filter(a => a > 0);
-  const successRatio     = withdrawals.length > 0 ? withdrawAmounts.length / withdrawals.length : 0;
-  const maxW = withdrawAmounts.length > 0 ? Math.max(...withdrawAmounts) : 0;
-  const minW = withdrawAmounts.length > 0 ? Math.min(...withdrawAmounts) : 0;
-  const isNormalUnstake  =
-    uniqueWithdrawers >= 3 &&
-    withdrawAmounts.length > 0 &&
-    maxW < minW * 2.5 &&
-    successRatio >= 0.8;
-
-  if (isNormalUnstake) {
+  // Guard: normal unstaking (many unique recipients, roughly equal amounts, high success
+  // rate, funds returning to depositors). Uses the shared computeIsOrganicUnstake() —
+  // previously this guard was computed locally here only; it is now a single shared
+  // gate also used by the RULES (BALANCE_DROP/FLOW_SPIKE/TEMPORAL_PATTERN/
+  // BALANCE_TIMESERIES_DRAIN) so the two never drift apart.
+  if (isOrganicUnstake) {
     return {
       detected: false,
       stop_ratio: +stopRatio.toFixed(3),
@@ -426,16 +532,30 @@ export function analyzeDynamic(csvPath) {
   }
 
   const finalBal = parseFloat(rows[rows.length - 1].contract_balance_eth) || 0;
+  const isOrganicUnstake = computeIsOrganicUnstake(rows, depositorMap, totalOut);
   const ctx = { totalIn, totalOut, peak, finalBal, maxSingleWithdraw,
-                depositorMap, recipientMap, rows };
+                depositorMap, recipientMap, rows, isOrganicUnstake };
 
-  // Anomaly rule scoring
+  // Anomaly rule scoring. rule.detect()는 boolean(기존 규칙, true=1/false=0) 또는
+  // 0~1 사이의 연속 fraction(BALANCE_DROP/CONCENTRATION_DRAIN 등)을 반환할 수 있다.
+  // 획득 점수 = weight * fraction (반올림), fraction<=0이면 트리거되지 않은 것으로 간주.
   const triggered = [];
   let rawScore = 0;
   for (const rule of RULES) {
-    if (rule.detect(ctx)) {
-      triggered.push({ id: rule.id, description: rule.description, weight: rule.weight });
-      rawScore += rule.weight;
+    const result = rule.detect(ctx);
+    const fraction = typeof result === "boolean" ? (result ? 1 : 0) : clamp(result, 0, 1);
+    if (fraction > 0) {
+      const earned = Math.round(rule.weight * fraction);
+      if (earned > 0) {
+        triggered.push({
+          id: rule.id,
+          description: rule.description,
+          weight: earned,
+          weight_max: rule.weight,
+          fraction: +fraction.toFixed(2)
+        });
+        rawScore += earned;
+      }
     }
   }
 
@@ -448,7 +568,7 @@ export function analyzeDynamic(csvPath) {
   const reasoning_steps = hintResult.reasoning_steps;
 
   // InflowStop signal
-  const inflowStop = detectInflowStop(rows);
+  const inflowStop = detectInflowStop(rows, isOrganicUnstake);
   if (fraud_type_hint === "ponzi_scheme" && inflowStop.detected) {
     reasoning_steps.push(
       `PONZI_COLLAPSE_CONFIRMED: inflow stopped at block ${inflowStop.last_deposit_block}` +
