@@ -1,7 +1,7 @@
 {
   "contract": "NormalStaking",
   "type": "normal",
-  "timestamp": "2026-06-05T12:50:57.457Z",
+  "timestamp": "2026-08-30T08:15:43.455Z",
   "overall_grade": "A",
   "raw_grade": "A",
   "prevention_cap_applied": false,
@@ -47,7 +47,29 @@
     "triggered_rules": [],
     "dynamic_risk_score": 0,
     "verdict": "LOW_RISK",
-    "fraud_type_hint": "normal_staking"
+    "fraud_type_hint": "normal_staking",
+    "reasoning_steps": [
+      "singleLargeOutflow: false (1.049 / peak 15.000 = 7%)",
+      "distributedInflow: true (11 unique depositors)",
+      "ownerWithdrawAll: false (recipient 0x70997970... found in depositor list)",
+      "participantMidExit: true (9 mid-exit withdrawals)",
+      "→ normal_staking (stake/unstake pattern, no fraud signals)"
+    ],
+    "anomaly_signals": {
+      "INFLOW_STOP": {
+        "detected": false,
+        "stop_ratio": 0.571,
+        "suppressed_reason": "normal_unstake_pattern",
+        "last_deposit_block": 31,
+        "last_block": 71
+      }
+    },
+    "evasion_detected": false,
+    "evasion_subclass": null,
+    "evasion_confidence": 0,
+    "evasion_consequence": null,
+    "evasion_all_scores": {},
+    "counter_detection": null
   },
   "trust": {
     "csv": "normal_log.csv",

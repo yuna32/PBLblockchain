@@ -1,8 +1,84 @@
 {
   "contract": "FlashLoanPattern",
   "type": "flashloan",
-  "timestamp": "2026-05-06T10:11:35.736Z",
-  "overall_grade": "B",
+  "timestamp": "2026-08-30T08:15:44.160Z",
+  "overall_grade": "C",
+  "raw_grade": "B",
+  "prevention_cap_applied": true,
+  "prevention_cap_reason": "HIGH prevention score (7) → grade capped at C",
+  "prevention": {
+    "contract": "FlashLoanPattern",
+    "fraud_type_suspected": "PonziScheme",
+    "checklist": [
+      {
+        "id": "OWNER_WITHDRAW_ALL",
+        "label": "무제한 오너 인출 함수",
+        "detected": true,
+        "riskWeight": 3,
+        "evidence": "withdrawAll found at line 41",
+        "consequence": "단일 함수로 전체 잔고 인출 가능 → 러그풀 구조 내재",
+        "fix": "함수 제거 또는 timelock + 한도(30%) 동시 적용"
+      },
+      {
+        "id": "NO_TIMELOCK",
+        "label": "타임락 부재",
+        "detected": true,
+        "riskWeight": 2,
+        "evidence": "보호 패턴 [timelock, delay, lockPeriod, deployBlock] 미검출",
+        "consequence": "즉각 인출 가능 → 러그풀 실행 용이",
+        "fix": "block.number >= deployBlock + N 조건 추가 (N >= 10)"
+      },
+      {
+        "id": "REWARD_FROM_DEPOSIT",
+        "label": "신규 입금이 기존 보상 재원",
+        "detected": false,
+        "riskWeight": 3,
+        "evidence": "패턴 [participants\\[|msg\\.value.*reward|balance.*payout] 미검출",
+        "consequence": "폰지 구조 — 신규 자금이 기존 참여자 수익으로 사용됨",
+        "fix": "독립 보상 풀(rewardPool) 분리, 배포 시 충전"
+      },
+      {
+        "id": "NO_WITHDRAWAL_LIMIT",
+        "label": "단일 출금 한도 없음",
+        "detected": true,
+        "riskWeight": 2,
+        "evidence": "보호 패턴 [withdrawalLimit, maxWithdraw, maxAllowed] 미검출",
+        "consequence": "전액 단발 인출 가능",
+        "fix": "단일 인출 <= 잔고의 30% 제한 추가"
+      },
+      {
+        "id": "SINGLE_BENEFICIARY",
+        "label": "단일 수혜자 구조",
+        "detected": false,
+        "riskWeight": 2,
+        "evidence": "패턴 [payable\\(owner\\)|owner\\.call|onlyOwner.*withdraw] 미검출",
+        "consequence": "모든 자금이 단일 주소로만 흐를 수 있는 구조",
+        "fix": "다중 서명(multisig) 또는 참여자 비례 분배 구조로 전환"
+      }
+    ],
+    "risk_score": 7,
+    "risk_level": "HIGH",
+    "risk_label": "수정 후 재검토",
+    "unmet_conditions": [
+      "OWNER_WITHDRAW_ALL",
+      "NO_TIMELOCK",
+      "NO_WITHDRAWAL_LIMIT"
+    ],
+    "deployment_recommendation": "배포 전 3개 항목 수정 후 재검토 필요.",
+    "ontology_reasoning_chain": [
+      "소스 로드: FlashLoanPattern.sol (62줄)",
+      "유형별 패턴 점수: {\"PonziScheme\":3,\"RugPull\":3,\"MoneyLaundering\":0,\"HoneypotTrap\":0,\"PumpDump\":0}",
+      "동점 해소: 정적 분석 힌트(undefined) → PonziScheme",
+      "PonziScheme 예방 체크리스트 시작",
+      "OWNER_WITHDRAW_ALL: withdrawAll found at line 41 → 검출 (위험 +3)",
+      "REWARD_FROM_DEPOSIT: 패턴 [participants\\[|msg\\.value.*reward|balance.*payout] 미검출 → 안전",
+      "SINGLE_BENEFICIARY: 패턴 [payable\\(owner\\)|owner\\.call|onlyOwner.*withdraw] 미검출 → 안전",
+      "NO_TIMELOCK: 보호 패턴 [timelock, delay, lockPeriod, deployBlock] 미검출 → 검출 (위험 +2)",
+      "NO_WITHDRAWAL_LIMIT: 보호 패턴 [withdrawalLimit, maxWithdraw, maxAllowed] 미검출 → 검출 (위험 +2)",
+      "총 위험 점수: 7",
+      "위험 등급: HIGH — 수정 후 재검토"
+    ]
+  },
   "static": {
     "file": "FlashLoanPattern.sol",
     "triggered_rules": [
@@ -28,14 +104,49 @@
     },
     "triggered_rules": [
       {
+        "id": "CONCENTRATION_DRAIN",
+        "description": "출금 수령 집중도(HHI) — 소수 지갑에 집중될수록 높은 연속 점수",
+        "weight": 1,
+        "weight_max": 35,
+        "fraction": 0.03
+      },
+      {
         "id": "OSCILLATING_BALANCE",
         "description": "잔고 0 → 복구 → 0 반복 (플래시론 순환 패턴)",
-        "weight": 30
+        "weight": 30,
+        "weight_max": 30,
+        "fraction": 1
       }
     ],
-    "dynamic_risk_score": 30,
+    "dynamic_risk_score": 31,
     "verdict": "MEDIUM_RISK",
-    "fraud_type_hint": "flash_loan"
+    "fraud_type_hint": "flash_loan",
+    "reasoning_steps": [
+      "singleLargeOutflow: true (20.000 / peak 20.000 = 100%)",
+      "distributedInflow: true (5 unique depositors)",
+      "ownerWithdrawAll: false (recipient 0x15d34aaf... found in depositor list)",
+      "participantMidExit: true (4 mid-exit withdrawals)",
+      "→ flash_loan (OSCILLATING_BALANCE signal)"
+    ],
+    "anomaly_signals": {
+      "INFLOW_STOP": {
+        "detected": false,
+        "stop_ratio": 0.111,
+        "suppressed_reason": "normal_unstake_pattern",
+        "last_deposit_block": 19,
+        "last_block": 21
+      }
+    },
+    "evasion_detected": true,
+    "evasion_subclass": "FlashLoan_SlowDrain",
+    "evasion_confidence": 84,
+    "evasion_consequence": "Detected evasion pattern: FlashLoan_SlowDrain (confidence 84)",
+    "evasion_all_scores": {
+      "FlashLoan_BalanceDropEvasion": 0,
+      "FlashLoan_MaxTxEvasion": 0,
+      "FlashLoan_SlowDrain": 84
+    },
+    "counter_detection": null
   },
   "trust": {
     "csv": "flashloan_log.csv",
@@ -49,12 +160,28 @@
         "is_drainer": false,
         "blocks_active": 2,
         "trust_score": 87,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 100,
-          "scamHist": 100,
-          "activity": 10,
-          "diversity": 100
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 10,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 100,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -65,12 +192,28 @@
         "is_drainer": false,
         "blocks_active": 2,
         "trust_score": 87,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 100,
-          "scamHist": 100,
-          "activity": 10,
-          "diversity": 100
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 10,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 100,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -81,12 +224,28 @@
         "is_drainer": false,
         "blocks_active": 2,
         "trust_score": 87,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 100,
-          "scamHist": 100,
-          "activity": 10,
-          "diversity": 100
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 10,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 100,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -97,12 +256,28 @@
         "is_drainer": false,
         "blocks_active": 2,
         "trust_score": 87,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 100,
-          "scamHist": 100,
-          "activity": 10,
-          "diversity": 100
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 10,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 100,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -113,17 +288,33 @@
         "is_drainer": false,
         "blocks_active": 2,
         "trust_score": 87,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 100,
-          "scamHist": 100,
-          "activity": 10,
-          "diversity": 100
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 10,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 100,
+            "weight": 0.15
+          }
         }
       }
     ],
     "overall_trust_score": 87,
-    "trust_grade": "SAFE",
-    "summary_ko": "총 5개 지갑 분석. 평균 신뢰 점수 87/100 (최저: 87). 등급: SAFE."
+    "trust_grade": "A",
+    "summary_ko": "총 5개 지갑 분석. 평균 신뢰 점수 87/100 (평균: 87, 최저: 87). 등급: A (SAFE)."
   }
 }

@@ -1,7 +1,7 @@
 {
   "contract": "PumpDump",
   "type": "pumpdump",
-  "timestamp": "2026-06-05T12:50:57.859Z",
+  "timestamp": "2026-08-30T08:15:42.769Z",
   "overall_grade": "D",
   "raw_grade": "C",
   "prevention_cap_applied": true,
@@ -107,19 +107,70 @@
     },
     "triggered_rules": [
       {
+        "id": "BALANCE_DROP",
+        "description": "출금 발생 후 잔고 급락 — 하락폭에 비례한 연속 점수 (러그풀/폰지 탈출)",
+        "weight": 40,
+        "weight_max": 40,
+        "fraction": 1
+      },
+      {
+        "id": "FLOW_SPIKE",
+        "description": "누적 출금이 총 입금의 50% 이상 (분산 인출 포함, 일거에 자금 흡수)",
+        "weight": 30,
+        "weight_max": 30,
+        "fraction": 1
+      },
+      {
         "id": "CONCENTRATION_DRAIN",
-        "description": "상위 3개 지갑이 총 출금의 80% 이상 집중 수령",
-        "weight": 30
+        "description": "출금 수령 집중도(HHI) — 소수 지갑에 집중될수록 높은 연속 점수",
+        "weight": 8,
+        "weight_max": 35,
+        "fraction": 0.22
       },
       {
         "id": "PROFIT_EXTRACTION",
         "description": "입금 대비 130% 이상 수령한 지갑 존재 (부당 수익 탈취)",
-        "weight": 30
+        "weight": 35,
+        "weight_max": 35,
+        "fraction": 1
+      },
+      {
+        "id": "BALANCE_TIMESERIES_DRAIN",
+        "description": "action 종류와 무관하게 15블록 이내 잔고 50%+ 급락 탐지",
+        "weight": 20,
+        "weight_max": 20,
+        "fraction": 1
       }
     ],
-    "dynamic_risk_score": 60,
-    "verdict": "MEDIUM_RISK",
-    "fraud_type_hint": "pump_dump"
+    "dynamic_risk_score": 100,
+    "verdict": "HIGH_RISK",
+    "fraud_type_hint": "pump_and_dump",
+    "reasoning_steps": [
+      "singleLargeOutflow: false (6.500 / peak 19.500 = 33%)",
+      "distributedInflow: true (8 unique depositors)",
+      "ownerWithdrawAll: false (recipient 0x70997970... found in depositor list)",
+      "participantMidExit: true (3 mid-exit withdrawals)",
+      "→ pump_and_dump (mixed withdrawal outcomes + insider profit extraction)"
+    ],
+    "anomaly_signals": {
+      "INFLOW_STOP": {
+        "detected": true,
+        "stop_ratio": 0.533,
+        "last_deposit_block": 20,
+        "last_block": 36
+      }
+    },
+    "evasion_detected": true,
+    "evasion_subclass": "PumpDump_MaxTxEvasion",
+    "evasion_confidence": 100,
+    "evasion_consequence": "Detected evasion pattern: PumpDump_MaxTxEvasion (confidence 100)",
+    "evasion_all_scores": {
+      "PumpDump_BalanceDropEvasion": 58,
+      "PumpDump_MaxTxEvasion": 100,
+      "PumpDump_SlowDrain": 24,
+      "PumpDump_DistributedDump": 0
+    },
+    "counter_detection": null
   },
   "trust": {
     "csv": "pumpdump_log.csv",

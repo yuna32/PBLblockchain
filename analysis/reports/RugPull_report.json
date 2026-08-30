@@ -1,7 +1,7 @@
 {
   "contract": "RugPull",
   "type": "rugpull",
-  "timestamp": "2026-06-05T12:50:57.586Z",
+  "timestamp": "2026-08-30T08:15:42.066Z",
   "overall_grade": "D",
   "raw_grade": "D",
   "prevention_cap_applied": false,
@@ -75,23 +75,64 @@
     "triggered_rules": [
       {
         "id": "BALANCE_DROP",
-        "description": "오너 액션으로 잔고 90%+ 급락 (러그풀/폰지 탈출)",
-        "weight": 45
+        "description": "출금 발생 후 잔고 급락 — 하락폭에 비례한 연속 점수 (러그풀/폰지 탈출)",
+        "weight": 40,
+        "weight_max": 40,
+        "fraction": 1
       },
       {
         "id": "FLOW_SPIKE",
-        "description": "단일 출금이 총 입금의 50% 이상 (일거에 자금 흡수)",
-        "weight": 35
+        "description": "누적 출금이 총 입금의 50% 이상 (분산 인출 포함, 일거에 자금 흡수)",
+        "weight": 30,
+        "weight_max": 30,
+        "fraction": 1
       },
       {
         "id": "CONCENTRATION_DRAIN",
-        "description": "상위 3개 지갑이 총 출금의 80% 이상 집중 수령",
-        "weight": 30
+        "description": "출금 수령 집중도(HHI) — 소수 지갑에 집중될수록 높은 연속 점수",
+        "weight": 35,
+        "weight_max": 35,
+        "fraction": 1
+      },
+      {
+        "id": "TEMPORAL_PATTERN",
+        "description": "입금 종료 후 장기 대기 뒤 인출 또는 급격한 인출 속도 (시간 패턴 이상)",
+        "weight": 20,
+        "weight_max": 20,
+        "fraction": 1
+      },
+      {
+        "id": "BALANCE_TIMESERIES_DRAIN",
+        "description": "action 종류와 무관하게 15블록 이내 잔고 50%+ 급락 탐지",
+        "weight": 20,
+        "weight_max": 20,
+        "fraction": 1
       }
     ],
     "dynamic_risk_score": 100,
     "verdict": "HIGH_RISK",
-    "fraud_type_hint": "rug_pull"
+    "fraud_type_hint": "rug_pull",
+    "reasoning_steps": [
+      "singleLargeOutflow: true (19.000 / peak 19.000 = 100%)",
+      "distributedInflow: true (10 unique depositors)",
+      "ownerWithdrawAll: true (recipient 0xf39fd6e5... not in depositor list)",
+      "participantMidExit: false (0 mid-exit withdrawals)",
+      "→ rug_pull (large outflow to non-depositor address, no participant mid-exits)"
+    ],
+    "anomaly_signals": {
+      "INFLOW_STOP": {
+        "detected": false,
+        "stop_ratio": 0.129,
+        "last_deposit_block": 31,
+        "last_block": 35
+      }
+    },
+    "evasion_detected": false,
+    "evasion_subclass": null,
+    "evasion_confidence": 0,
+    "evasion_consequence": null,
+    "evasion_all_scores": {},
+    "counter_detection": null
   },
   "trust": {
     "csv": "rugpull_log.csv",

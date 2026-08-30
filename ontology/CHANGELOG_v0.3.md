@@ -78,3 +78,86 @@ bothSides 오탐 완화" 절 참고.
 Exchange Proxy"**(0x Protocol)다. 1inch와 0x Protocol은 둘 다 DEX
 애그리게이터 계열이지만 서로 다른 프로젝트이며, 화이트리스트 상수에는
 정정된 라벨을 주석으로 반영했다.
+
+---
+
+## 대시보드 Panel 5 "탐지 근거" (2026-08-30, 별도 세션)
+
+> ⚠ **이름 충돌 주의**: 이 파일 제목의 "v0.3"과 이 절이 다루는 작업은
+> 이 설계서(`온톨로지_방법론_letter.docx`) 자체의 "5. 한계 및 향후
+> 계획"절이 말하는 **v0.3 로드맵과는 다른 작업이다.** 그 문서의
+> v0.3은 "추론 근거를 UI로 연결하는 작업과 사후 대응 추론기
+> (response_reasoner.js) 추가"를 가리키는데, 공교롭게도 이번 Panel 5
+> 작업이 바로 그 "추론 근거 UI 연결"에 해당한다 — 즉 이번 건은
+> **이름만 우연히 겹친 게 아니라 설계서의 v0.3 로드맵 항목 중
+> 하나(reasoning_chain UI 연결)를 실제로 이행한 것**이다. 다만
+> `response_reasoner.js`(사후 대응 추론기)는 여전히 미구현 상태로
+> 남아 있어, 설계서 v0.3 항목이 완전히 끝난 것은 아니다.
+
+### 배경
+
+이전 세션의 대시보드 현황 조사(Phase 1)에서 `prevention_reasoner.js`의
+`ontology_reasoning_chain`과 `dynamic_analyzer.js`의 `reasoning_steps`/
+`evasion_*` 필드가 `analysis/dashboard.html` 어디에도 렌더링되지
+않는다는 것을 확인했다(전체 리포지토리 grep으로 검증). 설계 단계(Phase
+2)에서 "Panel 5(탐지 근거)"라는 신규 확장 패널을 제안했고, 이번
+세션에서 구현했다.
+
+### 구현 내용
+
+- `analysis/dashboard.html`에 Panel 5 추가 — 기존 `openPanel(id)`/
+  `renderPanel(id)`/`P_TITLES` 패턴을 그대로 확장(신규 아키텍처 도입
+  없음). thumb-grid에 5번째 카드, pipe-strip에 "탐지 근거 보기" 버튼.
+- **탭1(배포 전 예방 진단)**: `prevention.checklist`를 `riskWeight`
+  내림차순 정렬한 아코디언 트리(✗/✓ + evidence/consequence/fix) +
+  하단 `ontology_reasoning_chain`을 접힌 상태의 번호 타임라인으로.
+- **탭2(배포 후 행동 탐지)**: `evasion_detected/subclass/confidence`
+  배지(감지 시 빨강, 미감지 시 초록, **필드 자체가 없는 구버전
+  리포트는 셋째 상태로 별도 표시** — 아래 "발견한 버그" 참고) +
+  `triggered_rules`를 Panel 4의 기존 `.b4`/`.bg4` 배지 스타일로 재사용
+  + `reasoning_steps`(접힘)/`evasion_all_scores`(접힘). `counter_detection`은
+  설계대로 렌더링하지 않음.
+- `lastReport`(모듈 스코프)에 `loadReport()`가 불러온 리포트를 저장해
+  Panel 5가 재사용. mock 데모 모드(`lastReport===null`)에서는 5번째
+  카드와 버튼을 비활성화.
+- Trust Vector 카드에 "이 5개 축은 온체인 트랜잭션 데이터에서 계산된
+  추정치이며, 외부 블랙리스트 조회가 아닙니다" 캡션 추가(2-3번 설계
+  판단에 따라 `trust_scorer.js` 로직 자체는 변경하지 않음).
+
+### 구현 중 발견한 버그와 수정
+
+`analysis/reports/*.json` 중 다수(PonziLab, RugPull, PumpDump,
+NormalStaking, FlashLoanPattern)가 `evasion_detected` 등 필드가 아예
+없는 **구버전 파이프라인 산출물**이었다(이 필드들이 `dynamic_analyzer.js`에
+추가되기 전 스냅샷). 최초 구현에서 `dy.evasion_detected`가 `undefined`인
+경우를 `false`와 동일하게 취급해 "정상적으로 회피 시도 없음 확인"이라고
+표시했는데, 이는 **"확인해봤는데 없었다"와 "애초에 확인한 적이
+없다"를 혼동시키는 표시**라 헤드리스 브라우저 테스트 중 직접 발견해
+`dy.evasion_detected===undefined`인 경우를 별도 문구("이 리포트는 회피
+탐지 기능 이전 버전으로 생성되어 정보가 없습니다")로 분리했다.
+
+이 버그를 계기로 위 5개 리포트를 `node analysis/pipeline.js --contract
+<이름>`으로 재실행해 최신 필드를 포함하도록 갱신했다(코드 변경 없이
+현재 `dynamic_analyzer.js`/`prevention_reasoner.js`를 그대로 재실행한
+것 — 로직 변경 아님). 그 결과 PonziLab/PumpDump/FlashLoanPattern은
+실제 evasion_detected:true 사례를, RugPull/NormalStaking은 정상적으로
+계산된 evasion_detected:false 사례를 보여주게 되어 Panel 5의 두 상태
+모두 실데이터로 시연 가능해졌다.
+
+### 회귀 검증 (헤드리스 브라우저)
+
+Playwright/chromium-cli 등 브라우저 자동화 도구가 이 환경에 설치돼
+있지 않아, Windows에 이미 설치된 `msedge.exe`를 `--remote-debugging-port`로
+직접 띄우고 Node 내장 `WebSocket`으로 Chrome DevTools Protocol을 구사하는
+임시 드라이버 스크립트로 실제 헤드리스 브라우저에서 검증했다(스크린샷
+포함, 리포지토리에는 포함하지 않음 — 세션 스크래치 영역에만 저장).
+
+- Panel 1(네트워크)/Panel 4(이상신호)를 mock 모드로 열어 기존 렌더링이
+  픽셀 단위로 이전과 동일함을 스크린샷으로 확인.
+- 새로고침 직후(리포트 미로드) 5번째 카드가 `disabled` 상태이고 클릭해도
+  패널이 열리지 않음을 확인.
+- PonziLab 리포트 로드 → Panel 5 진입 → 탭1 체크리스트 5건(리스크
+  내림차순) + 탭2에서 "⚠ 회피 시도 감지: PonziScheme_MaxTxEvasion
+  (신뢰도 78)" 빨간 배지 + triggered_rules 4건 배지 확인.
+- RugPull 리포트 로드 → 탭2에서 "✓ 정상적으로 회피 시도 없음 확인"
+  초록 배지 확인(위 버그 수정 후 진짜 계산된 negative임).

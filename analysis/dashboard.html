@@ -170,6 +170,46 @@ body{background:var(--bg);color:var(--tx);font-family:'Segoe UI',system-ui,sans-
 .pbox{background:var(--bg);border-radius:7px;padding:11px;font-size:12px;color:var(--mu);line-height:1.7;}
 .pbox strong{color:var(--tx);}
 
+/* P5 Evidence (탐지 근거 — 실 파이프라인 데이터 전용) */
+#p5-inner{padding:14px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;max-width:720px;margin:0 auto;width:100%;}
+.ev-tabs{display:flex;gap:6px;border-bottom:1px solid var(--bor);}
+.ev-tab{padding:8px 16px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--mu);font-size:12px;font-weight:600;cursor:pointer;}
+.ev-tab.active{color:var(--bl);border-color:var(--bl);}
+.ev-tabpage{display:none;flex-direction:column;gap:12px;}
+.ev-tabpage.active{display:flex;}
+.ev-empty{color:var(--mu);font-size:12px;padding:20px;text-align:center;background:var(--surf);border-radius:var(--r);}
+.ev-checklist{display:flex;flex-direction:column;gap:6px;}
+.chk-item{background:var(--surf);border:1px solid var(--bor);border-radius:8px;overflow:hidden;}
+.chk-item summary{list-style:none;cursor:pointer;padding:10px 12px;display:flex;align-items:center;gap:9px;font-size:12px;}
+.chk-item summary::-webkit-details-marker{display:none;}
+.chk-item.on summary{color:var(--re);}
+.chk-item.off summary{color:var(--gr);}
+.chk-ico{font-weight:700;width:16px;flex-shrink:0;}
+.chk-label{flex:1;color:var(--tx);}
+.chk-w{font-size:10px;color:var(--mu);}
+.chk-detail{padding:0 12px 12px 37px;font-size:11px;color:var(--mu);line-height:1.7;}
+.chk-detail b{color:var(--tx);font-weight:600;}
+.ev-summary{background:var(--surf);border:1px solid var(--bor);border-radius:8px;padding:11px 14px;display:flex;flex-direction:column;gap:4px;}
+.ev-sum-grade{font-size:14px;font-weight:700;}
+.ev-sum-rec{font-size:11px;color:var(--mu);}
+.ev-chain,.ev-steps,.ev-scores{background:var(--surf);border:1px solid var(--bor);border-radius:8px;}
+.ev-chain summary,.ev-steps summary,.ev-scores summary{list-style:none;cursor:pointer;padding:10px 12px;font-size:11px;color:var(--mu);}
+.ev-chain summary::-webkit-details-marker,.ev-steps summary::-webkit-details-marker,.ev-scores summary::-webkit-details-marker{display:none;}
+.rc-timeline{padding:0 12px 12px 30px;font-size:11px;color:var(--mu);line-height:1.9;}
+.ev-fth{font-size:11px;color:var(--mu);}
+.ev-fth b{color:var(--tx);}
+.ev-badge{border-radius:8px;padding:11px 14px;font-size:12px;font-weight:600;}
+.ev-badge.on{background:rgba(248,81,73,.09);border:1px solid var(--re);color:var(--re);}
+.ev-badge.off{background:rgba(63,185,80,.09);border:1px solid var(--gr);color:var(--gr);}
+.ev-subhdr{font-size:11px;color:var(--mu);text-transform:uppercase;letter-spacing:.5px;}
+.es-list{padding:0 12px 12px;display:flex;flex-direction:column;gap:5px;}
+.es-row{display:flex;justify-content:space-between;font-size:11px;color:var(--mu);}
+.tcard.disabled{opacity:.45;cursor:not-allowed;pointer-events:none;}
+.tcard.wide{grid-column:1/-1;}
+.ev-btn{padding:5px 12px;background:transparent;border:1px solid var(--bl);border-radius:16px;color:var(--bl);font-size:11px;font-weight:600;cursor:pointer;}
+.ev-btn:disabled{opacity:.4;cursor:not-allowed;border-color:var(--bor);color:var(--mu);}
+.vec-caption{font-size:10px;color:var(--mu);margin-top:8px;line-height:1.5;}
+
 /* Tooltip */
 #tip{position:fixed;background:#1c2128;border:1px solid var(--bor);border-radius:6px;padding:5px 9px;font-size:11px;pointer-events:none;display:none;z-index:999;max-width:200px;line-height:1.6;}
 
@@ -236,6 +276,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Segoe UI',system-ui,sans-
     <div><span class="ps-lbl">동적 위험도</span><span class="ps-val" id="ps-d">—</span></div>
     <div><span class="ps-lbl">신뢰 점수</span><span class="ps-val" id="ps-t">—</span></div>
     <div class="ps-spacer"></div>
+    <button class="ev-btn" id="ev-open-btn" onclick="openEvidence()">탐지 근거 보기</button>
     <span class="ps-src-lbl">📊 파이프라인 분석 결과</span>
   </div>
   <div class="l1-body">
@@ -259,6 +300,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Segoe UI',system-ui,sans-
     <div class="vec-preview">
       <div class="vec-hdr">신뢰 벡터 (Trust Vector) — 배포자 지갑</div>
       <div class="vec-rows" id="vec-rows"></div>
+      <div class="vec-caption">이 5개 축은 온체인 트랜잭션 데이터에서 계산된 추정치이며, 외부 블랙리스트 조회가 아닙니다.</div>
     </div>
     <!-- Anomaly badges -->
     <div class="anom-row">
@@ -283,6 +325,10 @@ body{background:var(--bg);color:var(--tx);font-family:'Segoe UI',system-ui,sans-
       <div class="tcard" onclick="openPanel(4)">
         <div class="tcard-hdr"><span class="tcard-name">④ 이상 신호 탐지기</span><span class="tcard-arrow">확대 →</span></div>
         <div id="t-badges" class="tcard-static"></div>
+      </div>
+      <div class="tcard disabled wide" id="t-evidence-card" onclick="openEvidence()">
+        <div class="tcard-hdr"><span class="tcard-name">⑤ 탐지 근거</span><span class="tcard-arrow">확대 →</span></div>
+        <div id="t-evidence-static" class="tcard-static">먼저 파이프라인 보고서를 불러오세요</div>
       </div>
     </div>
   </div>
@@ -348,6 +394,17 @@ body{background:var(--bg);color:var(--tx);font-family:'Segoe UI',system-ui,sans-
         </div>
         <div><div class="p4-stitle">통계 요약</div><div class="sg4" id="p4-stats"></div></div>
         <div><div class="p4-stitle">패턴 설명</div><div class="pbox" id="p4-pat"></div></div>
+      </div>
+    </div>
+    <!-- P5: Evidence (탐지 근거 — 실 파이프라인 데이터 전용, mock 데이터 없음) -->
+    <div id="p5" class="psec">
+      <div id="p5-inner">
+        <div class="ev-tabs">
+          <button class="ev-tab active" data-tab="prevention" onclick="switchEvTab('prevention')">배포 전 예방 진단</button>
+          <button class="ev-tab" data-tab="dynamic" onclick="switchEvTab('dynamic')">배포 후 행동 탐지</button>
+        </div>
+        <div class="ev-tabpage active" id="ev-prevention"></div>
+        <div class="ev-tabpage" id="ev-dynamic"></div>
       </div>
     </div>
   </div>
@@ -603,6 +660,8 @@ let radarCh   = null;
 const tsC     = {};
 const thumbC  = {};
 let simul     = null;
+let lastReport = null; // loadReport()가 채우는 최근 로드된 파이프라인 리포트 — Panel 5(탐지 근거)가 참조
+let evTab      = 'prevention';
 
 /* ══════════════════════════════════════════════════
    PANEL 1 — NETWORK
@@ -933,7 +992,7 @@ function renderThumbs(type, vec, metrics, anom){
 /* ══════════════════════════════════════════════════
    NAVIGATION
 ══════════════════════════════════════════════════ */
-const P_TITLES={1:'① 자금 흐름 네트워크',2:'② 지갑 신뢰 벡터',3:'③ 시계열 대시보드',4:'④ 이상 신호 탐지기'};
+const P_TITLES={1:'① 자금 흐름 네트워크',2:'② 지갑 신뢰 벡터',3:'③ 시계열 대시보드',4:'④ 이상 신호 탐지기',5:'⑤ 탐지 근거'};
 
 function showView(id){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
@@ -968,6 +1027,12 @@ function renderPanel(id, walletId=null){
   }
   if(id===3){ initTS(); renderTS(curType,parseInt(document.getElementById('bslider').value)); }
   if(id===4) renderP4(curType);
+  if(id===5) renderEvidence();
+}
+
+function openEvidence(){
+  if(!lastReport) return; // mock 데모 모드 — 카드/버튼이 disabled라 보통 여기 안 옴(방어적 가드)
+  openPanel(5);
 }
 
 function openPanel(id, walletId=null){
@@ -1035,6 +1100,8 @@ async function loadReport(){
     const res=await fetch('reports/'+name+'_report.json');
     if(!res.ok) throw new Error('HTTP '+res.status);
     const rpt=await res.json();
+    lastReport=rpt;
+    setEvidenceEnabled(true);
 
     // sync type pill
     const t=_TYPE_MAP[rpt.type]||'ponzi';
@@ -1094,6 +1161,115 @@ async function loadReport(){
   }catch(e){
     status.textContent='❌ 불러오기 실패: '+e.message;
     status.style.color='var(--re)';
+  }
+}
+
+function setEvidenceEnabled(on){
+  const card=document.getElementById('t-evidence-card');
+  const stat=document.getElementById('t-evidence-static');
+  if(card) card.classList.toggle('disabled',!on);
+  if(stat) stat.textContent=on?'클릭하여 상세 보기':'먼저 파이프라인 보고서를 불러오세요';
+}
+
+/* ══════════════════════════════════════════════════
+   PANEL 5 — EVIDENCE (탐지 근거, 실 파이프라인 데이터 전용)
+   ⚠ mock 데모 모드(RAW_DATA)에는 대응하는 원본 데이터가 없다 — 오직
+   loadReport()로 불러온 lastReport(prevention/dynamic)만 렌더링한다.
+══════════════════════════════════════════════════ */
+function escHtml(s){
+  return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+const _RISK_COLORS={LOW:'var(--gr)',MEDIUM:'var(--ye)',HIGH:'var(--or)',CRITICAL:'var(--re)'};
+const _RULE_ICON={
+  BALANCE_DROP:'📉', FLOW_SPIKE:'🌊', CONCENTRATION_DRAIN:'🎯', PROFIT_EXTRACTION:'💰',
+  OSCILLATING_BALANCE:'🔁', TEMPORAL_PATTERN:'⏱', BALANCE_TIMESERIES_DRAIN:'📉'
+};
+
+function hasPrevention(rpt){ return !!(rpt&&rpt.prevention&&!rpt.prevention.error); }
+function hasDynamicEvasion(rpt){ return !!(rpt&&rpt.dynamic&&!rpt.dynamic.error); }
+
+function switchEvTab(tab){
+  evTab=tab;
+  document.querySelectorAll('.ev-tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  document.getElementById('ev-prevention').classList.toggle('active',tab==='prevention');
+  document.getElementById('ev-dynamic').classList.toggle('active',tab==='dynamic');
+}
+
+function renderEvidence(){
+  evTab='prevention';
+  switchEvTab('prevention');
+
+  const prevEl=document.getElementById('ev-prevention');
+  const dynEl=document.getElementById('ev-dynamic');
+
+  if(!lastReport){
+    prevEl.innerHTML=dynEl.innerHTML='<div class="ev-empty">먼저 파이프라인 보고서를 불러오세요.</div>';
+    return;
+  }
+  const rpt=lastReport;
+
+  // ── 탭1: 배포 전 예방 진단 (prevention_reasoner.js) ──
+  const pv=rpt.prevention;
+  if(!hasPrevention(rpt)){
+    const why=pv&&pv.error?` (${escHtml(pv.error)})`:'';
+    prevEl.innerHTML=`<div class="ev-empty">이 리포트에는 예방 진단 데이터가 없습니다${why}.</div>`;
+  }else{
+    const sorted=[...pv.checklist].sort((a,b)=>b.riskWeight-a.riskWeight);
+    const items=sorted.map(c=>`
+      <details class="chk-item ${c.detected?'on':'off'}">
+        <summary><span class="chk-ico">${c.detected?'✗':'✓'}</span><span class="chk-label">${escHtml(c.label)}</span><span class="chk-w">위험 +${c.riskWeight}</span></summary>
+        <div class="chk-detail">
+          <div><b>근거</b> ${escHtml(c.evidence)}</div>
+          <div><b>결과</b> ${escHtml(c.consequence)}</div>
+          <div><b>권고</b> ${escHtml(c.fix)}</div>
+        </div>
+      </details>`).join('');
+    const chainSteps=(pv.ontology_reasoning_chain||[]).map(s=>`<li>${escHtml(s)}</li>`).join('');
+    prevEl.innerHTML=`
+      <div class="ev-checklist">${items||'<div class="ev-empty">검출된 항목 없음</div>'}</div>
+      <div class="ev-summary">
+        <span class="ev-sum-grade" style="color:${_RISK_COLORS[pv.risk_level]||'var(--mu)'}">${pv.risk_score}점 · ${pv.risk_level}(${escHtml(pv.risk_label)})</span>
+        <span class="ev-sum-rec">${escHtml(pv.deployment_recommendation)}</span>
+      </div>
+      <details class="ev-chain">
+        <summary>추론 로그 보기 (${(pv.ontology_reasoning_chain||[]).length}단계)</summary>
+        <ol class="rc-timeline">${chainSteps}</ol>
+      </details>`;
+  }
+
+  // ── 탭2: 배포 후 행동 탐지 (dynamic_analyzer.js) ──
+  const dy=rpt.dynamic;
+  if(!hasDynamicEvasion(rpt)){
+    const why=dy&&dy.error?` (${escHtml(dy.error)})`:'';
+    dynEl.innerHTML=`<div class="ev-empty">이 리포트에는 행동 기반 진단 데이터가 없습니다${why}.</div>`;
+  }else{
+    const evBadge=dy.evasion_detected===undefined
+      ?`<div class="ev-badge off">— 이 리포트는 회피 탐지 기능 이전 버전으로 생성되어 회피 여부 정보가 없습니다(재실행 필요)</div>`
+      :dy.evasion_detected
+        ?`<div class="ev-badge on">⚠ 회피 시도 감지: ${escHtml(dy.evasion_subclass)} (신뢰도 ${dy.evasion_confidence})</div>`
+        :`<div class="ev-badge off">✓ 정상적으로 회피 시도 없음 확인</div>`;
+    const rules=dy.triggered_rules||[];
+    const ruleCards=rules.map(r=>
+      `<div class="b4 on" title="${escHtml(r.description)}"><div class="bi">${_RULE_ICON[r.id]||'🚩'}</div><div class="bn">${escHtml(r.id)}</div><div class="bv">+${r.weight}${r.weight_max?('/'+r.weight_max):''}</div></div>`
+    ).join('');
+    const stepsHtml=(dy.reasoning_steps||[]).map(s=>`<li>${escHtml(s)}</li>`).join('');
+    const scoreEntries=Object.entries(dy.evasion_all_scores||{});
+    const scoresHtml=scoreEntries.map(([k,v])=>`<div class="es-row"><span>${escHtml(k)}</span><span>${v}</span></div>`).join('');
+
+    dynEl.innerHTML=`
+      <div class="ev-fth">사기 유형 추정: <b>${escHtml(dy.fraud_type_hint||'unknown')}</b></div>
+      ${evBadge}
+      <div class="ev-subhdr">탐지된 이상 신호(규칙)</div>
+      <div class="bg4">${ruleCards||'<div class="ev-empty">탐지된 이상 신호 없음</div>'}</div>
+      <details class="ev-steps">
+        <summary>자세히 보기 — 판정 근거 로그 (${(dy.reasoning_steps||[]).length}단계)</summary>
+        <ol class="rc-timeline">${stepsHtml}</ol>
+      </details>
+      <details class="ev-scores">
+        <summary>전체 회피 서브클래스 점수</summary>
+        <div class="es-list">${scoresHtml||'<div class="ev-empty">해당 없음</div>'}</div>
+      </details>`;
   }
 }
 </script>

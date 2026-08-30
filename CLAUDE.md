@@ -313,6 +313,45 @@ dynamic_analyzer.js` 변경 전 439-444번 줄)는 순수 집합 멤버십
   기록(수동 반영 위치 명시). 상세는 `EVASION_ANALYSIS.md`의
   "DEX_WHITELIST — HopLaundering bothSides 오탐 완화" 절 참고.
 
+## 대시보드 조사 + Panel 5 "탐지 근거" 구현 (2026-08-30)
+
+- **정본 파일**: `analysis/dashboard.html`이 유일한 정본. `analysis/
+  analysis/dashboard.html`(별도 중첩 git 저장소, 죽은 코드)은 함수
+  인벤토리가 완전히 동일한 방치된 복제본일 뿐 — 두 파일 다 git
+  이력이 초기 업로드 커밋(`fc9aa60`) 하나뿐, 이후 수정 없음.
+- **mock vs 실데이터 경계**: L0/Panel 1~4/renderL1() 초기 렌더링은
+  전부 하드코딩 `RAW_DATA`(주석: "Sample Data")를 클라이언트 JS로
+  재계산한 것. 실 파이프라인 데이터는 `loadReport()` 함수 하나(주석
+  "PIPELINE REPORT LOADER")만 사용하며, L1의 Trust Score 일부 필드와
+  pipe-strip만 덮어썼음 — `prevention.ontology_reasoning_chain`은
+  전혀 미연결이었음(이번에 Panel 5로 연결).
+- **`checklist` vs `ontology_reasoning_chain` 구분**: `prevention_reasoner.js`는
+  평문 서사 로그(`ontology_reasoning_chain`, 문자열 배열)와는 별도로
+  구조화된 `checklist` 배열(`id/label/detected/riskWeight/evidence/
+  consequence/fix`)을 반환한다 — 조건 충족/미충족 UI에는 checklist가
+  원본 소스로 더 적합.
+- **`trust_scorer.js`의 "블랙리스트 연관도"/"스캠 연루 이력" 축은
+  실제 외부 평판 데이터가 아님**: 둘 다 `isDrainer`/`profitRatio`라는
+  같은 온체인 신호에서 파생된 값이며, 진짜 블랙리스트 DB 조회는 코드
+  어디에도 없다(`s_blacklist = isDrainer?0:100`, `s_scam =
+  (profitRatio>1.3||isDrainer)?0:100`). 이번엔 로직은 안 건드리고
+  Trust Vector 카드에 캡션만 추가했다 — 축 자체의 재설계는 Panel
+  1~4 mock→실데이터 전환 때 함께 판단하기로 함.
+- **"8-1절/8-2절" 인용 불일치**: 사용자가 인용한 절 번호가 저장소의
+  두 docx(`온톨로지_방법론_letter.docx`와 그 백업)에 존재하지 않음 —
+  둘 다 1~6절 구조뿐(회피 공리는 3.4절, UI 미연결 서술은 5절). 이전
+  세션이 이미 기록해둔 "8-1절 원문은 Downloads의 `온톨로지_설계서_
+  v0.1.docx`에만 있고 이 저장소엔 없음"과 일치 — 저장소 밖 문서를
+  가리키는 것으로 보임.
+- **Panel 5 구현**: 상세는 `ontology/CHANGELOG_v0.3.md`의 "대시보드
+  Panel 5 '탐지 근거'" 절 참고. 요약: 기존 `openPanel`/`renderPanel`/
+  `P_TITLES` 패턴을 그대로 확장(신규 아키텍처 없음), prevention/dynamic
+  2탭 구조, `analysis/reports/*.json` 5개가 evasion 필드 없는 구버전
+  스냅샷이라 재실행으로 갱신함. 헤드리스 Edge(CDP)로 실제 렌더링
+  검증 — Playwright 등 설치가 안 돼 있어 `msedge.exe
+  --remote-debugging-port` + Node 내장 WebSocket으로 임시 드라이버를
+  짜서 사용했다(재사용 가능한 스크립트는 리포지토리에 남기지 않음).
+
 ## Known issues
 
 - **NormalStaking 오탐성 예측 신호**: `analysis/analysis/prevention_reasoner.js`의
