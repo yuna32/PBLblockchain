@@ -15,8 +15,28 @@ async function main() {
   const testClient = await viem.getTestClient();
   const [ownerClient, ...walletClients] = await viem.getWalletClients();
 
-  const pumpers = walletClients.slice(0, 3);     // 내부자 3명 (pump 담당)
-  const lateComers = walletClients.slice(3, 8);  // 후발 참여자 5명 (피해자)
+  const INSIDER_COUNT   = Math.min(parseInt(process.env.SCENARIO_INSIDER_COUNT)        || 3, Math.floor(walletClients.length / 2));
+  const LATECOMER_COUNT = Math.min(parseInt(process.env.SCENARIO_LATECOMER_COUNT)      || 5, walletClients.length - INSIDER_COUNT);
+  const DUMP_DELAY      = parseInt(process.env.SCENARIO_DUMP_DELAY_BLOCKS)             || 1;
+
+  const pumpers    = walletClients.slice(0, INSIDER_COUNT);
+  const lateComers = walletClients.slice(INSIDER_COUNT, INSIDER_COUNT + LATECOMER_COUNT);
+
+  // Compute insider deposit amounts from ratio if env var is set, else use original defaults
+  const LATECOMER_DEPOSIT_ETH = 1.5;
+  let INSIDER_DEPOSIT_ETH;
+  let INSIDER_DUMP_ETH;
+
+  if (process.env.SCENARIO_INSIDER_DEPOSIT_RATIO) {
+    const ratio = Math.min(0.95, Math.max(0.05, parseFloat(process.env.SCENARIO_INSIDER_DEPOSIT_RATIO)));
+    const totalLatecomer = LATECOMER_COUNT * LATECOMER_DEPOSIT_ETH;
+    const totalInsider   = (ratio / (1 - ratio)) * totalLatecomer;
+    INSIDER_DEPOSIT_ETH  = totalInsider / INSIDER_COUNT;
+    INSIDER_DUMP_ETH     = (totalInsider + totalLatecomer) / INSIDER_COUNT;
+  } else {
+    INSIDER_DEPOSIT_ETH = 4.0;
+    INSIDER_DUMP_ETH    = (INSIDER_COUNT * 4.0 + LATECOMER_COUNT * LATECOMER_DEPOSIT_ETH) / INSIDER_COUNT;
+  }
 
   console.log(`Owner: ${ownerClient.account.address}`);
   console.log(`내부자(펌퍼): ${pumpers.length}명 | 후발자: ${lateComers.length}명\n`);
@@ -36,13 +56,14 @@ async function main() {
 
   const log = [];
 
-  // Phase 1: 내부자 대량 입금 (Pump) — 풀 크기 팽창
+  // Phase 1: 내부자 대량 입금 (Pump)
   console.log("── Phase 1: 내부자 대량 입금 (Pump) ──");
   for (let i = 0; i < pumpers.length; i++) {
     await testClient.mine({ blocks: 1 });
 
+    const amount = INSIDER_DEPOSIT_ETH.toFixed(3);
     const hash = await pumpdump.write.deposit({
-      value: parseEther("4.0"),
+      value: parseEther(amount),
       account: pumpers[i].account
     });
 
@@ -57,21 +78,21 @@ async function main() {
       from: pumpers[i].account.address,
       to: contractAddress,
       action: "deposit",
-      amount_eth: "4.0",
+      amount_eth: amount,
       contract_balance_eth: formatEther(balance),
       participant_count: count.toString()
     });
 
-    console.log(`  [Block ${receipt.blockNumber}] 내부자 ${i+1} 입금 4.0 ETH | 잔고: ${formatEther(balance)} ETH`);
+    console.log(`  [Block ${receipt.blockNumber}] 내부자 ${i+1} 입금 ${amount} ETH | 잔고: ${formatEther(balance)} ETH`);
   }
 
-  // Phase 2: 후발자 입금 — 부풀어진 풀에 유입
+  // Phase 2: 후발자 입금
   console.log("\n── Phase 2: 후발자 입금 (Late Entry) ──");
   for (let i = 0; i < lateComers.length; i++) {
     await testClient.mine({ blocks: 1 });
 
     const hash = await pumpdump.write.deposit({
-      value: parseEther("1.5"),
+      value: parseEther(LATECOMER_DEPOSIT_ETH.toFixed(1)),
       account: lateComers[i].account
     });
 
@@ -86,26 +107,34 @@ async function main() {
       from: lateComers[i].account.address,
       to: contractAddress,
       action: "deposit",
-      amount_eth: "1.5",
+      amount_eth: LATECOMER_DEPOSIT_ETH.toFixed(1),
       contract_balance_eth: formatEther(balance),
       participant_count: count.toString()
     });
 
-    console.log(`  [Block ${receipt.blockNumber}] 후발자 ${i+1} 입금 1.5 ETH | 잔고: ${formatEther(balance)} ETH`);
+    console.log(`  [Block ${receipt.blockNumber}] 후발자 ${i+1} 입금 ${LATECOMER_DEPOSIT_ETH.toFixed(1)} ETH | 잔고: ${formatEther(balance)} ETH`);
   }
 
-  // Phase 3: 내부자 전략적 인출 (Dump) — 후발자 몫까지 수탈
-  // 내부자 3명이 각 6.5 ETH 인출 (입금 4 ETH + 후발자 자금 2.5 ETH 수익)
-  // 총 인출: 19.5 ETH = 계약 전체 잔고
+  // Phase 3: 내부자 전략적 인출 (Dump)
   console.log("\n── Phase 3: 내부자 전액 인출 (Dump) ──");
-  const dumpAmounts = ["6.5", "6.5", "6.5"];
+  await testClient.mine({ blocks: DUMP_DELAY });
 
   for (let i = 0; i < pumpers.length; i++) {
     await testClient.mine({ blocks: 1 });
 
+    const currentBalance = await publicClient.getBalance({ address: contractAddress });
+    const dumpAmount = i === pumpers.length - 1
+      ? currentBalance  // last insider takes whatever remains
+      : parseEther(INSIDER_DUMP_ETH.toFixed(3));
+    const safeAmount = dumpAmount > currentBalance ? currentBalance : dumpAmount;
+
+    if (safeAmount === 0n) {
+      console.log(`  내부자 ${i+1}: 잔고 소진 (스킵)`);
+      continue;
+    }
     const balanceBefore = await publicClient.getBalance({ address: contractAddress });
     const hash = await pumpdump.write.insiderWithdraw(
-      [parseEther(dumpAmounts[i])],
+      [safeAmount],
       { account: pumpers[i].account }
     );
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
@@ -128,7 +157,7 @@ async function main() {
     console.log(`  [Block ${receipt.blockNumber}] 내부자 ${i+1} 인출 ${formatEther(withdrawn)} ETH | 잔고: ${formatEther(balanceAfter)} ETH`);
   }
 
-  // Phase 4: 후발자 인출 시도 — 잔고 부족으로 손실
+  // Phase 4: 후발자 인출 시도 (피해)
   console.log("\n── Phase 4: 후발자 인출 시도 (피해 발생) ──");
   for (let i = 0; i < lateComers.length; i++) {
     await testClient.mine({ blocks: 1 });

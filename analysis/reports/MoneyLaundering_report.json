@@ -1,8 +1,75 @@
 {
   "contract": "MoneyLaundering",
   "type": "laundering",
-  "timestamp": "2026-05-06T10:11:46.169Z",
+  "timestamp": "2026-06-06T05:51:12.668Z",
   "overall_grade": "D",
+  "raw_grade": "D",
+  "prevention_cap_applied": false,
+  "prevention_cap_reason": null,
+  "prevention": {
+    "contract": "MoneyLaundering",
+    "fraud_type_suspected": "MoneyLaundering",
+    "checklist": [
+      {
+        "id": "SINGLE_COLLECTOR_DRAIN",
+        "label": "단일 수집자 전액 인출",
+        "detected": true,
+        "riskWeight": 3,
+        "evidence": "withdrawAll.*recipient found at line 46",
+        "consequence": "다수 지갑 입금 → 단일 주소 전액 인출 구조 (세탁 완성 경로)",
+        "fix": "입금자 비례 환불 구조로 전환. 단일 수혜자 함수 제거"
+      },
+      {
+        "id": "NO_DEPOSIT_TRACKING",
+        "label": "입금자별 추적 불가 구조",
+        "detected": false,
+        "riskWeight": 2,
+        "evidence": "보호 패턴 'deposits\\[' 검출 (위험 해소됨)",
+        "consequence": "개별 입금액 기록 없음 → 자금 출처 역추적 불가",
+        "fix": "depositorAmounts mapping 추가, 이벤트 emit으로 추적 가능하게"
+      },
+      {
+        "id": "MANY_TO_ONE_FLOW",
+        "label": "다수→단일 자금 집중 구조",
+        "detected": true,
+        "riskWeight": 3,
+        "evidence": "depositorList found at line 16",
+        "consequence": "자금세탁 구조의 핵심: 출처 분산 → 목적지 집중",
+        "fix": "최대 수혜자 비율 제한 (단일 주소 30% 초과 인출 불가)"
+      },
+      {
+        "id": "NO_MINIMUM_HOLD_PERIOD",
+        "label": "최소 보유 기간 없음",
+        "detected": true,
+        "riskWeight": 2,
+        "evidence": "보호 패턴 [holdPeriod, lockTime, minBlocks] 미검출",
+        "consequence": "입금 즉시 인출 가능 → 세탁 사이클 가속",
+        "fix": "입금 후 최소 N블록 경과 후 인출 허용"
+      }
+    ],
+    "risk_score": 8,
+    "risk_level": "CRITICAL",
+    "risk_label": "배포 불가 — 세탁 구조 명확",
+    "unmet_conditions": [
+      "SINGLE_COLLECTOR_DRAIN",
+      "MANY_TO_ONE_FLOW",
+      "NO_MINIMUM_HOLD_PERIOD"
+    ],
+    "deployment_recommendation": "배포 전 필수 수정 항목 3개 존재. 수정 없이 배포 불가.",
+    "ontology_reasoning_chain": [
+      "소스 로드: MoneyLaundering.sol (64줄)",
+      "유형별 패턴 점수: {\"PonziScheme\":3,\"RugPull\":3,\"MoneyLaundering\":6,\"HoneypotTrap\":0,\"PumpDump\":0}",
+      "사기 유형 결정: MoneyLaundering (점수 6)",
+      "MoneyLaundering 예방 체크리스트 시작",
+      "SINGLE_COLLECTOR_DRAIN: withdrawAll.*recipient found at line 46 → 검출 (위험 +3)",
+      "MANY_TO_ONE_FLOW: depositorList found at line 16 → 검출 (위험 +3)",
+      "NO_DEPOSIT_TRACKING: 보호 패턴 'deposits\\[' 검출 (위험 해소됨) → 안전",
+      "NO_MINIMUM_HOLD_PERIOD: 보호 패턴 [holdPeriod, lockTime, minBlocks] 미검출 → 검출 (위험 +2)",
+      "총 위험 점수: 8",
+      "위험 등급: CRITICAL — 배포 불가 — 세탁 구조 명확",
+      "결론: 배포 전 3개 항목 수정 필요"
+    ]
+  },
   "static": {
     "file": "MoneyLaundering.sol",
     "triggered_rules": [
@@ -50,7 +117,28 @@
     ],
     "dynamic_risk_score": 100,
     "verdict": "HIGH_RISK",
-    "fraud_type_hint": "rug_pull"
+    "fraud_type_hint": "money_laundering",
+    "reasoning_steps": [
+      "singleLargeOutflow: true (3.510 / peak 3.510 = 100%)",
+      "distributedInflow: true (19 unique depositors)",
+      "ownerWithdrawAll: false (recipient 0x70997970... found in depositor list)",
+      "participantMidExit: false (0 mid-exit withdrawals)",
+      "→ money_laundering (large outflow + 19 distributed depositors + collector is a known depositor)"
+    ],
+    "anomaly_signals": {
+      "INFLOW_STOP": {
+        "detected": false,
+        "stop_ratio": 0.1,
+        "last_deposit_block": 39,
+        "last_block": 43
+      }
+    },
+    "evasion_detected": false,
+    "evasion_subclass": null,
+    "evasion_confidence": 0,
+    "evasion_consequence": null,
+    "evasion_all_scores": {},
+    "counter_detection": null
   },
   "trust": {
     "csv": "laundering_log.csv",
@@ -64,12 +152,28 @@
         "is_drainer": true,
         "blocks_active": 40,
         "trust_score": 30,
-        "components": {
-          "blacklist": 0,
-          "fundFlow": 0,
-          "scamHist": 0,
-          "activity": 100,
-          "diversity": 100
+        "grade": "D",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 0,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 0,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 0,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 100,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -80,12 +184,28 @@
         "is_drainer": false,
         "blocks_active": 1,
         "trust_score": 78,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 100,
-          "scamHist": 100,
-          "activity": 5,
-          "diversity": 50
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 5,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 50,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -96,12 +216,28 @@
         "is_drainer": false,
         "blocks_active": 1,
         "trust_score": 78,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 100,
-          "scamHist": 100,
-          "activity": 5,
-          "diversity": 50
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 5,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 50,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -112,12 +248,28 @@
         "is_drainer": false,
         "blocks_active": 1,
         "trust_score": 78,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 100,
-          "scamHist": 100,
-          "activity": 5,
-          "diversity": 50
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 5,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 50,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -128,12 +280,28 @@
         "is_drainer": false,
         "blocks_active": 1,
         "trust_score": 78,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 100,
-          "scamHist": 100,
-          "activity": 5,
-          "diversity": 50
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 5,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 50,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -144,12 +312,28 @@
         "is_drainer": false,
         "blocks_active": 1,
         "trust_score": 78,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 100,
-          "scamHist": 100,
-          "activity": 5,
-          "diversity": 50
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 5,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 50,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -160,12 +344,28 @@
         "is_drainer": false,
         "blocks_active": 1,
         "trust_score": 78,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 100,
-          "scamHist": 100,
-          "activity": 5,
-          "diversity": 50
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 5,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 50,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -176,12 +376,28 @@
         "is_drainer": false,
         "blocks_active": 1,
         "trust_score": 78,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 100,
-          "scamHist": 100,
-          "activity": 5,
-          "diversity": 50
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 5,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 50,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -192,12 +408,28 @@
         "is_drainer": false,
         "blocks_active": 1,
         "trust_score": 78,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 100,
-          "scamHist": 100,
-          "activity": 5,
-          "diversity": 50
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 5,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 50,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -208,12 +440,28 @@
         "is_drainer": false,
         "blocks_active": 1,
         "trust_score": 78,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 100,
-          "scamHist": 100,
-          "activity": 5,
-          "diversity": 50
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 5,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 50,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -224,12 +472,28 @@
         "is_drainer": false,
         "blocks_active": 1,
         "trust_score": 78,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 100,
-          "scamHist": 100,
-          "activity": 5,
-          "diversity": 50
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 5,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 50,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -240,12 +504,28 @@
         "is_drainer": false,
         "blocks_active": 1,
         "trust_score": 78,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 100,
-          "scamHist": 100,
-          "activity": 5,
-          "diversity": 50
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 5,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 50,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -256,12 +536,28 @@
         "is_drainer": false,
         "blocks_active": 1,
         "trust_score": 78,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 100,
-          "scamHist": 100,
-          "activity": 5,
-          "diversity": 50
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 5,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 50,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -272,12 +568,28 @@
         "is_drainer": false,
         "blocks_active": 1,
         "trust_score": 78,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 100,
-          "scamHist": 100,
-          "activity": 5,
-          "diversity": 50
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 5,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 50,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -288,12 +600,28 @@
         "is_drainer": false,
         "blocks_active": 1,
         "trust_score": 78,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 100,
-          "scamHist": 100,
-          "activity": 5,
-          "diversity": 50
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 5,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 50,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -304,12 +632,28 @@
         "is_drainer": false,
         "blocks_active": 1,
         "trust_score": 78,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 100,
-          "scamHist": 100,
-          "activity": 5,
-          "diversity": 50
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 5,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 50,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -320,12 +664,28 @@
         "is_drainer": false,
         "blocks_active": 1,
         "trust_score": 78,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 100,
-          "scamHist": 100,
-          "activity": 5,
-          "diversity": 50
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 5,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 50,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -336,12 +696,28 @@
         "is_drainer": false,
         "blocks_active": 1,
         "trust_score": 78,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 100,
-          "scamHist": 100,
-          "activity": 5,
-          "diversity": 50
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 5,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 50,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -352,17 +728,33 @@
         "is_drainer": false,
         "blocks_active": 1,
         "trust_score": 78,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 100,
-          "scamHist": 100,
-          "activity": 5,
-          "diversity": 50
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 5,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 50,
+            "weight": 0.15
+          }
         }
       }
     ],
-    "overall_trust_score": 75,
-    "trust_grade": "SAFE",
-    "summary_ko": "총 19개 지갑 분석. 평균 신뢰 점수 75/100 (최저: 30). 오너 드레인 지갑 1개 탐지. 과도한 수익 추출 지갑 1개 탐지. 등급: SAFE."
+    "overall_trust_score": 57,
+    "trust_grade": "B",
+    "summary_ko": "총 19개 지갑 분석. 평균 신뢰 점수 57/100 (평균: 75, 최저: 30). 오너 드레인 지갑 1개 탐지. 과도한 수익 추출 지갑 1개 탐지. 등급: B (LOW_RISK)."
   }
 }

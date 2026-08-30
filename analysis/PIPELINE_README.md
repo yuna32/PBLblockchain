@@ -1,4 +1,4 @@
-# 파이프라인 사용 가이드
+﻿# 파이프라인 사용 가이드
 
 블록체인 사기 탐지 파이프라인은 **정적 분석 → 동적 분석 → 신뢰 점수 계산**을 단일 명령으로 실행하고, 결과를 JSON 보고서와 대시보드 HTML로 저장합니다.
 
@@ -55,7 +55,8 @@ npm run normal       # → analysis/logs/normal_log.csv
 npm run rugpull      # → analysis/logs/rugpull_log.csv
 npm run laundering   # → analysis/logs/laundering_log.csv
 npm run pumpdump     # → analysis/logs/pumpdump_log.csv
-npm run flashloan    # → analysis/logs/flashloan_log.csv
+npm run honeypot     # → analysis/logs/honeypot_log.csv
+npm run evasion      # → analysis/logs/evasion_patched_log.csv
 ```
 
 > 시뮬레이션 없이 파이프라인을 실행하면 Step 2·3이 "CSV 없음" 경고를 출력하고, 정적 분석 결과만 반영된 보고서를 생성합니다.
@@ -76,8 +77,9 @@ npm run analyze -- --contract <컨트랙트 이름>
 | NormalStaking   | 정상 스테이킹 | `npm run normal`  |
 | RugPull         | 러그풀       | `npm run rugpull` |
 | MoneyLaundering | 자금세탁     | `npm run laundering` |
-| PumpDump        | 펌프앤덤프   | `npm run pumpdump` |
-| FlashLoanPattern| 플래시론     | `npm run flashloan` |
+| PumpDump        | 펌프앤덤프   | `npm run pumpdump`  |
+| Honeypot        | 허니팟       | `npm run honeypot`  |
+| PonziLabPatched | 폰지(패치)   | `npm run evasion`   |
 
 ### 실행 예시 (WSL 터미널)
 
@@ -293,27 +295,316 @@ combined_risk = 정적 위험도 × 0.30
 ```
 pbl/
 ├── contracts/
-│   ├── PonziLab.sol          ← 정적 분석 입력
+│   ├── PonziLab.sol             ← 정적 분석 입력 (폰지)
 │   ├── NormalStaking.sol
 │   ├── RugPull.sol
 │   ├── MoneyLaundering.sol
 │   ├── PumpDump.sol
-│   └── FlashLoanPattern.sol
+│   ├── Honeypot.sol             ← 허니팟 컨트랙트 (NEW)
+│   └── PonziLabPatched.sol      ← 패치 적용 폰지 (NEW)
 ├── scripts/
-│   ├── simulate_ponzi.js     ← 동적 분석 입력(CSV) 생성
+│   ├── simulate_ponzi.js        ← 동적 분석 입력(CSV) 생성
+│   ├── simulate_honeypot.js     ← 허니팟 시뮬레이션 (NEW)
+│   ├── simulate_evasion_patched.js ← 패치 검증 (NEW)
 │   └── simulate_*.js
 ├── analysis/
-│   ├── static_analyzer.js    ← Step 1: 소스 코드 규칙 탐지
-│   ├── dynamic_analyzer.js   ← Step 2: CSV 이상 신호 탐지
-│   ├── trust_scorer.js       ← Step 3: 지갑 신뢰 점수 채점
-│   ├── pipeline.js           ← 오케스트레이터 (CLI 진입점)
-│   ├── dashboard.html        ← 원본 대시보드 (배너 비활성)
-│   ├── logs/                 ← 시뮬레이션 CSV 로그
+│   ├── fraud_ontology.js        ← 사기 지식 모델 온톨로지 (NEW)
+│   ├── static_analyzer.js       ← Step 1: 소스 코드 규칙 탐지
+│   ├── dynamic_analyzer.js      ← Step 2: CSV 이상 신호 탐지
+│   ├── trust_scorer.js          ← Step 3: 지갑 신뢰 점수 채점 (6축)
+│   ├── pipeline.js              ← 오케스트레이터 + 온톨로지 매핑
+│   ├── dashboard.html           ← 대시보드 (허니팟탭·6축레이더·ZERO_WITHDRAW)
+│   ├── logs/                    ← 시뮬레이션 CSV 로그
 │   │   ├── ponzi_log.csv
+│   │   ├── honeypot_log.csv     ← (NEW)
+│   │   ├── evasion_patched_log.csv ← (NEW)
 │   │   └── *.csv
-│   ├── reports/              ← 파이프라인 출력 (자동 생성)
+│   ├── reports/                 ← 파이프라인 출력 (자동 생성)
 │   │   ├── PonziLab_report.json
-│   │   └── PonziLab_dashboard.html
-│   └── PIPELINE_README.md    ← 이 파일
+│   │   ├── Honeypot_report.json ← (NEW)
+│   │   └── *.json
+│   └── PIPELINE_README.md       ← 이 파일
 └── package.json
 ```
+
+---
+
+## fraud_ontology.js — 사기 지식 모델
+
+`analysis/fraud_ontology.js`는 모든 사기 개념과 관계를 기계 가독 형식으로 정의한 **온톨로지 레이어**입니다. 탐지 로직 코드에서 지식을 분리하여 중앙화된 한 곳에서 관리합니다.
+
+### 주요 구조
+
+| 섹션 | 설명 |
+|------|------|
+| `classes` | FraudPattern, AnomalySignal, EvasionTechnique, WalletRole 최상위 개념 계층 |
+| `fraudTypes` | PonziScheme, RugPull, MoneyLaundering, PumpAndDump, HoneypotTrap 사기 유형 정의 |
+| `evasionTechniques` | OwnerWithdrawAll, SmurfingDeposit, HiddenRequireCondition 등 회피 기법 + 패치 |
+| `anomalySignals` | BalanceDrop, FlowSpike, ZeroWithdrawBlock 등 이상 신호 공식 |
+
+### 새로운 사기 유형 추가 방법
+
+1. `fraudTypes`에 새 키 추가 (필수 조건, 회피 기법, GUI 강조 포함)
+2. 관련 `anomalySignals` 추가
+3. `dynamic_analyzer.js`에 RULES 항목 추가 (탐지 로직)
+4. `static_analyzer.js`에 규칙 추가 (소스 코드 패턴)
+5. `pipeline.js`의 `TYPE_TO_ONTOLOGY_CLASS`에 매핑 추가
+
+---
+
+## Honeypot — 허니팟 시뮬레이션
+
+### 컨트랙트 특성 (`contracts/Honeypot.sol`)
+
+- `deposit()`: 정상 작동 — 신뢰 유도
+- `withdraw()`: 내부의 `require(_withdrawEnabled)` 조건으로 **항상 실패**
+- `_withdrawEnabled`: `false`로 고정 (public setter 없음)
+- `ownerCollect()`: owner 전용 백도어 — 전액 수집
+
+### 시뮬레이션 실행
+
+```bash
+npm run honeypot
+# → analysis/logs/honeypot_log.csv
+# Phase 1: 10명 입금 (1.0 ETH 각, 2블록 간격)
+# Phase 2: 5명 출금 시도 → 실패 (withdraw_attempt, amount=0)
+# Phase 3: Owner가 ownerCollect()로 10 ETH 전액 수집
+```
+
+### CSV 특이 컬럼
+
+`honeypot_log.csv`는 `withdraw_success` 컬럼을 추가로 포함합니다:
+- 입금: 빈 값
+- 출금 시도: `false`
+- 오너 수집: 빈 값
+
+### 탐지 결과 (동적 분석)
+
+| 규칙 | 트리거 이유 |
+|------|----------|
+| ZERO_WITHDRAW_PATTERN | `withdraw_attempt` 존재 + 실제 출금 0 |
+| BALANCE_DROP | `owner_collect` 후 잔고 0으로 급락 |
+| FLOW_SPIKE | 단일 `owner_collect`가 총 입금의 100% |
+
+---
+
+## Evasion Patches — 패치 검증 시뮬레이션
+
+`contracts/PonziLabPatched.sol`은 PonziLab에 3가지 보안 패치를 적용합니다.
+
+### 패치 내용
+
+| 패치 | 코드 변경 | 방어 효과 |
+|------|----------|---------|
+| 1. 타임락 | `require(block.number >= deployBlock + 10)` | ownerWithdrawAll 즉시 실행 불가 |
+| 2. 30% 한도 | `require(balance <= balance*30/100)` | 전액 일회 드레인 불가 |
+| 3. 최소 입금 | `require(msg.value >= 0.1 ether)` | 스머핑 소액 분산 입금 차단 |
+
+### 시뮬레이션 실행
+
+```bash
+npm run evasion
+# → analysis/logs/evasion_patched_log.csv
+# 패치 3 검증: 0.05 ETH 입금 시도 → deposit_blocked_below_minimum
+# 패치 1 검증: 타임락 전 인출 시도 → owner_withdraw_blocked_timelock
+# 정상 입금 10건
+# 패치 2 검증: 전액 인출 시도 → owner_withdraw_blocked_limit
+
+npm run analyze -- --contract PonziLabPatched
+```
+
+---
+
+## TX_INPUT_TRANSPARENCY — 신뢰 점수 6번째 축
+
+`trust_scorer.js`에 **TX_INPUT_TRANSPARENCY** (가중치 10%) 지표가 추가되었습니다.
+
+기존 5개 지표 가중치도 합계 100%에 맞춰 재조정되었습니다.
+
+| 지표 | 이전 가중치 | 신규 가중치 |
+|------|-----------|-----------|
+| BLACKLIST_ASSOCIATION | 30% | 27% |
+| FUND_FLOW_PATTERN | 25% | 23% |
+| SCAM_HISTORY | 15% | 13% |
+| ACTIVITY_DURATION | 15% | 13% |
+| TX_DIVERSITY | 15% | 14% |
+| **TX_INPUT_TRANSPARENCY** | — | **10%** |
+
+### 점수 기준
+
+| 액션 패턴 | 점수 |
+|----------|------|
+| 모든 표준 입출금 | 100 (완전 투명) |
+| `deposit_blocked` 존재 | 60 (부분 필터링) |
+| `withdraw_attempt` 존재 | 20 (숨겨진 차단 의심) |
+| `owner_collect` / `owner_withdraw_all` 존재 | 10 (불투명 백도어) |
+
+대시보드 Panel 2 레이더 차트가 5축에서 **6축**으로 확장되었습니다.
+
+
+---
+
+## Prevention Layer (예방 추론 레이어)
+
+### prevention_reasoner.js 란?
+
+`analysis/prevention_reasoner.js`는 Solidity 소스코드를 읽어 **배포 전 사기 위험을 체크리스트 방식으로 추론**하는 온톨로지 기반 예방 엔진입니다.
+기존 파이프라인이 "이 컨트랙트가 얼마나 위험한가(점수)"를 측정한다면,
+Prevention Layer는 **"왜 위험하고, 배포 전에 무엇을 고쳐야 하는가"** 를 구체적으로 설명합니다.
+
+| 항목 | 설명 |
+|------|------|
+| 입력 | 컨트랙트 이름 (`contractName`) |
+| 출력 | `prevention_report` JSON |
+| 실행 위치 | Step 0 (정적·동적 분석 이전) |
+| 핵심 함수 | `runPrevention(contractName)` |
+
+---
+
+### 파이프라인 전체 흐름 (4단계)
+
+```
+Step 0: prevention_reasoner.js  → prevention_report  (NEW)
+Step 1: static_analyzer.js      → static_report
+Step 2: dynamic_analyzer.js     → dynamic_report
+Step 3: trust_scorer.js         → trust_report
+────────────────────────────────────────────────
+Step 4: Unified Report JSON     → analysis/reports/{Contract}_report.json
+```
+
+Unified Report JSON 구조:
+```json
+{
+  "prevention": {
+    "risk_level":  "CRITICAL",
+    "risk_score":  12,
+    "deployment_recommendation": "...",
+    "checklist_summary": {
+      "total_items": 5,
+      "detected_risks": 3,
+      "unmet_conditions": ["NO_TIMELOCK", "NO_WITHDRAWAL_LIMIT"]
+    },
+    "ontology_reasoning_chain": [...]
+  },
+  "static":  { ... },
+  "dynamic": { ... },
+  "trust":   { ... }
+}
+```
+
+---
+
+### fraud_ontology.js — preventionRules 구조
+
+`FraudOntology.preventionRules` 는 사기 유형별 체크리스트를 정의합니다.
+
+```javascript
+preventionRules: {
+  PonziScheme: {
+    checklistItems: [
+      {
+        id:            "OWNER_WITHDRAW_ALL",
+        label:         "무제한 오너 인출 함수",
+        detectPattern: "ownerWithdrawAll|withdrawAll|emergencyWithdraw",
+        riskWeight:    3,           // 위험 가중치 (합산하여 risk_score)
+        ifDetected:    "단일 함수로 전체 잔고 인출 가능 → 러그풀 구조 내재",
+        fixSuggestion: "함수 제거 또는 timelock + 한도(30%) 동시 적용"
+      },
+      // ... 추가 항목
+    ],
+    riskLevels: {
+      CRITICAL: { minScore: 8, label: "배포 불가",      color: "red"    },
+      HIGH:     { minScore: 5, label: "수정 후 재검토",  color: "orange" },
+      MEDIUM:   { minScore: 2, label: "모니터링 필요",   color: "yellow" },
+      LOW:      { minScore: 0, label: "정상 구조",       color: "green"  }
+    }
+  },
+  RugPull:        { ... },
+  MoneyLaundering:{ ... },
+  HoneypotTrap:   { ... }
+}
+```
+
+**detectPattern 규칙:**
+
+| 형식 | 의미 |
+|------|------|
+| `pattern` | 소스에서 해당 regex 검출 시 위험 감지 |
+| `ABSENCE:pattern` | 소스에서 해당 패턴이 **없을 때** 위험 감지 |
+| `A\|B\|C` | 파이프(|)로 OR 조건 연결 |
+| `ABSENCE:A\|ABSENCE:B` | A, B 모두 없을 때 위험 감지 |
+
+**복합 완화 로직 (Compound Mitigation):**
+- `OWNER_WITHDRAW_ALL`: timelock AND 출금한도 동시 존재 시 위험으로 간주하지 않음
+- `SINGLE_BENEFICIARY`: timelock 존재 시 위험으로 간주하지 않음
+- **부재 항목(ABSENCE)**: 긍정 항목 미검출 시 부재 점검 생략 (정상 컨트랙트 오탐 방지)
+
+---
+
+### 새로운 사기 유형 예방 규칙 추가 방법
+
+1. `fraud_ontology.js`의 `preventionRules`에 새 유형 추가:
+
+```javascript
+MyNewFraudType: {
+  checklistItems: [
+    {
+      id:            "MY_RISKY_PATTERN",
+      label:         "위험 패턴 이름",
+      detectPattern: "riskyFunction|dangerousPattern",
+      riskWeight:    3,
+      ifDetected:    "위험 설명",
+      fixSuggestion: "수정 방법"
+    },
+    {
+      id:            "NO_SAFEGUARD",
+      label:         "보호 장치 없음",
+      detectPattern: "ABSENCE:safeFunction|ABSENCE:safeGuard",
+      riskWeight:    2,
+      ifDetected:    "보호 장치 미비 설명",
+      fixSuggestion: "보호 장치 추가 방법"
+    }
+  ],
+  riskLevels: {
+    CRITICAL: { minScore: 5, label: "배포 불가",     color: "red"    },
+    HIGH:     { minScore: 3, label: "수정 후 재검토", color: "orange" },
+    MEDIUM:   { minScore: 1, label: "모니터링 필요",  color: "yellow" },
+    LOW:      { minScore: 0, label: "정상 구조",      color: "green"  }
+  }
+}
+```
+
+2. `static_analyzer.js`의 해당 규칙에 `fraudClasses: ["MyNewFraudType"]` 추가 (정적 분석 힌트 연동)
+
+3. `pipeline.js`의 `TYPE_TO_ONTOLOGY_CLASS` 맵에 새 타입 매핑 추가 (필요 시)
+
+---
+
+### PonziLab vs PonziLabPatched 비교
+
+| 항목 | PonziLab | PonziLabPatched |
+|------|----------|-----------------|
+| 사기 유형 | PonziScheme | PonziScheme |
+| 위험 점수 | **12** | **3** |
+| 위험 등급 | **CRITICAL (배포 불가)** | **MEDIUM (모니터링 필요)** |
+| OWNER_WITHDRAW_ALL | 검출 (+3) | 미검출 — timelock+한도 완화 |
+| NO_TIMELOCK | 검출 (+2) | 미검출 — deployBlock 인식 |
+| REWARD_FROM_DEPOSIT | 검출 (+3) | 검출 (+3) — 폰지 구조 잔존 |
+| NO_WITHDRAWAL_LIMIT | 검출 (+2) | 미검출 — maxAllowed 인식 |
+| SINGLE_BENEFICIARY | 검출 (+2) | 미검출 — timelock 완화 |
+| 배포 권고 | 수정 없이 배포 불가 | 모니터링 권장 후 배포 |
+
+**핵심 차이:** PonziLabPatched는 timelock(deployBlock+10)과 30% 한도(maxAllowed)를 추가하여 4개 항목의 위험을 해소했습니다.
+단, `participants[]` 기반 보상 구조(폰지 메커니즘)는 여전히 남아 있어 REWARD_FROM_DEPOSIT이 검출됩니다.
+
+---
+
+### 비교 결과표
+
+| Contract | Risk Level | Score | Detected Risks | Top Fix |
+|----------|-----------|-------|---------------|---------|
+| PonziLab | CRITICAL | 12 | 5/5 | timelock + 30% 한도 적용 |
+| PonziLabPatched | MEDIUM | 3 | 1/5 | rewardPool 분리 구조 전환 |
+| NormalStaking | LOW | 0 | 0/0 | 해당 없음 (정상 구조) |
+| RugPull | CRITICAL | 5 | 2/2 | emergencyExit() 함수 추가 |
+| Honeypot | HIGH | 3 | 1/2 | 비공개 인출 차단 변수 제거 |

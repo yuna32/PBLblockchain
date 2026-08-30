@@ -1,8 +1,87 @@
 {
   "contract": "PonziLab",
   "type": "ponzi",
-  "timestamp": "2026-05-07T04:32:36.538Z",
+  "timestamp": "2026-06-05T12:50:57.330Z",
   "overall_grade": "F",
+  "raw_grade": "F",
+  "prevention_cap_applied": false,
+  "prevention_cap_reason": null,
+  "prevention": {
+    "contract": "PonziLab",
+    "fraud_type_suspected": "PonziScheme",
+    "checklist": [
+      {
+        "id": "OWNER_WITHDRAW_ALL",
+        "label": "무제한 오너 인출 함수",
+        "detected": true,
+        "riskWeight": 3,
+        "evidence": "ownerWithdrawAll found at line 79",
+        "consequence": "단일 함수로 전체 잔고 인출 가능 → 러그풀 구조 내재",
+        "fix": "함수 제거 또는 timelock + 한도(30%) 동시 적용"
+      },
+      {
+        "id": "NO_TIMELOCK",
+        "label": "타임락 부재",
+        "detected": true,
+        "riskWeight": 2,
+        "evidence": "보호 패턴 [timelock, delay, lockPeriod, deployBlock] 미검출",
+        "consequence": "즉각 인출 가능 → 러그풀 실행 용이",
+        "fix": "block.number >= deployBlock + N 조건 추가 (N >= 10)"
+      },
+      {
+        "id": "REWARD_FROM_DEPOSIT",
+        "label": "신규 입금이 기존 보상 재원",
+        "detected": true,
+        "riskWeight": 3,
+        "evidence": "participants\\[ found at line 44",
+        "consequence": "폰지 구조 — 신규 자금이 기존 참여자 수익으로 사용됨",
+        "fix": "독립 보상 풀(rewardPool) 분리, 배포 시 충전"
+      },
+      {
+        "id": "NO_WITHDRAWAL_LIMIT",
+        "label": "단일 출금 한도 없음",
+        "detected": true,
+        "riskWeight": 2,
+        "evidence": "보호 패턴 [withdrawalLimit, maxWithdraw, maxAllowed] 미검출",
+        "consequence": "전액 단발 인출 가능",
+        "fix": "단일 인출 <= 잔고의 30% 제한 추가"
+      },
+      {
+        "id": "SINGLE_BENEFICIARY",
+        "label": "단일 수혜자 구조",
+        "detected": true,
+        "riskWeight": 2,
+        "evidence": "payable\\(owner\\) found at line 83",
+        "consequence": "모든 자금이 단일 주소로만 흐를 수 있는 구조",
+        "fix": "다중 서명(multisig) 또는 참여자 비례 분배 구조로 전환"
+      }
+    ],
+    "risk_score": 12,
+    "risk_level": "CRITICAL",
+    "risk_label": "배포 불가",
+    "unmet_conditions": [
+      "OWNER_WITHDRAW_ALL",
+      "REWARD_FROM_DEPOSIT",
+      "SINGLE_BENEFICIARY",
+      "NO_TIMELOCK",
+      "NO_WITHDRAWAL_LIMIT"
+    ],
+    "deployment_recommendation": "배포 전 필수 수정 항목 5개 존재. 수정 없이 배포 불가.",
+    "ontology_reasoning_chain": [
+      "소스 로드: PonziLab.sol (96줄)",
+      "유형별 패턴 점수: {\"PonziScheme\":8,\"RugPull\":0,\"MoneyLaundering\":0,\"HoneypotTrap\":0,\"PumpDump\":0}",
+      "사기 유형 결정: PonziScheme (점수 8)",
+      "PonziScheme 예방 체크리스트 시작",
+      "OWNER_WITHDRAW_ALL: ownerWithdrawAll found at line 79 → 검출 (위험 +3)",
+      "REWARD_FROM_DEPOSIT: participants\\[ found at line 44 → 검출 (위험 +3)",
+      "SINGLE_BENEFICIARY: payable\\(owner\\) found at line 83 → 검출 (위험 +2)",
+      "NO_TIMELOCK: 보호 패턴 [timelock, delay, lockPeriod, deployBlock] 미검출 → 검출 (위험 +2)",
+      "NO_WITHDRAWAL_LIMIT: 보호 패턴 [withdrawalLimit, maxWithdraw, maxAllowed] 미검출 → 검출 (위험 +2)",
+      "총 위험 점수: 12",
+      "위험 등급: CRITICAL — 배포 불가",
+      "결론: 배포 전 5개 항목 수정 필요"
+    ]
+  },
   "static": {
     "file": "PonziLab.sol",
     "triggered_rules": [

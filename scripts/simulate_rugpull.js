@@ -14,7 +14,19 @@ async function main() {
   const publicClient = await viem.getPublicClient();
   const testClient = await viem.getTestClient();
   const [ownerClient, ...walletClients] = await viem.getWalletClients();
-  const wallets = walletClients.slice(0, 10);
+
+  const PARTICIPANTS  = Math.min(parseInt(process.env.SCENARIO_PARTICIPANTS)   || 10,  walletClients.length);
+  const DEPOSIT_MIN   = parseFloat(process.env.SCENARIO_DEPOSIT_MIN)           || 1.0;
+  const DEPOSIT_MAX   = parseFloat(process.env.SCENARIO_DEPOSIT_MAX)           || 2.8;
+  const DUMP_DELAY    = parseInt(process.env.SCENARIO_DUMP_DELAY_BLOCKS)       || 3;
+
+  const wallets = walletClients.slice(0, PARTICIPANTS);
+
+  // Linear ramp from DEPOSIT_MIN to DEPOSIT_MAX
+  const depositAmounts = Array.from({ length: PARTICIPANTS }, (_, i) => {
+    const t = PARTICIPANTS > 1 ? i / (PARTICIPANTS - 1) : 0;
+    return (DEPOSIT_MIN + t * (DEPOSIT_MAX - DEPOSIT_MIN)).toFixed(2);
+  });
 
   console.log(`Owner: ${ownerClient.account.address}`);
   console.log(`참여자 수: ${wallets.length}명\n`);
@@ -25,14 +37,12 @@ async function main() {
 
   const log = [];
 
-  // Phase 1: 10명 점진 입금 — 잔고 역V자 상승
-  console.log("── Phase 1: 10명 입금 (잔고 점진 축적) ──");
-  const depositAmounts = [1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8];
-
+  // Phase 1: 점진 입금
+  console.log(`── Phase 1: ${PARTICIPANTS}명 입금 (잔고 점진 축적) ──`);
   for (let i = 0; i < wallets.length; i++) {
     await testClient.mine({ blocks: 2 });
 
-    const amount = depositAmounts[i].toFixed(1);
+    const amount = depositAmounts[i];
     const hash = await rugpull.write.deposit({
       value: parseEther(amount),
       account: wallets[i].account
@@ -57,9 +67,9 @@ async function main() {
     console.log(`  [Block ${receipt.blockNumber}] 입금 ${amount} ETH | 잔고: ${formatEther(balance)} ETH`);
   }
 
-  // Phase 2: 오너 단번 전액 인출 — 중간 출금 없이 피크에서 러그풀
+  // Phase 2: 오너 전액 인출
   console.log("\n── Phase 2: 오너 전액 단번 인출 (러그풀 트리거) ──");
-  await testClient.mine({ blocks: 3 });
+  await testClient.mine({ blocks: DUMP_DELAY });
 
   const peakBalance = await publicClient.getBalance({ address: contractAddress });
   const hash = await rugpull.write.rugPullAll({ account: ownerClient.account });

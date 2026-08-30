@@ -1,8 +1,87 @@
 {
   "contract": "PumpDump",
   "type": "pumpdump",
-  "timestamp": "2026-05-06T10:11:38.826Z",
-  "overall_grade": "C",
+  "timestamp": "2026-06-05T12:50:57.859Z",
+  "overall_grade": "D",
+  "raw_grade": "C",
+  "prevention_cap_applied": true,
+  "prevention_cap_reason": "CRITICAL prevention score (13) → grade capped at D",
+  "prevention": {
+    "contract": "PumpDump",
+    "fraud_type_suspected": "PumpDump",
+    "checklist": [
+      {
+        "id": "INSIDER_REGISTRY",
+        "label": "내부자 등록 및 특권 구조",
+        "detected": true,
+        "riskWeight": 3,
+        "evidence": "isInsider found at line 17",
+        "consequence": "내부자만 수익 인출 가능 — 정보 비대칭 착취 구조",
+        "fix": "내부자 특권 제거. 모든 참여자 동일 조건 적용"
+      },
+      {
+        "id": "ASYMMETRIC_WITHDRAWAL",
+        "label": "내부자/외부자 출금 비대칭",
+        "detected": true,
+        "riskWeight": 3,
+        "evidence": "insiderWithdraw found at line 54",
+        "consequence": "내부자 전액 인출 후 후발자 잔고 0 — 구조적 피해 설계",
+        "fix": "역할 기반 인출 제거. 비례 분배 또는 FIFO 구조 적용"
+      },
+      {
+        "id": "NO_PRICE_ORACLE",
+        "label": "가격/비율 오라클 부재",
+        "detected": true,
+        "riskWeight": 2,
+        "evidence": "보호 패턴 [oracle, priceCheck, rateLimit] 미검출",
+        "consequence": "내부자가 임의 비율로 인출 가능 — 조작 기준 없음",
+        "fix": "외부 오라클 또는 고정 비율 기준 추가"
+      },
+      {
+        "id": "LATE_PARTICIPANT_ZERO_BALANCE",
+        "label": "후발자 잔고 귀결 0 구조",
+        "detected": true,
+        "riskWeight": 3,
+        "evidence": "owed <= contractBalance found at line 70",
+        "consequence": "내부자 덤프 후 후발자 전액 손실 불가피",
+        "fix": "후발자 최소 원금 보장 조건 추가 또는 참여 제한"
+      },
+      {
+        "id": "PUMP_PHASE_NO_DISCLOSURE",
+        "label": "유인 단계 미공시",
+        "detected": true,
+        "riskWeight": 2,
+        "evidence": "보호 패턴 [event.*PumpPhase, emit.*phase] 미검출",
+        "consequence": "펌프 단계 진입 여부를 외부에서 알 수 없음",
+        "fix": "PhaseChanged 이벤트 emit 추가"
+      }
+    ],
+    "risk_score": 13,
+    "risk_level": "CRITICAL",
+    "risk_label": "배포 불가 — 피해 설계 명확",
+    "unmet_conditions": [
+      "INSIDER_REGISTRY",
+      "ASYMMETRIC_WITHDRAWAL",
+      "LATE_PARTICIPANT_ZERO_BALANCE",
+      "NO_PRICE_ORACLE",
+      "PUMP_PHASE_NO_DISCLOSURE"
+    ],
+    "deployment_recommendation": "배포 전 필수 수정 항목 5개 존재. 수정 없이 배포 불가.",
+    "ontology_reasoning_chain": [
+      "소스 로드: PumpDump.sol (90줄)",
+      "유형별 패턴 점수: {\"PonziScheme\":0,\"RugPull\":0,\"MoneyLaundering\":0,\"HoneypotTrap\":0,\"PumpDump\":9}",
+      "사기 유형 결정: PumpDump (점수 9)",
+      "PumpDump 예방 체크리스트 시작",
+      "INSIDER_REGISTRY: isInsider found at line 17 → 검출 (위험 +3)",
+      "ASYMMETRIC_WITHDRAWAL: insiderWithdraw found at line 54 → 검출 (위험 +3)",
+      "LATE_PARTICIPANT_ZERO_BALANCE: owed <= contractBalance found at line 70 → 검출 (위험 +3)",
+      "NO_PRICE_ORACLE: 보호 패턴 [oracle, priceCheck, rateLimit] 미검출 → 검출 (위험 +2)",
+      "PUMP_PHASE_NO_DISCLOSURE: 보호 패턴 [event.*PumpPhase, emit.*phase] 미검출 → 검출 (위험 +2)",
+      "총 위험 점수: 13",
+      "위험 등급: CRITICAL — 배포 불가 — 피해 설계 명확",
+      "결론: 배포 전 5개 항목 수정 필요"
+    ]
+  },
   "static": {
     "file": "PumpDump.sol",
     "triggered_rules": [
@@ -54,12 +133,28 @@
         "is_drainer": false,
         "blocks_active": 16,
         "trust_score": 57,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 0,
-          "scamHist": 0,
-          "activity": 80,
-          "diversity": 100
+        "grade": "B",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 0,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 0,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 80,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 100,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -70,12 +165,28 @@
         "is_drainer": false,
         "blocks_active": 16,
         "trust_score": 57,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 0,
-          "scamHist": 0,
-          "activity": 80,
-          "diversity": 100
+        "grade": "B",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 0,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 0,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 80,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 100,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -86,12 +197,28 @@
         "is_drainer": false,
         "blocks_active": 16,
         "trust_score": 57,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 0,
-          "scamHist": 0,
-          "activity": 80,
-          "diversity": 100
+        "grade": "B",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 0,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 0,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 80,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 100,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -102,12 +229,28 @@
         "is_drainer": false,
         "blocks_active": 16,
         "trust_score": 97,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 100,
-          "scamHist": 100,
-          "activity": 80,
-          "diversity": 100
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 80,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 100,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -118,12 +261,28 @@
         "is_drainer": false,
         "blocks_active": 16,
         "trust_score": 97,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 100,
-          "scamHist": 100,
-          "activity": 80,
-          "diversity": 100
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 80,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 100,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -134,12 +293,28 @@
         "is_drainer": false,
         "blocks_active": 16,
         "trust_score": 97,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 100,
-          "scamHist": 100,
-          "activity": 80,
-          "diversity": 100
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 80,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 100,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -150,12 +325,28 @@
         "is_drainer": false,
         "blocks_active": 16,
         "trust_score": 97,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 100,
-          "scamHist": 100,
-          "activity": 80,
-          "diversity": 100
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 80,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 100,
+            "weight": 0.15
+          }
         }
       },
       {
@@ -166,17 +357,33 @@
         "is_drainer": false,
         "blocks_active": 16,
         "trust_score": 97,
-        "components": {
-          "blacklist": 100,
-          "fundFlow": 100,
-          "scamHist": 100,
-          "activity": 80,
-          "diversity": 100
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.3
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.25
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.15
+          },
+          "activity_age": {
+            "score": 80,
+            "weight": 0.15
+          },
+          "tx_diversity": {
+            "score": 100,
+            "weight": 0.15
+          }
         }
       }
     ],
-    "overall_trust_score": 82,
-    "trust_grade": "SAFE",
-    "summary_ko": "총 8개 지갑 분석. 평균 신뢰 점수 82/100 (최저: 57). 과도한 수익 추출 지갑 3개 탐지. 등급: SAFE."
+    "overall_trust_score": 72,
+    "trust_grade": "A",
+    "summary_ko": "총 8개 지갑 분석. 평균 신뢰 점수 72/100 (평균: 82, 최저: 57). 과도한 수익 추출 지갑 3개 탐지. 등급: A (SAFE)."
   }
 }

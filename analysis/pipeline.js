@@ -1,21 +1,24 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { analyzeStatic } from "./static_analyzer.js";
+import { analyzeStatic }  from "./static_analyzer.js";
 import { analyzeDynamic } from "./dynamic_analyzer.js";
 import { scoreTrust }     from "./trust_scorer.js";
+import { runPrevention }  from "./prevention_reasoner.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 const PROJECT_ROOT = path.resolve(__dirname, "..");
 
 const CONTRACT_MAP = {
-  PonziLab:        { type: "ponzi",    csv: "ponzi_log.csv"      },
-  NormalStaking:   { type: "normal",   csv: "normal_log.csv"     },
-  RugPull:         { type: "rugpull",  csv: "rugpull_log.csv"    },
-  MoneyLaundering: { type: "laundering", csv: "laundering_log.csv" },
-  PumpDump:        { type: "pumpdump", csv: "pumpdump_log.csv"   },
-  FlashLoanPattern:{ type: "flashloan", csv: "flashloan_log.csv" }
+  PonziLab:        { type: "ponzi",       csv: "ponzi_log.csv"        },
+  PonziLabPatched: { type: "ponzi",       csv: "ponzipatched_log.csv" },
+  NormalStaking:   { type: "normal",      csv: "normal_log.csv"       },
+  RugPull:         { type: "rugpull",     csv: "rugpull_log.csv"      },
+  MoneyLaundering: { type: "laundering",  csv: "laundering_log.csv"   },
+  PumpDump:        { type: "pumpdump",    csv: "pumpdump_log.csv"     },
+  Honeypot:        { type: "honeypot",    csv: "honeypot_log.csv"     },
+  FlashLoanPattern:{ type: "flashloan",   csv: "flashloan_log.csv"    }
 };
 
 // ANSI 컬러
@@ -46,9 +49,9 @@ function gradeColor(grade) {
   return { A: C.green, B: C.cyan, C: C.yellow, D: "\x1b[33m", F: C.red }[grade] || C.gray;
 }
 
-function computeGrade(staticResult, dynamicResult, trustResult) {
+function computeRawGrade(staticResult, dynamicResult, trustResult) {
   const combined = Math.round(
-    staticResult.static_risk_score  * 0.30 +
+    staticResult.static_risk_score   * 0.30 +
     dynamicResult.dynamic_risk_score * 0.40 +
     (100 - trustResult.overall_trust_score) * 0.30
   );
@@ -57,6 +60,21 @@ function computeGrade(staticResult, dynamicResult, trustResult) {
   if (combined <= 59) return "C";
   if (combined <= 79) return "D";
   return "F";
+}
+
+function applyPreventionCap(rawGrade, preventionLevel) {
+  const GRADE_ORDER = ["A", "B", "C", "D", "E", "F"];
+  const CAPS = { CRITICAL: "D", HIGH: "C" };
+  const cap = CAPS[preventionLevel];
+  if (!cap) return rawGrade;
+  const rawIdx = GRADE_ORDER.indexOf(rawGrade);
+  const capIdx = GRADE_ORDER.indexOf(cap);
+  return rawIdx >= capIdx ? rawGrade : cap;
+}
+
+function computeGrade(staticResult, dynamicResult, trustResult, preventionResult) {
+  const rawGrade = computeRawGrade(staticResult, dynamicResult, trustResult);
+  return applyPreventionCap(rawGrade, preventionResult?.risk_level);
 }
 
 function printBanner(contractName, type) {
@@ -91,8 +109,23 @@ async function run() {
 
   printBanner(contractName, type);
 
+  // ── Step 0: 예방 분석 ──
+  printSection("Step 0 / 4  예방 분석 (온톨로지 기반 체크리스트)");
+  const preventionResult = await runPrevention(contractName);
+  if (preventionResult.risk_level === "FILE_NOT_FOUND") {
+    console.log(`  ${C.yellow}⚠ 소스 파일 없음: ${preventionResult.error}${C.reset}`);
+  } else {
+    printKeyVal("예방 위험 유형", preventionResult.fraud_type_suspected ?? "없음");
+    printKeyVal("예방 위험 점수", `${preventionResult.risk_score}  [${preventionResult.risk_level}]`,
+      riskColor(preventionResult.risk_score * 5));
+    printKeyVal("권고", preventionResult.deployment_recommendation);
+    if (preventionResult.unmet_conditions?.length) {
+      console.log(`  ${C.gray}미충족 항목: ${preventionResult.unmet_conditions.join(", ")}${C.reset}`);
+    }
+  }
+
   // ── Step 1: 정적 분석 ──
-  printSection("Step 1 / 3  정적 분석 (Solidity 소스 코드)");
+  printSection("Step 1 / 4  정적 분석 (Solidity 소스 코드)");
   const staticResult = analyzeStatic(solPath);
   printKeyVal("대상 파일", staticResult.file);
   printKeyVal("정적 위험도", `${staticResult.static_risk_score}/100  [${staticResult.verdict}]`,
@@ -107,7 +140,7 @@ async function run() {
   }
 
   // ── Step 2: 동적 분석 ──
-  printSection("Step 2 / 3  동적 분석 (시뮬레이션 로그)");
+  printSection("Step 2 / 4  동적 분석 (시뮬레이션 로그)");
   const dynamicResult = analyzeDynamic(csvPath);
   if (dynamicResult.error) {
     console.log(`  ${C.yellow}⚠ ${dynamicResult.error}${C.reset}`);
@@ -130,7 +163,7 @@ async function run() {
   }
 
   // ── Step 3: 신뢰 점수 ──
-  printSection("Step 3 / 3  지갑 신뢰 점수");
+  printSection("Step 3 / 4  지갑 신뢰 점수");
   const trustResult = scoreTrust(csvPath);
   if (trustResult.error) {
     console.log(`  ${C.yellow}⚠ ${trustResult.error}${C.reset}`);
@@ -148,7 +181,13 @@ async function run() {
   }
 
   // ── 종합 판정 ──
-  const grade = computeGrade(staticResult, dynamicResult, trustResult);
+  const rawGrade   = computeRawGrade(staticResult, dynamicResult, trustResult);
+  const grade      = applyPreventionCap(rawGrade, preventionResult.risk_level);
+  const capApplied = rawGrade !== grade;
+  const capReason  = capApplied
+    ? `${preventionResult.risk_level} prevention score (${preventionResult.risk_score}) → grade capped at ${grade}`
+    : null;
+
   const gc = gradeColor(grade);
   const GRADE_LABEL = { A: "SAFE", B: "LOW_RISK", C: "MODERATE", D: "HIGH_RISK", F: "CRITICAL" };
   const GRADE_MSG = {
@@ -161,9 +200,13 @@ async function run() {
 
   console.log(`\n${C.bold}${"═".repeat(52)}${C.reset}`);
   console.log(`  ${C.bold}종합 판정${C.reset}`);
-  console.log(`  등급: ${gc}${C.bold}${grade}  ${GRADE_LABEL[grade]}${C.reset}`);
-  console.log(`  권고: ${gc}${GRADE_MSG[grade]}${C.reset}`);
-  console.log(`  정적:${riskColor(staticResult.static_risk_score)} ${staticResult.static_risk_score}${C.reset}  동적:${riskColor(dynamicResult.dynamic_risk_score)} ${dynamicResult.dynamic_risk_score}${C.reset}  신뢰:${trustColor(trustResult.overall_trust_score)} ${trustResult.overall_trust_score}${C.reset}`);
+  console.log(`  등급: ${gc}${C.bold}${grade}  ${GRADE_LABEL[grade] ?? grade}${C.reset}`);
+  if (capApplied) {
+    const rc = gradeColor(rawGrade);
+    console.log(`  ${C.yellow}예방 상한 적용: 원등급 ${rc}${rawGrade}${C.reset}${C.yellow} → ${grade}  (${capReason})${C.reset}`);
+  }
+  console.log(`  권고: ${gc}${GRADE_MSG[grade] ?? "추가 검토 필요."}${C.reset}`);
+  console.log(`  정적:${riskColor(staticResult.static_risk_score)} ${staticResult.static_risk_score}${C.reset}  동적:${riskColor(dynamicResult.dynamic_risk_score)} ${dynamicResult.dynamic_risk_score}${C.reset}  신뢰:${trustColor(trustResult.overall_trust_score)} ${trustResult.overall_trust_score}${C.reset}  예방:${riskColor(preventionResult.risk_score * 5)} ${preventionResult.risk_level}${C.reset}`);
   console.log(`${"═".repeat(52)}`);
 
   // ── 보고서 저장 ──
@@ -171,13 +214,17 @@ async function run() {
   fs.mkdirSync(reportsDir, { recursive: true });
 
   const report = {
-    contract:      contractName,
+    contract:                contractName,
     type,
-    timestamp:     new Date().toISOString(),
-    overall_grade: grade,
-    static:        staticResult,
-    dynamic:       dynamicResult,
-    trust:         trustResult
+    timestamp:               new Date().toISOString(),
+    overall_grade:           grade,
+    raw_grade:               rawGrade,
+    prevention_cap_applied:  capApplied,
+    prevention_cap_reason:   capReason,
+    prevention:              preventionResult,
+    static:                  staticResult,
+    dynamic:                 dynamicResult,
+    trust:                   trustResult
   };
 
   const reportPath = path.join(reportsDir, `${contractName}_report.json`);

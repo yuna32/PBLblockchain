@@ -14,7 +14,13 @@ async function main() {
   const publicClient = await viem.getPublicClient();
   const testClient = await viem.getTestClient();
   const [ownerClient, ...walletClients] = await viem.getWalletClients();
-  const wallets = walletClients.slice(0, 10);
+
+  const PARTICIPANTS     = Math.min(parseInt(process.env.SCENARIO_PARTICIPANTS) || 10, walletClients.length);
+  const DEPOSIT_MIN      = parseFloat(process.env.SCENARIO_DEPOSIT_MIN)         || 1.0;
+  const DEPOSIT_MAX      = parseFloat(process.env.SCENARIO_DEPOSIT_MAX)         || DEPOSIT_MIN;
+  const STAKE_DURATION   = parseInt(process.env.SCENARIO_STAKE_DURATION)        || 20;
+
+  const wallets = walletClients.slice(0, PARTICIPANTS);
 
   console.log(`Owner: ${ownerClient.account.address}`);
   console.log(`참여자 수: ${wallets.length}명\n`);
@@ -40,13 +46,14 @@ async function main() {
     participant_count: "0"
   });
 
-  // Phase 1: 10명 스테이킹
-  console.log("── Phase 1: 10명 스테이킹 ──");
+  // Phase 1: 스테이킹
+  console.log(`── Phase 1: ${PARTICIPANTS}명 스테이킹 ──`);
   for (let i = 0; i < wallets.length; i++) {
     await testClient.mine({ blocks: 2 });
 
+    const amount = (DEPOSIT_MIN + Math.random() * (DEPOSIT_MAX - DEPOSIT_MIN)).toFixed(3);
     const hash = await staking.write.stake({
-      value: parseEther("1.0"),
+      value: parseEther(amount),
       account: wallets[i].account
     });
 
@@ -61,21 +68,21 @@ async function main() {
       from: wallets[i].account.address,
       to: contractAddress,
       action: "stake",
-      amount_eth: "1.0",
+      amount_eth: amount,
       contract_balance_eth: formatEther(balance),
       participant_count: count.toString()
     });
 
-    console.log(`  [Block ${receipt.blockNumber}] 스테이킹 1.0 ETH | 잔고: ${formatEther(balance)} ETH`);
+    console.log(`  [Block ${receipt.blockNumber}] 스테이킹 ${amount} ETH | 잔고: ${formatEther(balance)} ETH`);
   }
 
   // Phase 2: 블록 경과
-  console.log("\n── Phase 2: 20블록 경과 (이자 누적) ──");
-  await testClient.mine({ blocks: 20 });
-  console.log("  20블록 마이닝 완료\n");
+  console.log(`\n── Phase 2: ${STAKE_DURATION}블록 경과 (이자 누적) ──`);
+  await testClient.mine({ blocks: STAKE_DURATION });
+  console.log(`  ${STAKE_DURATION}블록 마이닝 완료\n`);
 
-  // Phase 3: 10명 언스테이킹
-  console.log("── Phase 3: 10명 언스테이킹 ──");
+  // Phase 3: 언스테이킹
+  console.log(`── Phase 3: ${PARTICIPANTS}명 언스테이킹 ──`);
   for (let i = 0; i < wallets.length; i++) {
     await testClient.mine({ blocks: 1 });
 

@@ -14,10 +14,17 @@ async function main() {
   const publicClient = await viem.getPublicClient();
   const testClient = await viem.getTestClient();
   const [ownerClient, ...walletClients] = await viem.getWalletClients();
-  const wallets = walletClients.slice(0, 10);
+
+  const PARTICIPANTS      = Math.min(parseInt(process.env.SCENARIO_PARTICIPANTS)  || 10,  walletClients.length);
+  const DEPOSIT_MIN       = parseFloat(process.env.SCENARIO_DEPOSIT_MIN)          || 1.0;
+  const DEPOSIT_MAX       = parseFloat(process.env.SCENARIO_DEPOSIT_MAX)          || DEPOSIT_MIN;
+  const EARLY_EXIT_RATIO  = parseFloat(process.env.SCENARIO_EARLY_EXIT_RATIO)     || 0.3;
+
+  const wallets = walletClients.slice(0, PARTICIPANTS);
+  const earlyExitCount = Math.max(1, Math.floor(PARTICIPANTS * EARLY_EXIT_RATIO));
 
   console.log(`Owner: ${ownerClient.account.address}`);
-  console.log(`참여자 수: ${wallets.length}명\n`);
+  console.log(`참여자 수: ${wallets.length}명 | 조기 출금: ${earlyExitCount}명\n`);
 
   const ponzi = await viem.deployContract("PonziLab");
   const contractAddress = ponzi.address;
@@ -25,13 +32,14 @@ async function main() {
 
   const log = [];
 
-  // Phase 1: 10명 입금
-  console.log("── Phase 1: 10명 입금 ──");
+  // Phase 1: 입금
+  console.log(`── Phase 1: ${PARTICIPANTS}명 입금 ──`);
   for (let i = 0; i < wallets.length; i++) {
     await testClient.mine({ blocks: 2 });
 
+    const amount = (DEPOSIT_MIN + Math.random() * (DEPOSIT_MAX - DEPOSIT_MIN)).toFixed(3);
     const hash = await ponzi.write.participate({
-      value: parseEther("1.0"),
+      value: parseEther(amount),
       account: wallets[i].account
     });
 
@@ -46,17 +54,17 @@ async function main() {
       from: wallets[i].account.address,
       to: contractAddress,
       action: "deposit",
-      amount_eth: "1.0",
+      amount_eth: amount,
       contract_balance_eth: formatEther(balance),
       participant_count: count.toString()
     });
 
-    console.log(`  [Block ${receipt.blockNumber}] 입금 1.0 ETH | 잔고: ${formatEther(balance)} ETH`);
+    console.log(`  [Block ${receipt.blockNumber}] 입금 ${amount} ETH | 잔고: ${formatEther(balance)} ETH`);
   }
 
-  // Phase 2: 3명 출금
-  console.log("\n── Phase 2: 3명 출금 ──");
-  for (let i = 0; i < 3; i++) {
+  // Phase 2: 조기 출금
+  console.log(`\n── Phase 2: ${earlyExitCount}명 출금 ──`);
+  for (let i = 0; i < earlyExitCount; i++) {
     await testClient.mine({ blocks: 1 });
 
     const balanceBefore = await publicClient.getBalance({ address: contractAddress });
@@ -81,7 +89,7 @@ async function main() {
     console.log(`  [Block ${receipt.blockNumber}] 출금 ${formatEther(withdrawn)} ETH | 잔고: ${formatEther(balanceAfter)} ETH`);
   }
 
-  // Phase 3: 러그풀
+  // Phase 3: 관리자 전액 인출
   console.log("\n── Phase 3: 관리자 전액 인출 (러그풀) ──");
   await testClient.mine({ blocks: 3 });
 

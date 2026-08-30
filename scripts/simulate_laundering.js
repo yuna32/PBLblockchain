@@ -14,8 +14,16 @@ async function main() {
   const publicClient = await viem.getPublicClient();
   const testClient = await viem.getTestClient();
   const [ownerClient, ...walletClients] = await viem.getWalletClients();
-  // 20개 지갑 사용 (Hardhat 기본 20개 계정 중 첫 번째 제외)
-  const wallets = walletClients.slice(0, 19);
+
+  const DEPOSITOR_COUNT = Math.min(parseInt(process.env.SCENARIO_PARTICIPANTS) || 19, walletClients.length);
+  const DEPOSIT_MIN     = parseFloat(process.env.SCENARIO_DEPOSIT_MIN)          || 0.10;
+  const DEPOSIT_MAX     = parseFloat(process.env.SCENARIO_DEPOSIT_MAX)          || 0.30;
+
+  const wallets = walletClients.slice(0, DEPOSITOR_COUNT);
+
+  const amounts = Array.from({ length: DEPOSITOR_COUNT }, () =>
+    (DEPOSIT_MIN + Math.random() * (DEPOSIT_MAX - DEPOSIT_MIN)).toFixed(2)
+  );
 
   console.log(`Owner: ${ownerClient.account.address}`);
   console.log(`분산 입금자 수: ${wallets.length}명\n`);
@@ -26,15 +34,8 @@ async function main() {
 
   const log = [];
 
-  // Phase 1: 분산 소액 입금 (레이어링 단계) — 0.1~0.3 ETH 각자 입금
-  console.log("── Phase 1: 분산 소액 입금 (Layering) ──");
-  const amounts = [
-    "0.10", "0.15", "0.20", "0.12", "0.18",
-    "0.25", "0.11", "0.30", "0.13", "0.22",
-    "0.17", "0.19", "0.14", "0.28", "0.16",
-    "0.21", "0.10", "0.27", "0.23"
-  ];
-
+  // Phase 1: 분산 소액 입금 (레이어링)
+  console.log(`── Phase 1: 분산 소액 입금 (Layering) ──`);
   for (let i = 0; i < wallets.length; i++) {
     await testClient.mine({ blocks: 1 });
 
@@ -62,8 +63,7 @@ async function main() {
     console.log(`  [Block ${receipt.blockNumber}] 입금 ${amounts[i]} ETH | 잔고: ${formatEther(balance)} ETH`);
   }
 
-  // Phase 2: 단일 지갑으로 전액 집계 인출 (통합 단계)
-  // 수취인: wallets[0] (기존 입금자 중 하나로 위장)
+  // Phase 2: 단일 지갑 전액 집계 인출 (통합)
   console.log("\n── Phase 2: 단일 지갑 전액 집계 인출 (Integration) ──");
   await testClient.mine({ blocks: 3 });
 
