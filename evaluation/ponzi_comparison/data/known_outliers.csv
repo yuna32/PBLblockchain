@@ -4,11 +4,11 @@ address,min_balance_or_peak_issue,status
 0x1d979bd0b663040f2fe8a9854a8569919ae153ac,"minBal=-14.30 ETH (peak=71.66). 실패 트랜잭션 0건 확인 — isError 필터와 무관, 원인 미상",unresolved_corrupt
 0xbc9ccc8a46d424de38b2e4df5f4a5001321c5d4c,"minBal=-11.36 ETH (peak=0.11). isError 필터 적용 후 거의 불변(-11.37→-11.36) — 원인 미상",unresolved_corrupt
 0xcafe1a77e84698c83ca8931f54a755176ef75f2c,"minBal=-24948.83 ETH (peak=277199.00) → isError 필터 적용 후 minBal=0.0000으로 완전 정상화. 재검증 결과 peak→0 완전 소진이 실제 패턴으로 확인됨(데이터 오류 아니었음)",resolved_genuine
-0xf45717552f12ef7cb65e95476f217ea008167ae3,"minBal=-25279.93 ETH (peak=1243.89) — 2026-08-30 전체 272건 스캔에서 신규 발견, 미조사",unreviewed
-0x582e3d8dcd41f586fbcc6559f16476d20b2a3b95,"minBal=-17244.51 ETH (peak=2032.62) — 2026-08-30 전체 272건 스캔에서 신규 발견, 미조사",unreviewed
-0x5fb3d432bae33fcd418ede263d98d7440e7fa3ea,"minBal=-3818.01 ETH (peak=4914.38) — 2026-08-30 전체 272건 스캔에서 신규 발견, 미조사",unreviewed
-0x20d42f2e99a421147acf198d775395cac2e8b03d,"minBal=-2113.55 ETH (peak=26002.86) — 2026-08-30 전체 272건 스캔에서 신규 발견, 미조사",unreviewed
-0x9a2e9235f7a7ac7b899e5f3208fbb13c6985171a,"minBal=-147.82 ETH (peak=55.80) — 2026-08-30 전체 272건 스캔에서 신규 발견, 미조사",unreviewed
-0x109c4f2ccc82c4d77bde15f306707320294aea3f,"minBal=-77.01 ETH (peak=196.80) — 2026-08-30 전체 272건 스캔에서 신규 발견, 미조사",unreviewed
-0xa502f8112b2491718855f01a01a60462cc97a0d5,"minBal=-8.24 ETH (peak=167.00) — 2026-08-30 전체 272건 스캔에서 신규 발견, 미조사",unreviewed
-0x2c2e3baa2191cf325a28a01ff42340f2ae677572,"minBal=-2.89 ETH (peak=1.80) — 2026-08-30 전체 272건 스캔에서 신규 발견, 미조사",unreviewed
+0xf45717552f12ef7cb65e95476f217ea008167ae3,"minBal=-25279.93→-1.00 ETH (peak=1239.19). isError 필터 적용 후 사실상 해소(잔차 -1 ETH, dust/미상 잔여 1건 추정). 재검증 결과 true_label=1(폰지), 필터 전후 모두 HIGH_RISK/ponzi_scheme로 동일 — 분류 결과 영향 없음. 규모: 경미(잔차 기준)",resolved_genuine
+0x582e3d8dcd41f586fbcc6559f16476d20b2a3b95,"minBal=-17244.51→-17303.94 ETH (peak=1973.19, minBal이 peak의 약 8.8배) — isError 필터 적용해도 거의 불변, 원인 미상. 규모: 중간~심각(수천 ETH, 0xd0a6e6c5처럼 유통량을 초과하진 않으나 peak 대비 비율이 비정상적으로 큼 — EXCLUDE_ADDRESSES 추가 후보로 제안, 승인 대기)",unresolved_corrupt
+0x5fb3d432bae33fcd418ede263d98d7440e7fa3ea,"minBal=-3818.01→-5548.99 ETH (peak=3183.40, minBal이 peak의 약 1.7배) — isError 필터 적용 후 오히려 악화(누락된 실패 인바운드 트랜잭션 추정). 원인 미상. 규모: 중간(수천 ETH, 유통량 초과 아님 — 제외 대상 아님)",unresolved_corrupt
+0x20d42f2e99a421147acf198d775395cac2e8b03d,"minBal=-2113.55→-2830.91 ETH (peak=25301.50, minBal이 peak의 약 11%) — isError 필터 적용 후 소폭 악화. true_label=0(정상)인데 여전히 HIGH_RISK/ponzi_scheme로 오탐 — 데이터 이상과 무관하게 규칙 자체의 오탐(Phase 2 논의 대상). 규모: peak 대비로는 완만하나 절대값은 수천 ETH. 제외 대상 아님",unresolved_corrupt
+0x9a2e9235f7a7ac7b899e5f3208fbb13c6985171a,"minBal=-147.82→0.0000 ETH (peak=77.16) — isError 필터 적용 후 완전 해소. true_label=1(폰지). 부수 효과: 데이터 정상화로 dynamic hint가 flash_loan→ponzi_scheme로 바뀌어 이제 dynamic 레이어가 독립적으로 정탐(기존엔 static만 기여) — 데이터 수정의 긍정적 부작용",resolved_genuine
+0x109c4f2ccc82c4d77bde15f306707320294aea3f,"minBal=-77.01→0.0000 ETH (peak=150.10, final=150.10 — 실제로는 잔고 급락 자체가 없었음) — isError 필터 적용 후 완전 해소. true_label=1(폰지)이나 여전히 hint=flash_loan(EXACT/SUPER 어느 쪽도 미해당) — 데이터 문제가 아니라 이 컨트랙트의 실제 패턴이 폰지 신호와 안 맞는 것으로 보임(Case B 유형 누락, 데이터 수정과 무관)",resolved_genuine
+0xa502f8112b2491718855f01a01a60462cc97a0d5,"minBal=-8.24 ETH (peak=167.00) — isError 필터 적용해도 불변, 원인 미상. 기존 mild 3건(0x05240da1 등)과 동일한 완만한 오차 범위. 규모: 경미. 제외 대상 아님",unresolved_corrupt
+0x2c2e3baa2191cf325a28a01ff42340f2ae677572,"minBal=-2.89→0.0000 ETH (peak=1.80) — isError 필터 적용 후 완전 해소. **주의**: true_label=0(정상)인데 데이터 정상화 이후 오히려 새로 HIGH_RISK/ponzi_scheme 오탐 발생(수정 전에는 손상된 데이터 때문에 우연히 미탐지 상태였음) — 데이터 정합성 개선이 항상 정확도를 높이는 것은 아니라는 반증 사례",resolved_genuine

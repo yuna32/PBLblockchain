@@ -639,4 +639,101 @@ Etherscan API가 반환하는 `isError` 필드(실패/리버트 트랜잭션 여
 
 ---
 
+## known_outliers.csv 이상치 8건 조사 완료 (2026-08-30)
+
+`unreviewed` 8건 전부 isError 필터 적용본으로 재변환·재확인했다. 결과가
+원래 5건 때보다 훨씬 고무적이다 — **8건 중 4건이 완전히 해소됐다**
+(원래 5건 중에는 1건만 해소됐던 것과 대조적):
+
+| 주소 | 수정 전 minBal | 수정 후 minBal | 최종 상태 |
+|---|---|---|---|
+| `0x9a2e9235...` | -147.82 | **0.0000** | `resolved_genuine` — 부수 효과로 dynamic hint가 flash_loan→ponzi_scheme로 개선(기존엔 static만 정탐 기여) |
+| `0x109c4f2c...` | -77.01 | **0.0000** (final=150.10) | `resolved_genuine` — 애초에 잔고 급락 자체가 없었음. 여전히 hint=flash_loan이라 미탐지지만 데이터 문제는 아님 |
+| `0x2c2e3baa...` | -2.89 | **0.0000** | `resolved_genuine` — **단, 데이터 정상화 후 오히려 신규 오탐 발생**(true_label=0인데 HIGH_RISK/ponzi_scheme로 바뀜). 손상된 데이터 덕에 우연히 안 걸리던 것이 드러난 사례 |
+| `0xf4571755...` | -25279.93 | **-1.00** | `resolved_genuine`(잔차 미미) — 분류 결과 불변(원래도 정탐) |
+| `0x582e3d8d...` | -17244.51 | -17303.94 | `unresolved_corrupt` — minBal이 peak의 8.8배. **EXCLUDE_ADDRESSES 추가 후보로 제안**(판단 대기, 아래 참고) |
+| `0x5fb3d432...` | -3818.01 | -5548.99(악화) | `unresolved_corrupt` — 중간 규모, 유통량 초과는 아님 |
+| `0x20d42f2e...` | -2113.55 | -2830.91(소폭 악화) | `unresolved_corrupt` — true_label=0인데 여전히 오탐(데이터와 무관한 규칙 문제) |
+| `0xa502f811...` | -8.24 | -8.24(불변) | `unresolved_corrupt` — 기존 mild 3건과 동일한 완만한 오차 |
+
+**EXCLUDE_ADDRESSES 추가 여부 판단**: `0xd0a6e6c5`의 제외 기준("이더리움
+총유통량을 초과하는 물리적으로 불가능한 값")을 엄격히 적용하면, 8건 중
+이 기준을 충족하는 것은 없다(최대 규모 `0x582e3d8d`의 -17,304 ETH도
+유통량 대비 미미함). **다만 `0x582e3d8d`는 minBal이 자체 peak의 8.8배에
+달해 다른 완만한 사례들과 성격이 다르다고 판단**, 추가할지는 제안만
+하고 실제 반영은 승인 후로 미뤘다.
+
+**중요한 부수 발견**: `0x2c2e3baa`처럼, 데이터 정합성을 개선하는 것이
+반드시 정확도를 높이는 것은 아니다 — 손상된(음수) 데이터 때문에 우연히
+탐지를 피했던 진짜 정상 컨트랙트가, 데이터가 정상화되자 오히려
+BALANCE_DROP/FLOW_SPIKE에 새로 걸리는 경우가 있다. 이는 Phase 2에서
+확인한 "금액 균등성 조건이 진짜 병목"이라는 결론과 같은 방향의 증거다.
+
+## scenarios/ smoke-test 결과 (2026-08-30)
+
+**환경 문제 3단 발견 및 우회(코드 수정 없음, 진단 목적 한정)**:
+1. `run_scenario.js`의 `execSync`는 Windows에서 `cmd.exe`를 거치는데,
+   이 프로젝트가 `\\wsl.localhost\Ubuntu\...` UNC 경로에 있어 `cmd.exe`가
+   작업 디렉터리를 인식 못해 즉시 실패한다.
+2. WSL 안에서 실행해도 동일 오류가 재현됐는데, 원인은 이 WSL 배포판의
+   `PATH`가 `/mnt/c/Program Files/nodejs`(Windows용 npm/npx)를 WSL
+   네이티브 경로보다 앞에 두고 있어 `npx`/`npm`이 Windows `.cmd`로
+   해석되기 때문이었다(`node`는 정상적으로 `/usr/bin/node`를 가리킴).
+3. `npx`를 우회해 `./node_modules/.bin/hardhat`을 직접 호출하니 이번엔
+   `Node.js 18.19.1 is not supported by Hardhat, upgrade to 22.10.0+`
+   오류 — WSL 시스템 기본 node가 너무 오래됐다(nvm으로 22.22.2/23.11.1
+   설치는 되어 있으나 비대화형 셸에서 자동 로드 안 됨, `ETHERSCAN_API_KEY`
+   때와 동일한 패턴).
+
+**`PATH=$(nvm이 설치한 node22 경로):$PATH`로 우회하자 유형별 1개씩 총 5개
+시나리오(ponzi_001·rugpull_001·laundering_001·pumpdump_001·normal_001)가
+전부 정상 실행됐다** — 생성(JSON) → 파라미터 전달(env var) →
+`scripts/simulate_*.js` → hardhat 배포/트랜잭션 → CSV 로그 저장까지 체인
+전체가 끊김 없이 작동한다. **파이프라인 코드 자체는 정상이며, 문제는
+전부 이 머신의 WSL/Windows PATH·Node 버전 환경설정이었다.**
+
+**결과 대조 (expected_signals vs 실제 dynamic_analyzer 출력)**:
+
+| 시나리오 | label | expected | 실제 | 일치 |
+|---|---|---|---|---|
+| ponzi_001 | 1 | BALANCE_DROP✓ FLOW_SPIKE✓ | HIGH_RISK/100, hint=ponzi_or_laundering, 두 규칙 다 발동 | ✅ |
+| rugpull_001 | 1 | BALANCE_DROP✓ FLOW_SPIKE✓ | HIGH_RISK/100, hint=rug_pull | ✅ |
+| laundering_001 | 1 | BALANCE_DROP✓ | HIGH_RISK/100, hint=**rug_pull**(MoneyLaundering 아님) | 부분 일치 — 기존에 알려진 유형 판별 특성, 새 버그 아님 |
+| pumpdump_001 | 1 | BALANCE_DROP✓ FLOW_SPIKE✓ | HIGH_RISK/100, hint=pump_dump | ✅ |
+| **normal_001** | **0** | **전부 false** | **HIGH_RISK/76, hint=ponzi_or_laundering** — BALANCE_DROP+FLOW_SPIKE 발동 | ❌ **신규 오탐 확인** |
+
+**normal_001 오탐 원인**: 19명이 스테이킹한 원래 금액으로 정확히 자기
+주소에 언스테이킹(주소 겹침 100% — 인위적 evasion이 전혀 아닌 정상
+시나리오)했음에도, 언스테이킹 금액이 0.5527~2.5931 ETH로 갈려(비율
+4.69배) `isOrganicUnstake`의 금액 균등성 조건(≤2.5배)을 초과해 게이트가
+발동하지 않았다. 최종 잔고가 peak 대비 89.7%나 빠져(리워드풀 잔여분
+때문에 100% 못 돌려줌) BALANCE_DROP+FLOW_SPIKE가 그대로 작동했다. **이는
+Phase 2에서 실데이터로 확인한 것과 완전히 동일한 메커니즘을, 주소가
+완벽히 일치하는 순수 합성 시나리오에서도 재현한 것** — "균등성 조건이
+진짜 병목"이라는 결론을 독립적인 두 번째 증거로 재확인한다. (스크립트
+버그 아님 — 코드 수정 안 함, 위 Phase 2 논의에 힘을 싣는 자료로만 기록.)
+
+**주의 — 재현 과정에서 실수 발견 및 즉시 복구**: 5개 시나리오를 실행하며
+`scripts/simulate_*.js`가 결과를 `analysis/logs/{ponzi,rugpull,laundering,
+pumpdump,normal}_log.csv`에 덮어쓴다는 것을 뒤늦게 인지했다 — 이 5개
+파일은 이번 세션 내내 회귀 테스트 기준선(baseline)으로 써온 바로 그
+파일들이다. 실행 직후 `git status`로 발견해 `git checkout --`으로 즉시
+원상복구했고(커밋 `d50568b` 기준 정확히 일치 확인), 다른 작업에는 영향
+없었다. `run_scenario.js`가 있는데도 왜 이 위험을 감수했는지: 환경
+문제로 `run_scenario.js`(내부적으로 동일 경로에 씀)를 거치지 못해
+`scripts/simulate_*.js`를 직접 호출했기 때문 — `run_scenario.js`를
+사용했더라도 어차피 같은 파일에 쓰므로 동일한 위험이 있었다. **정식
+25개 전체 실행 시에는 이 경로 충돌을 먼저 해결(예: 실행 전 백업, 또는
+`analysis/logs/`를 시나리오별로 분리)해야 한다** — 이번 판단(아래)에도
+반영.
+
+**전체 25개 정식 실행 여부**: 코드 자체는 검증됐으니 진행할 가치는
+있으나, (1) 이 머신의 PATH/노드 버전 환경설정을 먼저 정리하거나 매번
+수동 우회해야 하고, (2) `analysis/logs/` 파일 충돌 문제를 먼저 해결해야
+안전하게 25개를 연속 실행할 수 있다. **이번 세션에서는 5개 smoke-test로
+그치고 25개 정식 실행은 진행하지 않았다** — 두 가지 선행 조건 정리 후
+별도 세션에서 진행할 것을 제안한다.
+
+---
+
 *이 문서와 코드는 탐지 시스템 개선 연구 목적으로만 사용하며, 실제 스마트 컨트랙트 공격에 적용하는 것은 엄격히 금지합니다.*

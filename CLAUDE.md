@@ -200,6 +200,14 @@ Phase 3에서 확인된 3가지 구조적 부재(라벨셋 없음/주소 데이�
   고성공률 조건을 만족). 사용자가 이 결과를 보고 **구현 보류를
   결정** — 의미 있는 해결은 원래 검토 범위(주소)를 넘어 균등성 조건과
   오라벨링까지 재설계해야 하므로, 별도 세션에서 재논의하기로 함.
+- **(2026-08-30 후속) `known_outliers.csv`의 `unreviewed` 8건 전부 조사
+  완료.** isError 필터 적용 후 8건 중 4건 완전 해소(원 5건 때 1/5였던
+  것보다 훨씬 나음), 나머지 4건은 여전히 `unresolved_corrupt`(유통량
+  초과 수준은 아님 — `0xd0a6e6c5`와 달리 EXCLUDE_ADDRESSES 자동 추가
+  대상 아님, 다만 `0x582e3d8d`는 peak의 8.8배라 추가 후보로 제안·승인
+  대기). 상세는 `EVASION_ANALYSIS.md` "known_outliers.csv 이상치 8건
+  조사 완료" 절 참고. `known_outliers.csv`에 더 이상 `unreviewed` 항목
+  없음.
 
 ## scenarios/ 폴더 상태 점검 (2026-08-30)
 
@@ -243,6 +251,38 @@ Phase 3에서 확인된 3가지 구조적 부재(라벨셋 없음/주소 데이�
   실제 동작을 확인하는 것이 선행되어야 한다. (b)처럼 삭제/archive하기엔
   코드가 이미 완성돼 있어 아깝고, (c)처럼 판단을 미루기엔 이미 충분한
   근거를 확보했다고 판단해 (a)로 보고한다.
+
+### smoke-test 실행 결과 (2026-08-30) — 코드는 정상, 환경설정이 문제였음
+
+유형별 1개씩 5개(ponzi/rugpull/laundering/pumpdump/normal_001) 실행 완료.
+**생성→파라미터 전달→시뮬레이션→로그→분석 체인 전체가 정상 작동한다.**
+막혔던 건 전부 이 머신의 환경설정: (1) 프로젝트가 UNC 경로에 있어
+`run_scenario.js`의 `execSync`가 거치는 `cmd.exe`가 작업 디렉터리를 못
+잡음, (2) WSL의 `PATH`가 Windows용 `npx`/`npm`을 앞에 둬서 같은 문제가
+WSL 안에서도 재현됨, (3) WSL 시스템 node가 v18(Hardhat은 22.10+ 요구) —
+nvm에 22.22.2 있지만 비대화형 셸엔 자동 로드 안 됨(`ETHERSCAN_API_KEY`와
+동일 패턴). PATH에 nvm node22 경로를 앞세우고 `npx` 대신
+`./node_modules/.bin/hardhat`을 직접 호출하는 것으로 전부 우회됨(코드는
+안 고침). 25개 전체 정식 실행 전 이 환경설정을 먼저 정리하거나 매번
+수동 우회해야 함 — 상세 및 **다음 결정사항(전체 25개 실행 여부는 이번엔
+보류)**은 `EVASION_ANALYSIS.md`의 "scenarios/ smoke-test 결과" 절 참고.
+
+**중요한 신규 발견**: normal_001(정상 스테이킹, label=0)이 dynamic_analyzer
+재실행에서 **HIGH_RISK/76으로 오탐**됐다 — 19명이 자기 주소로 정확히
+언스테이킹했는데도(주소 겹침 100%) 금액이 0.55~2.59 ETH로 갈려(4.69배)
+`isOrganicUnstake`의 균등성 조건(≤2.5배)을 못 넘어 게이트가 뚫렸다. 이는
+바로 위 "Phase 1.5/2" 절에서 실데이터로 확인한 것과 **완전히 동일한
+메커니즘을 순수 합성 시나리오(주소 문제 전혀 없음)에서도 재현**한
+것으로, "진짜 병목은 주소가 아니라 균등성 조건"이라는 결론에 대한
+독립적인 두 번째 증거다.
+
+**작업 중 사고 및 즉시 복구**: 5개 실행 중 `scripts/simulate_*.js`가
+`analysis/logs/{ponzi,rugpull,laundering,pumpdump,normal}_log.csv`에
+덮어쓴다는 걸 뒤늦게 인지 — 이 5개는 이번 세션 내내 회귀 테스트
+기준선으로 써온 파일들이다. 실행 직후 발견해 `git checkout --`으로
+커밋 `d50568b` 기준과 정확히 일치하도록 즉시 복구했다. **앞으로 이
+scenarios 파이프라인을 다시 돌릴 때는 먼저 `analysis/logs/`를 백업하거나
+시나리오별 출력 경로로 분리할 것.**
 
 ## Known issues
 
