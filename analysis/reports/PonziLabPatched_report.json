@@ -1,0 +1,55 @@
+{
+  "contract": "PonziLabPatched",
+  "type": "ponzi",
+  "timestamp": "2026-08-30T07:22:46.154Z",
+  "overall_grade": "A",
+  "raw_grade": "A",
+  "prevention_cap_applied": false,
+  "prevention_cap_reason": null,
+  "prevention": {
+    "contract": "PonziLabPatched",
+    "error": "소스 파일 없음: \\\\wsl.localhost\\Ubuntu\\home\\kamatte\\pbl\\contracts\\PonziLabPatched.sol",
+    "fraud_type_suspected": null,
+    "checklist": [],
+    "risk_score": 0,
+    "risk_level": "FILE_NOT_FOUND",
+    "risk_label": "파일 없음",
+    "unmet_conditions": [],
+    "deployment_recommendation": "파일을 찾을 수 없음",
+    "ontology_reasoning_chain": [
+      "오류: 소스 파일 없음 → \\\\wsl.localhost\\Ubuntu\\home\\kamatte\\pbl\\contracts\\PonziLabPatched.sol"
+    ]
+  },
+  "static": {
+    "file": "PonziLabPatched.sol",
+    "error": "파일을 찾을 수 없습니다",
+    "triggered_rules": [],
+    "static_risk_score": 0,
+    "verdict": "UNKNOWN"
+  },
+  "dynamic": {
+    "csv": "ponzipatched_log.csv",
+    "error": "CSV 없음 — 시뮬레이션을 먼저 실행하세요",
+    "triggered_rules": [],
+    "dynamic_risk_score": 0,
+    "verdict": "UNKNOWN",
+    "fraud_type_hint": "unknown",
+    "reasoning_steps": [],
+    "anomaly_signals": {},
+    "evasion_detected": false,
+    "evasion_subclass": null,
+    "evasion_confidence": 0,
+    "evasion_consequence": null,
+    "evasion_all_scores": {},
+    "counter_detection": null
+  },
+  "trust": {
+    "csv": "ponzipatched_log.csv",
+    "error": "CSV 없음 — 시뮬레이션을 먼저 실행하세요",
+    "wallet_count": 0,
+    "wallet_scores": [],
+    "overall_trust_score": 50,
+    "trust_grade": "C",
+    "summary_ko": "데이터 없음 — 시뮬레이션을 먼저 실행하세요."
+  }
+}

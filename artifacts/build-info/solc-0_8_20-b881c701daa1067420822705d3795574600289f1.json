@@ -1,0 +1,42 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_20-b881c701daa1067420822705d3795574600289f1",
+  "solcVersion": "0.8.20",
+  "solcLongVersion": "0.8.20+commit.a1b79de6",
+  "compilerType": "solc",
+  "userSourceNameMap": {
+    "contracts/EvasiveContract.sol": "project/contracts/EvasiveContract.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "shanghai",
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode.linkReferences",
+            "evm.bytecode.object",
+            "evm.bytecode.opcodes",
+            "evm.bytecode.sourceMap",
+            "evm.deployedBytecode.immutableReferences",
+            "evm.deployedBytecode.linkReferences",
+            "evm.deployedBytecode.object",
+            "evm.deployedBytecode.opcodes",
+            "evm.deployedBytecode.sourceMap",
+            "evm.methodIdentifiers"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/EvasiveContract.sol": {
+        "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\n/**\n * @title EvasiveContract\n * @notice Red-team research contract — Hardhat local network only, never deploy to mainnet.\n *\n * All functions use action names that ARE inside WITHDRAW_ACTIONS / DEPOSIT_ACTIONS.\n * Evasion operates purely through indicator-design and rule-threshold weaknesses:\n *\n *   Scenario A (분산 출금) — FLOW_SPIKE tracks maxSingleWithdraw, not cumulative total.\n *     Splitting 9.6 ETH across 4 × 2.4 ETH \"withdraw\" txs to 4 fresh addresses keeps\n *     each transfer below the 50% threshold and top-3 concentration below 80%.\n *     → dynamic risk score: 0 / LOW_RISK\n *\n *   Scenario B (임계값 절벽) — BALANCE_DROP has a hard 90% cliff.\n *     Extracting 89% (8.9 ETH, leaving 1.1 ETH) places finalBal just above\n *     peak×0.1 = 1.0 ETH, silencing the highest-weight rule (+45) entirely.\n *     → BALANCE_DROP misses; score 65 via FLOW_SPIKE+CONCENTRATION_DRAIN only.\n *\n *   Scenario C (점수 가중치 격차) — CONCENTRATION_DRAIN+PROFIT_EXTRACTION = 60 pts,\n *     5 short of the HIGH_RISK threshold of 65.  BALANCE_DROP gates on the literal\n *     \"owner_withdraw_all\" action string, so using \"withdraw\" suppresses hasOwnerDrain.\n *     A 50-block delay between deposit and drain phases is invisible to all rules.\n *     → 96% extraction → 60 / MEDIUM_RISK\n */\ncontract EvasiveContract {\n    address public owner;\n\n    uint256 public participantCount;\n    mapping(address => bool) public participated;\n\n    event Deposited(address indexed user, uint256 amount, uint256 blockNumber);\n    event Withdrawn(address indexed to, uint256 amount, uint256 blockNumber);\n\n    modifier onlyOwner() {\n        require(msg.sender == owner, \"Not owner\");\n        _;\n    }\n\n    constructor() {\n        owner = msg.sender;\n    }\n\n    /// Participant entry — logged as \"deposit\"; increments participantCount.\n    function deposit() external payable {\n        require(msg.value > 0, \"Send ETH\");\n        if (!participated[msg.sender]) {\n            participated[msg.sender] = true;\n            participantCount++;\n        }\n        emit Deposited(msg.sender, msg.value, block.number);\n    }\n\n    /// Owner extraction — simulation script controls the action label (\"withdraw\" or\n    /// \"owner_withdraw_all\") written to the CSV log; the contract is label-agnostic.\n    function withdrawTo(address to, uint256 amount) external onlyOwner {\n        require(to != address(0) && amount > 0 && amount <= address(this).balance, \"Invalid\");\n        (bool ok, ) = payable(to).call{value: amount}(\"\");\n        require(ok, \"Transfer failed\");\n        emit Withdrawn(to, amount, block.number);\n    }\n\n    function getBalance() external view returns (uint256) {\n        return address(this).balance;\n    }\n\n    function getParticipantCount() external view returns (uint256) {\n        return participantCount;\n    }\n}\n"
+      }
+    }
+  }
+}

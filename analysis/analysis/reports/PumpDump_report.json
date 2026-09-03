@@ -1,0 +1,385 @@
+{
+  "contract": "PumpDump",
+  "type": "pumpdump",
+  "timestamp": "2026-06-05T12:22:18.617Z",
+  "overall_grade": "C",
+  "prevention": {
+    "risk_level": "CRITICAL",
+    "risk_score": 13,
+    "deployment_recommendation": "배포 전 필수 수정 항목 5개 존재. 수정 없이 배포 불가.",
+    "checklist_summary": {
+      "total_items": 5,
+      "detected_risks": 5,
+      "unmet_conditions": [
+        "INSIDER_REGISTRY",
+        "ASYMMETRIC_WITHDRAWAL",
+        "LATE_PARTICIPANT_ZERO_BALANCE",
+        "NO_PRICE_ORACLE",
+        "PUMP_PHASE_NO_DISCLOSURE"
+      ]
+    },
+    "ontology_reasoning_chain": [
+      "소스 로드: PumpDump.sol (90줄)",
+      "유형별 패턴 점수: {\"PonziScheme\":0,\"RugPull\":0,\"MoneyLaundering\":0,\"HoneypotTrap\":0,\"PumpDump\":9}",
+      "사기 유형 결정: PumpDump (점수 9)",
+      "PumpDump 예방 체크리스트 시작",
+      "INSIDER_REGISTRY: isInsider found at line 17 → 검출 (위험 +3)",
+      "ASYMMETRIC_WITHDRAWAL: insiderWithdraw found at line 54 → 검출 (위험 +3)",
+      "LATE_PARTICIPANT_ZERO_BALANCE: owed <= contractBalance found at line 70 → 검출 (위험 +3)",
+      "NO_PRICE_ORACLE: 보호 패턴 [oracle, priceCheck, rateLimit] 미검출 → 검출 (위험 +2)",
+      "PUMP_PHASE_NO_DISCLOSURE: 보호 패턴 [event.*PumpPhase, emit.*phase] 미검출 → 검출 (위험 +2)",
+      "총 위험 점수: 13",
+      "위험 등급: CRITICAL — 배포 불가 — 피해 설계 명확",
+      "결론: 배포 전 5개 항목 수정 필요"
+    ]
+  },
+  "static": {
+    "file": "PumpDump.sol",
+    "triggered_rules": [
+      {
+        "id": "INSIDER_PRIVILEGE",
+        "description": "내부자 전용 특권 인출 기능 (펌프앤덤프 위험)",
+        "weight": 35
+      }
+    ],
+    "static_risk_score": 35,
+    "verdict": "MEDIUM_RISK",
+    "primary_fraud_class": "PumpAndDump",
+    "gui_emphasis": null
+  },
+  "dynamic": {
+    "csv": "pumpdump_log.csv",
+    "rows_analyzed": 16,
+    "metrics": {
+      "total_in_eth": 19.5,
+      "total_out_eth": 19.5,
+      "net_flow_eth": 0,
+      "peak_balance_eth": 19.5,
+      "final_balance_eth": 0,
+      "max_single_withdraw_eth": 6.5
+    },
+    "triggered_rules": [
+      {
+        "id": "CONCENTRATION_DRAIN",
+        "description": "상위 3개 지갑이 총 출금의 80% 이상 집중 수령",
+        "weight": 30
+      },
+      {
+        "id": "PROFIT_EXTRACTION",
+        "description": "입금 대비 130% 이상 수령한 지갑 존재 (부당 수익 탈취)",
+        "weight": 30
+      }
+    ],
+    "dynamic_risk_score": 60,
+    "verdict": "MEDIUM_RISK",
+    "fraud_type_hint": "pump_dump",
+    "gui_emphasis": null,
+    "evasion_subclass": "PumpDump_SlowDrain",
+    "evasion_detected": true,
+    "evasion_consequence": "시계열 패턴 희석 → 급락 지점 탐지 어려움",
+    "counter_detection": "누적 인출 비율 시계열 추적"
+  },
+  "trust": {
+    "csv": "pumpdump_log.csv",
+    "wallet_count": 8,
+    "wallet_scores": [
+      {
+        "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "deposited_eth": 4,
+        "received_eth": 6.5,
+        "profit_ratio": 1.625,
+        "is_drainer": false,
+        "blocks_active": 16,
+        "trust_score": 61,
+        "grade": "B",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.27
+          },
+          "flow_pattern": {
+            "score": 0,
+            "weight": 0.23
+          },
+          "scam_history": {
+            "score": 0,
+            "weight": 0.13
+          },
+          "activity_age": {
+            "score": 80,
+            "weight": 0.13
+          },
+          "tx_diversity": {
+            "score": 100,
+            "weight": 0.14
+          },
+          "tx_input_transparency": {
+            "score": 100,
+            "weight": 0.1
+          }
+        }
+      },
+      {
+        "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+        "deposited_eth": 4,
+        "received_eth": 6.5,
+        "profit_ratio": 1.625,
+        "is_drainer": false,
+        "blocks_active": 16,
+        "trust_score": 61,
+        "grade": "B",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.27
+          },
+          "flow_pattern": {
+            "score": 0,
+            "weight": 0.23
+          },
+          "scam_history": {
+            "score": 0,
+            "weight": 0.13
+          },
+          "activity_age": {
+            "score": 80,
+            "weight": 0.13
+          },
+          "tx_diversity": {
+            "score": 100,
+            "weight": 0.14
+          },
+          "tx_input_transparency": {
+            "score": 100,
+            "weight": 0.1
+          }
+        }
+      },
+      {
+        "address": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+        "deposited_eth": 4,
+        "received_eth": 6.5,
+        "profit_ratio": 1.625,
+        "is_drainer": false,
+        "blocks_active": 16,
+        "trust_score": 61,
+        "grade": "B",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.27
+          },
+          "flow_pattern": {
+            "score": 0,
+            "weight": 0.23
+          },
+          "scam_history": {
+            "score": 0,
+            "weight": 0.13
+          },
+          "activity_age": {
+            "score": 80,
+            "weight": 0.13
+          },
+          "tx_diversity": {
+            "score": 100,
+            "weight": 0.14
+          },
+          "tx_input_transparency": {
+            "score": 100,
+            "weight": 0.1
+          }
+        }
+      },
+      {
+        "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+        "deposited_eth": 1.5,
+        "received_eth": 0,
+        "profit_ratio": 0,
+        "is_drainer": false,
+        "blocks_active": 16,
+        "trust_score": 97,
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.27
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.23
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.13
+          },
+          "activity_age": {
+            "score": 80,
+            "weight": 0.13
+          },
+          "tx_diversity": {
+            "score": 100,
+            "weight": 0.14
+          },
+          "tx_input_transparency": {
+            "score": 100,
+            "weight": 0.1
+          }
+        }
+      },
+      {
+        "address": "0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc",
+        "deposited_eth": 1.5,
+        "received_eth": 0,
+        "profit_ratio": 0,
+        "is_drainer": false,
+        "blocks_active": 16,
+        "trust_score": 97,
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.27
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.23
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.13
+          },
+          "activity_age": {
+            "score": 80,
+            "weight": 0.13
+          },
+          "tx_diversity": {
+            "score": 100,
+            "weight": 0.14
+          },
+          "tx_input_transparency": {
+            "score": 100,
+            "weight": 0.1
+          }
+        }
+      },
+      {
+        "address": "0x976ea74026e726554db657fa54763abd0c3a0aa9",
+        "deposited_eth": 1.5,
+        "received_eth": 0,
+        "profit_ratio": 0,
+        "is_drainer": false,
+        "blocks_active": 16,
+        "trust_score": 97,
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.27
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.23
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.13
+          },
+          "activity_age": {
+            "score": 80,
+            "weight": 0.13
+          },
+          "tx_diversity": {
+            "score": 100,
+            "weight": 0.14
+          },
+          "tx_input_transparency": {
+            "score": 100,
+            "weight": 0.1
+          }
+        }
+      },
+      {
+        "address": "0x14dc79964da2c08b23698b3d3cc7ca32193d9955",
+        "deposited_eth": 1.5,
+        "received_eth": 0,
+        "profit_ratio": 0,
+        "is_drainer": false,
+        "blocks_active": 16,
+        "trust_score": 97,
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.27
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.23
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.13
+          },
+          "activity_age": {
+            "score": 80,
+            "weight": 0.13
+          },
+          "tx_diversity": {
+            "score": 100,
+            "weight": 0.14
+          },
+          "tx_input_transparency": {
+            "score": 100,
+            "weight": 0.1
+          }
+        }
+      },
+      {
+        "address": "0x23618e81e3f5cdf7f54c3d65f7fbc0abf5b21e8f",
+        "deposited_eth": 1.5,
+        "received_eth": 0,
+        "profit_ratio": 0,
+        "is_drainer": false,
+        "blocks_active": 16,
+        "trust_score": 97,
+        "grade": "A",
+        "breakdown": {
+          "blacklist_assoc": {
+            "score": 100,
+            "weight": 0.27
+          },
+          "flow_pattern": {
+            "score": 100,
+            "weight": 0.23
+          },
+          "scam_history": {
+            "score": 100,
+            "weight": 0.13
+          },
+          "activity_age": {
+            "score": 80,
+            "weight": 0.13
+          },
+          "tx_diversity": {
+            "score": 100,
+            "weight": 0.14
+          },
+          "tx_input_transparency": {
+            "score": 100,
+            "weight": 0.1
+          }
+        }
+      }
+    ],
+    "overall_trust_score": 75,
+    "trust_grade": "A",
+    "summary_ko": "총 8개 지갑 분석. 평균 신뢰 점수 75/100 (평균: 84, 최저: 61). 과도한 수익 추출 지갑 3개 탐지. 등급: A (SAFE).",
+    "tx_input_transparency": {
+      "score": 100,
+      "weight": 0.1,
+      "detail": "모든 액션이 표준 입금/출금 — 완전 투명"
+    }
+  },
+  "ontology_mapping": null
+}

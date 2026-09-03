@@ -1,0 +1,18 @@
+{
+  "scenario_id": "rugpull_002",
+  "fraud_type": "RugPull",
+  "contract": "RugPull",
+  "label": 1,
+  "params": {
+    "participant_count": 15,
+    "deposit_eth_min": 1.763,
+    "deposit_eth_max": 2,
+    "dump_delay_blocks": 3
+  },
+  "expected_signals": {
+    "BALANCE_DROP": true,
+    "FLOW_SPIKE": true,
+    "MAX_TX_ALERT": true
+  },
+  "generated_at": "2026-06-05T12:36:26.494Z"
+}

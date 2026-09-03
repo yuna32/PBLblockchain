@@ -1,0 +1,1442 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+         xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+         xmlns:owl="http://www.w3.org/2002/07/owl#"
+         xml:base="http://fraud-detection.local/fraud.owl"
+         xmlns="http://fraud-detection.local/fraud.owl#"
+         xmlns:swrl="http://www.w3.org/2003/11/swrl#">
+
+<owl:Ontology rdf:about="http://fraud-detection.local/fraud.owl"/>
+
+<owl:ObjectProperty rdf:about="#hasSignal">
+  <rdfs:domain rdf:resource="#FraudContract"/>
+  <rdfs:range rdf:resource="#AnomalySignal"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">컨트랙트가 이상 신호를 보임</rdfs:comment>
+</owl:ObjectProperty>
+
+<owl:ObjectProperty rdf:about="#hasPattern">
+  <rdfs:domain rdf:resource="#FraudContract"/>
+  <rdfs:range rdf:resource="#BehaviorPattern"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">컨트랙트가 행동 패턴을 보임</rdfs:comment>
+</owl:ObjectProperty>
+
+<owl:ObjectProperty rdf:about="#usesEvasion">
+  <rdfs:domain rdf:resource="#FraudContract"/>
+  <rdfs:range rdf:resource="#EvasionTechnique"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">컨트랙트가 특정 회피 기법을 사용</rdfs:comment>
+</owl:ObjectProperty>
+
+<owl:ObjectProperty rdf:about="#classifiedAs">
+  <rdfs:domain rdf:resource="#FraudContract"/>
+  <rdfs:range rdf:resource="#FraudContract"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">추론된 사기 분류 (SWRL 규칙으로 도출)</rdfs:comment>
+</owl:ObjectProperty>
+
+<owl:ObjectProperty rdf:about="#triggers">
+  <rdfs:domain rdf:resource="#BehaviorPattern"/>
+  <rdfs:range rdf:resource="#AnomalySignal"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">특정 행동 패턴이 어떤 이상 신호를 유발함 (인과관계, v0.2 추가)</rdfs:comment>
+</owl:ObjectProperty>
+
+<owl:ObjectProperty rdf:about="#implies">
+  <rdfs:domain rdf:resource="#BehaviorPattern"/>
+  <rdfs:range rdf:resource="#AnomalySignal"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">특정 행동 패턴이 어떤 이상 신호를 함의함 (인과관계, v0.2 추가)</rdfs:comment>
+</owl:ObjectProperty>
+
+<owl:DatatypeProperty rdf:about="#riskScore">
+  <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+  <rdfs:domain rdf:resource="#FraudContract"/>
+  <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#integer"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">예방 분석 위험 점수 (0-20)</rdfs:comment>
+</owl:DatatypeProperty>
+
+<owl:DatatypeProperty rdf:about="#riskLevel">
+  <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+  <rdfs:domain rdf:resource="#FraudContract"/>
+  <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">위험 등급: CRITICAL/HIGH/MEDIUM/LOW/FILE_NOT_FOUND</rdfs:comment>
+</owl:DatatypeProperty>
+
+<owl:DatatypeProperty rdf:about="#contractAddress">
+  <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+  <rdfs:domain rdf:resource="#FraudContract"/>
+  <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">컨트랙트 배포 주소 (0x...)</rdfs:comment>
+</owl:DatatypeProperty>
+
+<owl:DatatypeProperty rdf:about="#peakBalance">
+  <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+  <rdfs:domain rdf:resource="#FraudContract"/>
+  <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">시뮬레이션 중 최고 잔고 (ETH)</rdfs:comment>
+</owl:DatatypeProperty>
+
+<owl:DatatypeProperty rdf:about="#finalBalance">
+  <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+  <rdfs:domain rdf:resource="#FraudContract"/>
+  <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">시뮬레이션 종료 시 잔고 (ETH)</rdfs:comment>
+</owl:DatatypeProperty>
+
+<owl:Class rdf:about="#FraudContract">
+  <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">블록체인 사기 컨트랙트 최상위 개념</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#AnomalySignal">
+  <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">이상 신호 지표 최상위 개념</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#BehaviorPattern">
+  <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">행동 패턴 분류</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#EvasionTechnique">
+  <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">탐지 회피 기법 최상위 개념</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#NormalContract">
+  <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">정상 컨트랙트</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#FundMovementFraud">
+  <rdfs:subClassOf rdf:resource="#FraudContract"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">자금 이동 기반 사기 (잔고 유출 공통)</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#FundFreezeFraud">
+  <rdfs:subClassOf rdf:resource="#FraudContract"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">자금 동결 기반 사기 (출금 차단)</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#PonziScheme">
+  <rdfs:subClassOf rdf:resource="#FundMovementFraud"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">폰지 사기: 신규 입금으로 기존 참여자 수익 지급</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#RugPull">
+  <rdfs:subClassOf rdf:resource="#FundMovementFraud"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">러그풀: 잔고 정점에서 단 1회 전액 인출</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#PumpAndDump">
+  <rdfs:subClassOf rdf:resource="#FundMovementFraud"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">펌프앤덤프: 내부자 부양 후 대량 인출</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#MoneyLaundering">
+  <rdfs:subClassOf rdf:resource="#FundMovementFraud"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">자금세탁: 다수 입금 → 단일 주소 전액 출금</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#HoneyPot">
+  <rdfs:subClassOf rdf:resource="#FundFreezeFraud"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">허니팟: 입금은 가능하나 출금이 항상 실패</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#PonziScheme_BalanceDropEvasion">
+  <rdfs:subClassOf rdf:resource="#PonziScheme"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">잔고 급락 회피형 폰지: 단일 인출 80% 미만 분할</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#PonziScheme_MaxTxEvasion">
+  <rdfs:subClassOf rdf:resource="#PonziScheme"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">최대 거래 회피형 폰지: 반복 인출로 경보 우회</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#PonziScheme_SlowDrain">
+  <rdfs:subClassOf rdf:resource="#PonziScheme"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">시간 분산 회피형 폰지: 인출 블록 구간 30%+ 분산</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#RugPull_BalanceDropEvasion">
+  <rdfs:subClassOf rdf:resource="#RugPull"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">잔고 급락 회피형 러그풀</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#RugPull_MaxTxEvasion">
+  <rdfs:subClassOf rdf:resource="#RugPull"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">최대 거래 회피형 러그풀</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#RugPull_SlowDrain">
+  <rdfs:subClassOf rdf:resource="#RugPull"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">시간 분산 회피형 러그풀</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#MoneyLaundering_BalanceDropEvasion">
+  <rdfs:subClassOf rdf:resource="#MoneyLaundering"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">잔고 급락 회피형 세탁</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#MoneyLaundering_MaxTxEvasion">
+  <rdfs:subClassOf rdf:resource="#MoneyLaundering"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">최대 거래 회피형 세탁</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#MoneyLaundering_SlowDrain">
+  <rdfs:subClassOf rdf:resource="#MoneyLaundering"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">시간 분산 회피형 세탁</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#MoneyLaundering_HopLaundering">
+  <rdfs:subClassOf rdf:resource="#MoneyLaundering"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">중간 경유 지갑형 세탁: 입금/출금 주소 불일치</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#PumpDump_BalanceDropEvasion">
+  <rdfs:subClassOf rdf:resource="#PumpAndDump"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">잔고 급락 회피형 펌프앤덤프</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#PumpDump_MaxTxEvasion">
+  <rdfs:subClassOf rdf:resource="#PumpAndDump"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">최대 거래 회피형 펌프앤덤프</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#PumpDump_SlowDrain">
+  <rdfs:subClassOf rdf:resource="#PumpAndDump"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">시간 분산 회피형 펌프앤덤프</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#PumpDump_DistributedDump">
+  <rdfs:subClassOf rdf:resource="#PumpAndDump"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">분산 덤프형 펌프앤덤프: 위장 외부자 주소 사용</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#BalanceDrop">
+  <rdfs:subClassOf rdf:resource="#AnomalySignal"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">오너 액션으로 잔고 80%+ 급락</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#FlowSpike">
+  <rdfs:subClassOf rdf:resource="#AnomalySignal"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">단일 출금이 총 입금의 50%+</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#MaxTxAlert">
+  <rdfs:subClassOf rdf:resource="#AnomalySignal"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">단일 TX가 잔고의 90%+</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#ConcentrationDrain">
+  <rdfs:subClassOf rdf:resource="#AnomalySignal"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">상위 3개 지갑이 총 출금의 80%+</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#ZeroWithdrawBlock">
+  <rdfs:subClassOf rdf:resource="#AnomalySignal"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">출금 시도 있으나 성공 금액 0 지속</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#InputDataOpacity">
+  <rdfs:subClassOf rdf:resource="#AnomalySignal"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">입력 데이터 불투명 (owner_collect 등)</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#InflowStop">
+  <rdfs:subClassOf rdf:resource="#AnomalySignal"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">신규 입금 중단 (폰지 붕괴 신호)</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#ParticipantMidExit">
+  <rdfs:subClassOf rdf:resource="#BehaviorPattern"/>
+  <rdfs:subClassOf>
+    <owl:Restriction>
+      <owl:onProperty rdf:resource="#triggers"/>
+      <owl:someValuesFrom rdf:resource="#FlowSpike"/>
+    </owl:Restriction>
+  </rdfs:subClassOf>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">참여자 중간 인출: 마지막 블록 이전 withdraw 존재</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#OwnerWithdrawAll">
+  <rdfs:subClassOf rdf:resource="#BehaviorPattern"/>
+  <rdfs:subClassOf>
+    <owl:Restriction>
+      <owl:onProperty rdf:resource="#triggers"/>
+      <owl:someValuesFrom rdf:resource="#BalanceDrop"/>
+    </owl:Restriction>
+  </rdfs:subClassOf>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">오너 전액 인출: 최대 인출 수령자가 예금자 목록에 없음</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#CollectorIsDepositor">
+  <rdfs:subClassOf rdf:resource="#BehaviorPattern"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">수집자 = 입금자: 최대 인출 수령자가 예금자 목록에 포함 (자금세탁 지표)</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#DistributedInflow">
+  <rdfs:subClassOf rdf:resource="#BehaviorPattern"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">분산 입금: 5개 이상 고유 입금 주소</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#SingleLargeOutflow">
+  <rdfs:subClassOf rdf:resource="#BehaviorPattern"/>
+  <rdfs:subClassOf>
+    <owl:Restriction>
+      <owl:onProperty rdf:resource="#triggers"/>
+      <owl:someValuesFrom rdf:resource="#MaxTxAlert"/>
+    </owl:Restriction>
+  </rdfs:subClassOf>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">단일 대형 인출: 최대 단일 인출이 정점 잔고의 70%+</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#InsiderBulkDeposit">
+  <rdfs:subClassOf rdf:resource="#BehaviorPattern"/>
+  <rdfs:subClassOf>
+    <owl:Restriction>
+      <owl:onProperty rdf:resource="#implies"/>
+      <owl:someValuesFrom rdf:resource="#InflowStop"/>
+    </owl:Restriction>
+  </rdfs:subClassOf>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">내부자 대량 입금 (펌프 단계)</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#InsiderExitSuccess">
+  <rdfs:subClassOf rdf:resource="#BehaviorPattern"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">일부 인출 성공 (양수 금액)</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#WithdrawAttemptFail">
+  <rdfs:subClassOf rdf:resource="#BehaviorPattern"/>
+  <rdfs:subClassOf>
+    <owl:Restriction>
+      <owl:onProperty rdf:resource="#implies"/>
+      <owl:someValuesFrom rdf:resource="#ZeroWithdrawBlock"/>
+    </owl:Restriction>
+  </rdfs:subClassOf>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">인출 시도 실패 (금액=0): 허니팟 또는 후발자 손실</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#InflowContinues">
+  <rdfs:subClassOf rdf:resource="#BehaviorPattern"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">첫 인출 시도 후에도 입금 계속</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#SplitWithdrawal">
+  <rdfs:subClassOf rdf:resource="#EvasionTechnique"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">분할 인출: 단일 건이 잔고 80% 미만</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#RepeatedSmallWithdrawal">
+  <rdfs:subClassOf rdf:resource="#EvasionTechnique"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">반복 소액 인출: 3회+ 인출, 단일 건 90% 미만</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#LongPeriodSplit">
+  <rdfs:subClassOf rdf:resource="#EvasionTechnique"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">장기 분산 인출: 블록 구간 30%+ 걸쳐 인출</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#MultiWalletDispersion">
+  <rdfs:subClassOf rdf:resource="#EvasionTechnique"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">다중 지갑 분산 (스머핑)</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#HopLaunderingTech">
+  <rdfs:subClassOf rdf:resource="#EvasionTechnique"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">중간 경유 지갑 세탁 기법</rdfs:comment>
+</owl:Class>
+
+<owl:NamedIndividual rdf:about="#contract_ponzi">
+  <rdf:type rdf:resource="#FraudContract"/>
+  <hasSignal rdf:resource="#sig_balancedrop_ponzi"/>
+  <hasSignal rdf:resource="#sig_flowspike_ponzi"/>
+  <hasPattern rdf:resource="#pat_ownerwithdraw_ponzi"/>
+  <hasPattern rdf:resource="#pat_midexit_ponzi"/>
+  <hasPattern rdf:resource="#pat_distrib_ponzi"/>
+  <hasPattern rdf:resource="#pat_insiderexit_ponzi"/>
+  <peakBalance rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10.0</peakBalance>
+  <finalBalance rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.0</finalBalance>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#sig_balancedrop_ponzi">
+  <rdf:type rdf:resource="#BalanceDrop"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#sig_flowspike_ponzi">
+  <rdf:type rdf:resource="#FlowSpike"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_ownerwithdraw_ponzi">
+  <rdf:type rdf:resource="#OwnerWithdrawAll"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_midexit_ponzi">
+  <rdf:type rdf:resource="#ParticipantMidExit"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_distrib_ponzi">
+  <rdf:type rdf:resource="#DistributedInflow"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_insiderexit_ponzi">
+  <rdf:type rdf:resource="#InsiderExitSuccess"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#contract_rugpull">
+  <rdf:type rdf:resource="#FraudContract"/>
+  <hasSignal rdf:resource="#sig_balancedrop_rugpull"/>
+  <hasSignal rdf:resource="#sig_flowspike_rugpull"/>
+  <hasPattern rdf:resource="#pat_ownerwithdraw_rugpull"/>
+  <hasPattern rdf:resource="#pat_singleoutflow_rugpull"/>
+  <hasPattern rdf:resource="#pat_distrib_rugpull"/>
+  <hasPattern rdf:resource="#pat_insiderexit_rugpull"/>
+  <peakBalance rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">19.0</peakBalance>
+  <finalBalance rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.0</finalBalance>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#sig_balancedrop_rugpull">
+  <rdf:type rdf:resource="#BalanceDrop"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#sig_flowspike_rugpull">
+  <rdf:type rdf:resource="#FlowSpike"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_ownerwithdraw_rugpull">
+  <rdf:type rdf:resource="#OwnerWithdrawAll"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_singleoutflow_rugpull">
+  <rdf:type rdf:resource="#SingleLargeOutflow"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_distrib_rugpull">
+  <rdf:type rdf:resource="#DistributedInflow"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_insiderexit_rugpull">
+  <rdf:type rdf:resource="#InsiderExitSuccess"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#contract_laundering">
+  <rdf:type rdf:resource="#FraudContract"/>
+  <hasSignal rdf:resource="#sig_balancedrop_laundering"/>
+  <hasSignal rdf:resource="#sig_flowspike_laundering"/>
+  <hasPattern rdf:resource="#pat_collector_laundering"/>
+  <hasPattern rdf:resource="#pat_singleoutflow_laundering"/>
+  <hasPattern rdf:resource="#pat_distrib_laundering"/>
+  <hasPattern rdf:resource="#pat_insiderexit_laundering"/>
+  <peakBalance rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">3.51</peakBalance>
+  <finalBalance rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.0</finalBalance>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#sig_balancedrop_laundering">
+  <rdf:type rdf:resource="#BalanceDrop"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#sig_flowspike_laundering">
+  <rdf:type rdf:resource="#FlowSpike"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_collector_laundering">
+  <rdf:type rdf:resource="#CollectorIsDepositor"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_singleoutflow_laundering">
+  <rdf:type rdf:resource="#SingleLargeOutflow"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_distrib_laundering">
+  <rdf:type rdf:resource="#DistributedInflow"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_insiderexit_laundering">
+  <rdf:type rdf:resource="#InsiderExitSuccess"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#contract_pumpdump">
+  <rdf:type rdf:resource="#FraudContract"/>
+  <hasSignal rdf:resource="#sig_balancedrop_pumpdump"/>
+  <hasSignal rdf:resource="#sig_zerowithdraw_pumpdump"/>
+  <hasSignal rdf:resource="#sig_inflowstop_pumpdump"/>
+  <hasPattern rdf:resource="#pat_collector_pumpdump"/>
+  <hasPattern rdf:resource="#pat_midexit_pumpdump"/>
+  <hasPattern rdf:resource="#pat_distrib_pumpdump"/>
+  <hasPattern rdf:resource="#pat_insiderexit_pumpdump"/>
+  <hasPattern rdf:resource="#pat_wdfail_pumpdump"/>
+  <peakBalance rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">19.5</peakBalance>
+  <finalBalance rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.0</finalBalance>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#sig_balancedrop_pumpdump">
+  <rdf:type rdf:resource="#BalanceDrop"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#sig_zerowithdraw_pumpdump">
+  <rdf:type rdf:resource="#ZeroWithdrawBlock"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#sig_inflowstop_pumpdump">
+  <rdf:type rdf:resource="#InflowStop"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_collector_pumpdump">
+  <rdf:type rdf:resource="#CollectorIsDepositor"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_midexit_pumpdump">
+  <rdf:type rdf:resource="#ParticipantMidExit"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_distrib_pumpdump">
+  <rdf:type rdf:resource="#DistributedInflow"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_insiderexit_pumpdump">
+  <rdf:type rdf:resource="#InsiderExitSuccess"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_wdfail_pumpdump">
+  <rdf:type rdf:resource="#WithdrawAttemptFail"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#contract_honeypot">
+  <rdf:type rdf:resource="#FraudContract"/>
+  <hasSignal rdf:resource="#sig_zerowithdraw_honeypot"/>
+  <hasPattern rdf:resource="#pat_distrib_honeypot"/>
+  <hasPattern rdf:resource="#pat_wdfail_honeypot"/>
+  <hasPattern rdf:resource="#pat_inflowcont_honeypot"/>
+  <peakBalance rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">8.0</peakBalance>
+  <finalBalance rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">8.0</finalBalance>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#sig_zerowithdraw_honeypot">
+  <rdf:type rdf:resource="#ZeroWithdrawBlock"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_distrib_honeypot">
+  <rdf:type rdf:resource="#DistributedInflow"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_wdfail_honeypot">
+  <rdf:type rdf:resource="#WithdrawAttemptFail"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_inflowcont_honeypot">
+  <rdf:type rdf:resource="#InflowContinues"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#contract_normal">
+  <rdf:type rdf:resource="#FraudContract"/>
+  <hasPattern rdf:resource="#pat_collector_normal"/>
+  <hasPattern rdf:resource="#pat_midexit_normal"/>
+  <hasPattern rdf:resource="#pat_distrib_normal"/>
+  <hasPattern rdf:resource="#pat_insiderexit_normal"/>
+  <hasPattern rdf:resource="#pat_inflowcont_normal"/>
+  <peakBalance rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">15.0</peakBalance>
+  <finalBalance rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">4.555</finalBalance>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_collector_normal">
+  <rdf:type rdf:resource="#CollectorIsDepositor"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_midexit_normal">
+  <rdf:type rdf:resource="#ParticipantMidExit"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_distrib_normal">
+  <rdf:type rdf:resource="#DistributedInflow"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_insiderexit_normal">
+  <rdf:type rdf:resource="#InsiderExitSuccess"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_inflowcont_normal">
+  <rdf:type rdf:resource="#InflowContinues"/>
+</owl:NamedIndividual>
+
+<swrl:Variable rdf:about="urn:swrl#c"/>
+
+<swrl:Variable rdf:about="urn:swrl#s1"/>
+
+<swrl:Variable rdf:about="urn:swrl#p1"/>
+
+<swrl:Variable rdf:about="urn:swrl#p2"/>
+
+<swrl:Variable rdf:about="urn:swrl#p3"/>
+
+<swrl:Variable rdf:about="urn:swrl#s"/>
+
+<swrl:Variable rdf:about="urn:swrl#p"/>
+
+<swrl:Imp>
+  <swrl:body>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:IndividualPropertyAtom>
+          <swrl:propertyPredicate rdf:resource="#hasPattern"/>
+          <swrl:argument1 rdf:resource="urn:swrl#c"/>
+          <swrl:argument2 rdf:resource="urn:swrl#p"/>
+        </swrl:IndividualPropertyAtom>
+      </rdf:first>
+      <rdf:rest>
+        <rdf:Description>
+          <rdf:first>
+            <swrl:ClassAtom>
+              <swrl:classPredicate rdf:resource="#WithdrawAttemptFail"/>
+              <swrl:argument1 rdf:resource="urn:swrl#p"/>
+            </swrl:ClassAtom>
+          </rdf:first>
+          <rdf:rest>
+            <rdf:Description>
+              <rdf:first>
+                <swrl:IndividualPropertyAtom>
+                  <swrl:propertyPredicate rdf:resource="#hasSignal"/>
+                  <swrl:argument1 rdf:resource="urn:swrl#c"/>
+                  <swrl:argument2 rdf:resource="urn:swrl#s"/>
+                </swrl:IndividualPropertyAtom>
+              </rdf:first>
+              <rdf:rest>
+                <rdf:Description>
+                  <rdf:first>
+                    <swrl:ClassAtom>
+                      <swrl:classPredicate rdf:resource="#ZeroWithdrawBlock"/>
+                      <swrl:argument1 rdf:resource="urn:swrl#s"/>
+                    </swrl:ClassAtom>
+                  </rdf:first>
+                  <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                </rdf:Description>
+              </rdf:rest>
+            </rdf:Description>
+          </rdf:rest>
+        </rdf:Description>
+      </rdf:rest>
+    </rdf:Description>
+  </swrl:body>
+  <swrl:head>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:IndividualPropertyAtom>
+          <swrl:propertyPredicate rdf:resource="#implies"/>
+          <swrl:argument1 rdf:resource="urn:swrl#p"/>
+          <swrl:argument2 rdf:resource="urn:swrl#s"/>
+        </swrl:IndividualPropertyAtom>
+      </rdf:first>
+      <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+    </rdf:Description>
+  </swrl:head>
+</swrl:Imp>
+
+<swrl:Imp>
+  <swrl:body>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:IndividualPropertyAtom>
+          <swrl:propertyPredicate rdf:resource="#hasPattern"/>
+          <swrl:argument1 rdf:resource="urn:swrl#c"/>
+          <swrl:argument2 rdf:resource="urn:swrl#p"/>
+        </swrl:IndividualPropertyAtom>
+      </rdf:first>
+      <rdf:rest>
+        <rdf:Description>
+          <rdf:first>
+            <swrl:ClassAtom>
+              <swrl:classPredicate rdf:resource="#InsiderBulkDeposit"/>
+              <swrl:argument1 rdf:resource="urn:swrl#p"/>
+            </swrl:ClassAtom>
+          </rdf:first>
+          <rdf:rest>
+            <rdf:Description>
+              <rdf:first>
+                <swrl:IndividualPropertyAtom>
+                  <swrl:propertyPredicate rdf:resource="#hasSignal"/>
+                  <swrl:argument1 rdf:resource="urn:swrl#c"/>
+                  <swrl:argument2 rdf:resource="urn:swrl#s"/>
+                </swrl:IndividualPropertyAtom>
+              </rdf:first>
+              <rdf:rest>
+                <rdf:Description>
+                  <rdf:first>
+                    <swrl:ClassAtom>
+                      <swrl:classPredicate rdf:resource="#InflowStop"/>
+                      <swrl:argument1 rdf:resource="urn:swrl#s"/>
+                    </swrl:ClassAtom>
+                  </rdf:first>
+                  <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                </rdf:Description>
+              </rdf:rest>
+            </rdf:Description>
+          </rdf:rest>
+        </rdf:Description>
+      </rdf:rest>
+    </rdf:Description>
+  </swrl:body>
+  <swrl:head>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:IndividualPropertyAtom>
+          <swrl:propertyPredicate rdf:resource="#implies"/>
+          <swrl:argument1 rdf:resource="urn:swrl#p"/>
+          <swrl:argument2 rdf:resource="urn:swrl#s"/>
+        </swrl:IndividualPropertyAtom>
+      </rdf:first>
+      <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+    </rdf:Description>
+  </swrl:head>
+</swrl:Imp>
+
+<swrl:Imp>
+  <swrl:body>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:IndividualPropertyAtom>
+          <swrl:propertyPredicate rdf:resource="#hasPattern"/>
+          <swrl:argument1 rdf:resource="urn:swrl#c"/>
+          <swrl:argument2 rdf:resource="urn:swrl#p"/>
+        </swrl:IndividualPropertyAtom>
+      </rdf:first>
+      <rdf:rest>
+        <rdf:Description>
+          <rdf:first>
+            <swrl:ClassAtom>
+              <swrl:classPredicate rdf:resource="#ParticipantMidExit"/>
+              <swrl:argument1 rdf:resource="urn:swrl#p"/>
+            </swrl:ClassAtom>
+          </rdf:first>
+          <rdf:rest>
+            <rdf:Description>
+              <rdf:first>
+                <swrl:IndividualPropertyAtom>
+                  <swrl:propertyPredicate rdf:resource="#hasSignal"/>
+                  <swrl:argument1 rdf:resource="urn:swrl#c"/>
+                  <swrl:argument2 rdf:resource="urn:swrl#s"/>
+                </swrl:IndividualPropertyAtom>
+              </rdf:first>
+              <rdf:rest>
+                <rdf:Description>
+                  <rdf:first>
+                    <swrl:ClassAtom>
+                      <swrl:classPredicate rdf:resource="#FlowSpike"/>
+                      <swrl:argument1 rdf:resource="urn:swrl#s"/>
+                    </swrl:ClassAtom>
+                  </rdf:first>
+                  <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                </rdf:Description>
+              </rdf:rest>
+            </rdf:Description>
+          </rdf:rest>
+        </rdf:Description>
+      </rdf:rest>
+    </rdf:Description>
+  </swrl:body>
+  <swrl:head>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:IndividualPropertyAtom>
+          <swrl:propertyPredicate rdf:resource="#triggers"/>
+          <swrl:argument1 rdf:resource="urn:swrl#p"/>
+          <swrl:argument2 rdf:resource="urn:swrl#s"/>
+        </swrl:IndividualPropertyAtom>
+      </rdf:first>
+      <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+    </rdf:Description>
+  </swrl:head>
+</swrl:Imp>
+
+<swrl:Imp>
+  <swrl:body>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:IndividualPropertyAtom>
+          <swrl:propertyPredicate rdf:resource="#hasPattern"/>
+          <swrl:argument1 rdf:resource="urn:swrl#c"/>
+          <swrl:argument2 rdf:resource="urn:swrl#p"/>
+        </swrl:IndividualPropertyAtom>
+      </rdf:first>
+      <rdf:rest>
+        <rdf:Description>
+          <rdf:first>
+            <swrl:ClassAtom>
+              <swrl:classPredicate rdf:resource="#SingleLargeOutflow"/>
+              <swrl:argument1 rdf:resource="urn:swrl#p"/>
+            </swrl:ClassAtom>
+          </rdf:first>
+          <rdf:rest>
+            <rdf:Description>
+              <rdf:first>
+                <swrl:IndividualPropertyAtom>
+                  <swrl:propertyPredicate rdf:resource="#hasSignal"/>
+                  <swrl:argument1 rdf:resource="urn:swrl#c"/>
+                  <swrl:argument2 rdf:resource="urn:swrl#s"/>
+                </swrl:IndividualPropertyAtom>
+              </rdf:first>
+              <rdf:rest>
+                <rdf:Description>
+                  <rdf:first>
+                    <swrl:ClassAtom>
+                      <swrl:classPredicate rdf:resource="#MaxTxAlert"/>
+                      <swrl:argument1 rdf:resource="urn:swrl#s"/>
+                    </swrl:ClassAtom>
+                  </rdf:first>
+                  <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                </rdf:Description>
+              </rdf:rest>
+            </rdf:Description>
+          </rdf:rest>
+        </rdf:Description>
+      </rdf:rest>
+    </rdf:Description>
+  </swrl:body>
+  <swrl:head>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:IndividualPropertyAtom>
+          <swrl:propertyPredicate rdf:resource="#triggers"/>
+          <swrl:argument1 rdf:resource="urn:swrl#p"/>
+          <swrl:argument2 rdf:resource="urn:swrl#s"/>
+        </swrl:IndividualPropertyAtom>
+      </rdf:first>
+      <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+    </rdf:Description>
+  </swrl:head>
+</swrl:Imp>
+
+<swrl:Imp>
+  <swrl:body>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:IndividualPropertyAtom>
+          <swrl:propertyPredicate rdf:resource="#hasPattern"/>
+          <swrl:argument1 rdf:resource="urn:swrl#c"/>
+          <swrl:argument2 rdf:resource="urn:swrl#p"/>
+        </swrl:IndividualPropertyAtom>
+      </rdf:first>
+      <rdf:rest>
+        <rdf:Description>
+          <rdf:first>
+            <swrl:ClassAtom>
+              <swrl:classPredicate rdf:resource="#OwnerWithdrawAll"/>
+              <swrl:argument1 rdf:resource="urn:swrl#p"/>
+            </swrl:ClassAtom>
+          </rdf:first>
+          <rdf:rest>
+            <rdf:Description>
+              <rdf:first>
+                <swrl:IndividualPropertyAtom>
+                  <swrl:propertyPredicate rdf:resource="#hasSignal"/>
+                  <swrl:argument1 rdf:resource="urn:swrl#c"/>
+                  <swrl:argument2 rdf:resource="urn:swrl#s"/>
+                </swrl:IndividualPropertyAtom>
+              </rdf:first>
+              <rdf:rest>
+                <rdf:Description>
+                  <rdf:first>
+                    <swrl:ClassAtom>
+                      <swrl:classPredicate rdf:resource="#BalanceDrop"/>
+                      <swrl:argument1 rdf:resource="urn:swrl#s"/>
+                    </swrl:ClassAtom>
+                  </rdf:first>
+                  <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                </rdf:Description>
+              </rdf:rest>
+            </rdf:Description>
+          </rdf:rest>
+        </rdf:Description>
+      </rdf:rest>
+    </rdf:Description>
+  </swrl:body>
+  <swrl:head>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:IndividualPropertyAtom>
+          <swrl:propertyPredicate rdf:resource="#triggers"/>
+          <swrl:argument1 rdf:resource="urn:swrl#p"/>
+          <swrl:argument2 rdf:resource="urn:swrl#s"/>
+        </swrl:IndividualPropertyAtom>
+      </rdf:first>
+      <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+    </rdf:Description>
+  </swrl:head>
+</swrl:Imp>
+
+<swrl:Imp>
+  <swrl:body>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:ClassAtom>
+          <swrl:classPredicate rdf:resource="#PumpAndDump"/>
+          <swrl:argument1 rdf:resource="urn:swrl#c"/>
+        </swrl:ClassAtom>
+      </rdf:first>
+      <rdf:rest>
+        <rdf:Description>
+          <rdf:first>
+            <swrl:IndividualPropertyAtom>
+              <swrl:propertyPredicate rdf:resource="#hasPattern"/>
+              <swrl:argument1 rdf:resource="urn:swrl#c"/>
+              <swrl:argument2 rdf:resource="urn:swrl#p1"/>
+            </swrl:IndividualPropertyAtom>
+          </rdf:first>
+          <rdf:rest>
+            <rdf:Description>
+              <rdf:first>
+                <swrl:ClassAtom>
+                  <swrl:classPredicate rdf:resource="#InsiderExitSuccess"/>
+                  <swrl:argument1 rdf:resource="urn:swrl#p1"/>
+                </swrl:ClassAtom>
+              </rdf:first>
+              <rdf:rest>
+                <rdf:Description>
+                  <rdf:first>
+                    <swrl:IndividualPropertyAtom>
+                      <swrl:propertyPredicate rdf:resource="#hasPattern"/>
+                      <swrl:argument1 rdf:resource="urn:swrl#c"/>
+                      <swrl:argument2 rdf:resource="urn:swrl#p2"/>
+                    </swrl:IndividualPropertyAtom>
+                  </rdf:first>
+                  <rdf:rest>
+                    <rdf:Description>
+                      <rdf:first>
+                        <swrl:ClassAtom>
+                          <swrl:classPredicate rdf:resource="#DistributedInflow"/>
+                          <swrl:argument1 rdf:resource="urn:swrl#p2"/>
+                        </swrl:ClassAtom>
+                      </rdf:first>
+                      <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                    </rdf:Description>
+                  </rdf:rest>
+                </rdf:Description>
+              </rdf:rest>
+            </rdf:Description>
+          </rdf:rest>
+        </rdf:Description>
+      </rdf:rest>
+    </rdf:Description>
+  </swrl:body>
+  <swrl:head>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:ClassAtom>
+          <swrl:classPredicate rdf:resource="#PumpDump_MaxTxEvasion"/>
+          <swrl:argument1 rdf:resource="urn:swrl#c"/>
+        </swrl:ClassAtom>
+      </rdf:first>
+      <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+    </rdf:Description>
+  </swrl:head>
+</swrl:Imp>
+
+<swrl:Imp>
+  <swrl:body>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:ClassAtom>
+          <swrl:classPredicate rdf:resource="#PonziScheme"/>
+          <swrl:argument1 rdf:resource="urn:swrl#c"/>
+        </swrl:ClassAtom>
+      </rdf:first>
+      <rdf:rest>
+        <rdf:Description>
+          <rdf:first>
+            <swrl:IndividualPropertyAtom>
+              <swrl:propertyPredicate rdf:resource="#hasPattern"/>
+              <swrl:argument1 rdf:resource="urn:swrl#c"/>
+              <swrl:argument2 rdf:resource="urn:swrl#p"/>
+            </swrl:IndividualPropertyAtom>
+          </rdf:first>
+          <rdf:rest>
+            <rdf:Description>
+              <rdf:first>
+                <swrl:ClassAtom>
+                  <swrl:classPredicate rdf:resource="#ParticipantMidExit"/>
+                  <swrl:argument1 rdf:resource="urn:swrl#p"/>
+                </swrl:ClassAtom>
+              </rdf:first>
+              <rdf:rest>
+                <rdf:Description>
+                  <rdf:first>
+                    <swrl:IndividualPropertyAtom>
+                      <swrl:propertyPredicate rdf:resource="#hasSignal"/>
+                      <swrl:argument1 rdf:resource="urn:swrl#c"/>
+                      <swrl:argument2 rdf:resource="urn:swrl#s"/>
+                    </swrl:IndividualPropertyAtom>
+                  </rdf:first>
+                  <rdf:rest>
+                    <rdf:Description>
+                      <rdf:first>
+                        <swrl:ClassAtom>
+                          <swrl:classPredicate rdf:resource="#InflowStop"/>
+                          <swrl:argument1 rdf:resource="urn:swrl#s"/>
+                        </swrl:ClassAtom>
+                      </rdf:first>
+                      <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                    </rdf:Description>
+                  </rdf:rest>
+                </rdf:Description>
+              </rdf:rest>
+            </rdf:Description>
+          </rdf:rest>
+        </rdf:Description>
+      </rdf:rest>
+    </rdf:Description>
+  </swrl:body>
+  <swrl:head>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:ClassAtom>
+          <swrl:classPredicate rdf:resource="#PonziScheme_MaxTxEvasion"/>
+          <swrl:argument1 rdf:resource="urn:swrl#c"/>
+        </swrl:ClassAtom>
+      </rdf:first>
+      <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+    </rdf:Description>
+  </swrl:head>
+</swrl:Imp>
+
+<swrl:Imp>
+  <swrl:body>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:ClassAtom>
+          <swrl:classPredicate rdf:resource="#RugPull"/>
+          <swrl:argument1 rdf:resource="urn:swrl#c"/>
+        </swrl:ClassAtom>
+      </rdf:first>
+      <rdf:rest>
+        <rdf:Description>
+          <rdf:first>
+            <swrl:IndividualPropertyAtom>
+              <swrl:propertyPredicate rdf:resource="#hasSignal"/>
+              <swrl:argument1 rdf:resource="urn:swrl#c"/>
+              <swrl:argument2 rdf:resource="urn:swrl#s"/>
+            </swrl:IndividualPropertyAtom>
+          </rdf:first>
+          <rdf:rest>
+            <rdf:Description>
+              <rdf:first>
+                <swrl:ClassAtom>
+                  <swrl:classPredicate rdf:resource="#InflowStop"/>
+                  <swrl:argument1 rdf:resource="urn:swrl#s"/>
+                </swrl:ClassAtom>
+              </rdf:first>
+              <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+            </rdf:Description>
+          </rdf:rest>
+        </rdf:Description>
+      </rdf:rest>
+    </rdf:Description>
+  </swrl:body>
+  <swrl:head>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:ClassAtom>
+          <swrl:classPredicate rdf:resource="#RugPull_SlowDrain"/>
+          <swrl:argument1 rdf:resource="urn:swrl#c"/>
+        </swrl:ClassAtom>
+      </rdf:first>
+      <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+    </rdf:Description>
+  </swrl:head>
+</swrl:Imp>
+
+<swrl:Imp>
+  <swrl:body>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:ClassAtom>
+          <swrl:classPredicate rdf:resource="#FraudContract"/>
+          <swrl:argument1 rdf:resource="urn:swrl#c"/>
+        </swrl:ClassAtom>
+      </rdf:first>
+      <rdf:rest>
+        <rdf:Description>
+          <rdf:first>
+            <swrl:IndividualPropertyAtom>
+              <swrl:propertyPredicate rdf:resource="#hasPattern"/>
+              <swrl:argument1 rdf:resource="urn:swrl#c"/>
+              <swrl:argument2 rdf:resource="urn:swrl#p1"/>
+            </swrl:IndividualPropertyAtom>
+          </rdf:first>
+          <rdf:rest>
+            <rdf:Description>
+              <rdf:first>
+                <swrl:ClassAtom>
+                  <swrl:classPredicate rdf:resource="#InsiderExitSuccess"/>
+                  <swrl:argument1 rdf:resource="urn:swrl#p1"/>
+                </swrl:ClassAtom>
+              </rdf:first>
+              <rdf:rest>
+                <rdf:Description>
+                  <rdf:first>
+                    <swrl:IndividualPropertyAtom>
+                      <swrl:propertyPredicate rdf:resource="#hasPattern"/>
+                      <swrl:argument1 rdf:resource="urn:swrl#c"/>
+                      <swrl:argument2 rdf:resource="urn:swrl#p2"/>
+                    </swrl:IndividualPropertyAtom>
+                  </rdf:first>
+                  <rdf:rest>
+                    <rdf:Description>
+                      <rdf:first>
+                        <swrl:ClassAtom>
+                          <swrl:classPredicate rdf:resource="#WithdrawAttemptFail"/>
+                          <swrl:argument1 rdf:resource="urn:swrl#p2"/>
+                        </swrl:ClassAtom>
+                      </rdf:first>
+                      <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                    </rdf:Description>
+                  </rdf:rest>
+                </rdf:Description>
+              </rdf:rest>
+            </rdf:Description>
+          </rdf:rest>
+        </rdf:Description>
+      </rdf:rest>
+    </rdf:Description>
+  </swrl:body>
+  <swrl:head>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:ClassAtom>
+          <swrl:classPredicate rdf:resource="#PumpAndDump"/>
+          <swrl:argument1 rdf:resource="urn:swrl#c"/>
+        </swrl:ClassAtom>
+      </rdf:first>
+      <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+    </rdf:Description>
+  </swrl:head>
+</swrl:Imp>
+
+<swrl:Imp>
+  <swrl:body>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:ClassAtom>
+          <swrl:classPredicate rdf:resource="#FraudContract"/>
+          <swrl:argument1 rdf:resource="urn:swrl#c"/>
+        </swrl:ClassAtom>
+      </rdf:first>
+      <rdf:rest>
+        <rdf:Description>
+          <rdf:first>
+            <swrl:IndividualPropertyAtom>
+              <swrl:propertyPredicate rdf:resource="#hasPattern"/>
+              <swrl:argument1 rdf:resource="urn:swrl#c"/>
+              <swrl:argument2 rdf:resource="urn:swrl#p1"/>
+            </swrl:IndividualPropertyAtom>
+          </rdf:first>
+          <rdf:rest>
+            <rdf:Description>
+              <rdf:first>
+                <swrl:ClassAtom>
+                  <swrl:classPredicate rdf:resource="#WithdrawAttemptFail"/>
+                  <swrl:argument1 rdf:resource="urn:swrl#p1"/>
+                </swrl:ClassAtom>
+              </rdf:first>
+              <rdf:rest>
+                <rdf:Description>
+                  <rdf:first>
+                    <swrl:IndividualPropertyAtom>
+                      <swrl:propertyPredicate rdf:resource="#hasPattern"/>
+                      <swrl:argument1 rdf:resource="urn:swrl#c"/>
+                      <swrl:argument2 rdf:resource="urn:swrl#p2"/>
+                    </swrl:IndividualPropertyAtom>
+                  </rdf:first>
+                  <rdf:rest>
+                    <rdf:Description>
+                      <rdf:first>
+                        <swrl:ClassAtom>
+                          <swrl:classPredicate rdf:resource="#InflowContinues"/>
+                          <swrl:argument1 rdf:resource="urn:swrl#p2"/>
+                        </swrl:ClassAtom>
+                      </rdf:first>
+                      <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                    </rdf:Description>
+                  </rdf:rest>
+                </rdf:Description>
+              </rdf:rest>
+            </rdf:Description>
+          </rdf:rest>
+        </rdf:Description>
+      </rdf:rest>
+    </rdf:Description>
+  </swrl:body>
+  <swrl:head>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:ClassAtom>
+          <swrl:classPredicate rdf:resource="#HoneyPot"/>
+          <swrl:argument1 rdf:resource="urn:swrl#c"/>
+        </swrl:ClassAtom>
+      </rdf:first>
+      <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+    </rdf:Description>
+  </swrl:head>
+</swrl:Imp>
+
+<swrl:Imp>
+  <swrl:body>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:ClassAtom>
+          <swrl:classPredicate rdf:resource="#FraudContract"/>
+          <swrl:argument1 rdf:resource="urn:swrl#c"/>
+        </swrl:ClassAtom>
+      </rdf:first>
+      <rdf:rest>
+        <rdf:Description>
+          <rdf:first>
+            <swrl:IndividualPropertyAtom>
+              <swrl:propertyPredicate rdf:resource="#hasPattern"/>
+              <swrl:argument1 rdf:resource="urn:swrl#c"/>
+              <swrl:argument2 rdf:resource="urn:swrl#p1"/>
+            </swrl:IndividualPropertyAtom>
+          </rdf:first>
+          <rdf:rest>
+            <rdf:Description>
+              <rdf:first>
+                <swrl:ClassAtom>
+                  <swrl:classPredicate rdf:resource="#DistributedInflow"/>
+                  <swrl:argument1 rdf:resource="urn:swrl#p1"/>
+                </swrl:ClassAtom>
+              </rdf:first>
+              <rdf:rest>
+                <rdf:Description>
+                  <rdf:first>
+                    <swrl:IndividualPropertyAtom>
+                      <swrl:propertyPredicate rdf:resource="#hasPattern"/>
+                      <swrl:argument1 rdf:resource="urn:swrl#c"/>
+                      <swrl:argument2 rdf:resource="urn:swrl#p2"/>
+                    </swrl:IndividualPropertyAtom>
+                  </rdf:first>
+                  <rdf:rest>
+                    <rdf:Description>
+                      <rdf:first>
+                        <swrl:ClassAtom>
+                          <swrl:classPredicate rdf:resource="#CollectorIsDepositor"/>
+                          <swrl:argument1 rdf:resource="urn:swrl#p2"/>
+                        </swrl:ClassAtom>
+                      </rdf:first>
+                      <rdf:rest>
+                        <rdf:Description>
+                          <rdf:first>
+                            <swrl:IndividualPropertyAtom>
+                              <swrl:propertyPredicate rdf:resource="#hasPattern"/>
+                              <swrl:argument1 rdf:resource="urn:swrl#c"/>
+                              <swrl:argument2 rdf:resource="urn:swrl#p3"/>
+                            </swrl:IndividualPropertyAtom>
+                          </rdf:first>
+                          <rdf:rest>
+                            <rdf:Description>
+                              <rdf:first>
+                                <swrl:ClassAtom>
+                                  <swrl:classPredicate rdf:resource="#SingleLargeOutflow"/>
+                                  <swrl:argument1 rdf:resource="urn:swrl#p3"/>
+                                </swrl:ClassAtom>
+                              </rdf:first>
+                              <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                            </rdf:Description>
+                          </rdf:rest>
+                        </rdf:Description>
+                      </rdf:rest>
+                    </rdf:Description>
+                  </rdf:rest>
+                </rdf:Description>
+              </rdf:rest>
+            </rdf:Description>
+          </rdf:rest>
+        </rdf:Description>
+      </rdf:rest>
+    </rdf:Description>
+  </swrl:body>
+  <swrl:head>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:ClassAtom>
+          <swrl:classPredicate rdf:resource="#MoneyLaundering"/>
+          <swrl:argument1 rdf:resource="urn:swrl#c"/>
+        </swrl:ClassAtom>
+      </rdf:first>
+      <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+    </rdf:Description>
+  </swrl:head>
+</swrl:Imp>
+
+<swrl:Imp>
+  <swrl:body>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:ClassAtom>
+          <swrl:classPredicate rdf:resource="#FraudContract"/>
+          <swrl:argument1 rdf:resource="urn:swrl#c"/>
+        </swrl:ClassAtom>
+      </rdf:first>
+      <rdf:rest>
+        <rdf:Description>
+          <rdf:first>
+            <swrl:IndividualPropertyAtom>
+              <swrl:propertyPredicate rdf:resource="#hasSignal"/>
+              <swrl:argument1 rdf:resource="urn:swrl#c"/>
+              <swrl:argument2 rdf:resource="urn:swrl#s1"/>
+            </swrl:IndividualPropertyAtom>
+          </rdf:first>
+          <rdf:rest>
+            <rdf:Description>
+              <rdf:first>
+                <swrl:ClassAtom>
+                  <swrl:classPredicate rdf:resource="#BalanceDrop"/>
+                  <swrl:argument1 rdf:resource="urn:swrl#s1"/>
+                </swrl:ClassAtom>
+              </rdf:first>
+              <rdf:rest>
+                <rdf:Description>
+                  <rdf:first>
+                    <swrl:IndividualPropertyAtom>
+                      <swrl:propertyPredicate rdf:resource="#hasPattern"/>
+                      <swrl:argument1 rdf:resource="urn:swrl#c"/>
+                      <swrl:argument2 rdf:resource="urn:swrl#p1"/>
+                    </swrl:IndividualPropertyAtom>
+                  </rdf:first>
+                  <rdf:rest>
+                    <rdf:Description>
+                      <rdf:first>
+                        <swrl:ClassAtom>
+                          <swrl:classPredicate rdf:resource="#OwnerWithdrawAll"/>
+                          <swrl:argument1 rdf:resource="urn:swrl#p1"/>
+                        </swrl:ClassAtom>
+                      </rdf:first>
+                      <rdf:rest>
+                        <rdf:Description>
+                          <rdf:first>
+                            <swrl:IndividualPropertyAtom>
+                              <swrl:propertyPredicate rdf:resource="#hasPattern"/>
+                              <swrl:argument1 rdf:resource="urn:swrl#c"/>
+                              <swrl:argument2 rdf:resource="urn:swrl#p2"/>
+                            </swrl:IndividualPropertyAtom>
+                          </rdf:first>
+                          <rdf:rest>
+                            <rdf:Description>
+                              <rdf:first>
+                                <swrl:ClassAtom>
+                                  <swrl:classPredicate rdf:resource="#SingleLargeOutflow"/>
+                                  <swrl:argument1 rdf:resource="urn:swrl#p2"/>
+                                </swrl:ClassAtom>
+                              </rdf:first>
+                              <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                            </rdf:Description>
+                          </rdf:rest>
+                        </rdf:Description>
+                      </rdf:rest>
+                    </rdf:Description>
+                  </rdf:rest>
+                </rdf:Description>
+              </rdf:rest>
+            </rdf:Description>
+          </rdf:rest>
+        </rdf:Description>
+      </rdf:rest>
+    </rdf:Description>
+  </swrl:body>
+  <swrl:head>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:ClassAtom>
+          <swrl:classPredicate rdf:resource="#RugPull"/>
+          <swrl:argument1 rdf:resource="urn:swrl#c"/>
+        </swrl:ClassAtom>
+      </rdf:first>
+      <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+    </rdf:Description>
+  </swrl:head>
+</swrl:Imp>
+
+<swrl:Imp>
+  <swrl:body>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:ClassAtom>
+          <swrl:classPredicate rdf:resource="#FraudContract"/>
+          <swrl:argument1 rdf:resource="urn:swrl#c"/>
+        </swrl:ClassAtom>
+      </rdf:first>
+      <rdf:rest>
+        <rdf:Description>
+          <rdf:first>
+            <swrl:IndividualPropertyAtom>
+              <swrl:propertyPredicate rdf:resource="#hasSignal"/>
+              <swrl:argument1 rdf:resource="urn:swrl#c"/>
+              <swrl:argument2 rdf:resource="urn:swrl#s1"/>
+            </swrl:IndividualPropertyAtom>
+          </rdf:first>
+          <rdf:rest>
+            <rdf:Description>
+              <rdf:first>
+                <swrl:ClassAtom>
+                  <swrl:classPredicate rdf:resource="#BalanceDrop"/>
+                  <swrl:argument1 rdf:resource="urn:swrl#s1"/>
+                </swrl:ClassAtom>
+              </rdf:first>
+              <rdf:rest>
+                <rdf:Description>
+                  <rdf:first>
+                    <swrl:IndividualPropertyAtom>
+                      <swrl:propertyPredicate rdf:resource="#hasPattern"/>
+                      <swrl:argument1 rdf:resource="urn:swrl#c"/>
+                      <swrl:argument2 rdf:resource="urn:swrl#p1"/>
+                    </swrl:IndividualPropertyAtom>
+                  </rdf:first>
+                  <rdf:rest>
+                    <rdf:Description>
+                      <rdf:first>
+                        <swrl:ClassAtom>
+                          <swrl:classPredicate rdf:resource="#OwnerWithdrawAll"/>
+                          <swrl:argument1 rdf:resource="urn:swrl#p1"/>
+                        </swrl:ClassAtom>
+                      </rdf:first>
+                      <rdf:rest>
+                        <rdf:Description>
+                          <rdf:first>
+                            <swrl:IndividualPropertyAtom>
+                              <swrl:propertyPredicate rdf:resource="#hasPattern"/>
+                              <swrl:argument1 rdf:resource="urn:swrl#c"/>
+                              <swrl:argument2 rdf:resource="urn:swrl#p2"/>
+                            </swrl:IndividualPropertyAtom>
+                          </rdf:first>
+                          <rdf:rest>
+                            <rdf:Description>
+                              <rdf:first>
+                                <swrl:ClassAtom>
+                                  <swrl:classPredicate rdf:resource="#ParticipantMidExit"/>
+                                  <swrl:argument1 rdf:resource="urn:swrl#p2"/>
+                                </swrl:ClassAtom>
+                              </rdf:first>
+                              <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                            </rdf:Description>
+                          </rdf:rest>
+                        </rdf:Description>
+                      </rdf:rest>
+                    </rdf:Description>
+                  </rdf:rest>
+                </rdf:Description>
+              </rdf:rest>
+            </rdf:Description>
+          </rdf:rest>
+        </rdf:Description>
+      </rdf:rest>
+    </rdf:Description>
+  </swrl:body>
+  <swrl:head>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:ClassAtom>
+          <swrl:classPredicate rdf:resource="#PonziScheme"/>
+          <swrl:argument1 rdf:resource="urn:swrl#c"/>
+        </swrl:ClassAtom>
+      </rdf:first>
+      <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+    </rdf:Description>
+  </swrl:head>
+</swrl:Imp>
+
+
+</rdf:RDF>

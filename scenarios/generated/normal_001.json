@@ -1,0 +1,18 @@
+{
+  "scenario_id": "normal_001",
+  "fraud_type": "Normal",
+  "contract": "NormalStaking",
+  "label": 0,
+  "params": {
+    "participant_count": 24,
+    "stake_eth_min": 0.42,
+    "stake_eth_max": 2.792,
+    "stake_duration_blocks": 24
+  },
+  "expected_signals": {
+    "BALANCE_DROP": false,
+    "FLOW_SPIKE": false,
+    "MAX_TX_ALERT": false
+  },
+  "generated_at": "2026-06-05T12:36:26.496Z"
+}

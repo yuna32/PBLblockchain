@@ -1,0 +1,18 @@
+{
+  "scenario_id": "pumpdump_003",
+  "fraud_type": "PumpDump",
+  "contract": "PumpDump",
+  "label": 1,
+  "params": {
+    "insider_count": 2,
+    "latecomer_count": 9,
+    "insider_deposit_ratio": 0.567,
+    "dump_delay_blocks": 4
+  },
+  "expected_signals": {
+    "BALANCE_DROP": true,
+    "FLOW_SPIKE": true,
+    "INSIDER_DRAIN": true
+  },
+  "generated_at": "2026-06-05T12:36:26.496Z"
+}

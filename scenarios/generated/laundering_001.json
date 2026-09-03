@@ -1,0 +1,18 @@
+{
+  "scenario_id": "laundering_001",
+  "fraud_type": "MoneyLaundering",
+  "contract": "MoneyLaundering",
+  "label": 1,
+  "params": {
+    "depositor_count": 29,
+    "deposit_eth_min": 0.127,
+    "deposit_eth_max": 0.47,
+    "collector_count": 2,
+    "collect_after_ratio": 0.805
+  },
+  "expected_signals": {
+    "BALANCE_DROP": true,
+    "PARTICIPANT_ASYMMETRY": true
+  },
+  "generated_at": "2026-06-05T12:36:26.495Z"
+}

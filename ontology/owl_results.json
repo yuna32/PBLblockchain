@@ -1,0 +1,164 @@
+{
+  "contract_ponzi": {
+    "inferred_types": [
+      "PonziScheme"
+    ],
+    "reasoner_classified": true,
+    "signals": [
+      "sig_balancedrop_ponzi",
+      "sig_flowspike_ponzi"
+    ],
+    "patterns": [
+      "pat_ownerwithdraw_ponzi",
+      "pat_midexit_ponzi",
+      "pat_distrib_ponzi",
+      "pat_insiderexit_ponzi"
+    ],
+    "causal_edges": [
+      {
+        "relation": "triggers",
+        "from": "pat_ownerwithdraw_ponzi",
+        "to": "sig_balancedrop_ponzi"
+      },
+      {
+        "relation": "triggers",
+        "from": "pat_midexit_ponzi",
+        "to": "sig_flowspike_ponzi"
+      }
+    ],
+    "peak_balance": 10.0,
+    "final_balance": 0.0
+  },
+  "contract_rugpull": {
+    "inferred_types": [
+      "RugPull"
+    ],
+    "reasoner_classified": true,
+    "signals": [
+      "sig_balancedrop_rugpull",
+      "sig_flowspike_rugpull"
+    ],
+    "patterns": [
+      "pat_ownerwithdraw_rugpull",
+      "pat_singleoutflow_rugpull",
+      "pat_distrib_rugpull",
+      "pat_insiderexit_rugpull"
+    ],
+    "causal_edges": [
+      {
+        "relation": "triggers",
+        "from": "pat_ownerwithdraw_rugpull",
+        "to": "sig_balancedrop_rugpull"
+      },
+      {
+        "relation": "triggers",
+        "from": "pat_singleoutflow_rugpull",
+        "to": "sig_predicted_maxtxalert_rugpull"
+      }
+    ],
+    "peak_balance": 19.0,
+    "final_balance": 0.0
+  },
+  "contract_laundering": {
+    "inferred_types": [
+      "MoneyLaundering"
+    ],
+    "reasoner_classified": true,
+    "signals": [
+      "sig_balancedrop_laundering",
+      "sig_flowspike_laundering"
+    ],
+    "patterns": [
+      "pat_collector_laundering",
+      "pat_singleoutflow_laundering",
+      "pat_distrib_laundering",
+      "pat_insiderexit_laundering"
+    ],
+    "causal_edges": [
+      {
+        "relation": "triggers",
+        "from": "pat_singleoutflow_laundering",
+        "to": "sig_predicted_maxtxalert_laundering"
+      }
+    ],
+    "peak_balance": 3.51,
+    "final_balance": 0.0
+  },
+  "contract_pumpdump": {
+    "inferred_types": [
+      "PumpAndDump",
+      "PumpDump_MaxTxEvasion"
+    ],
+    "reasoner_classified": true,
+    "signals": [
+      "sig_balancedrop_pumpdump",
+      "sig_zerowithdraw_pumpdump",
+      "sig_inflowstop_pumpdump"
+    ],
+    "patterns": [
+      "pat_collector_pumpdump",
+      "pat_midexit_pumpdump",
+      "pat_distrib_pumpdump",
+      "pat_insiderexit_pumpdump",
+      "pat_wdfail_pumpdump"
+    ],
+    "causal_edges": [
+      {
+        "relation": "triggers",
+        "from": "pat_midexit_pumpdump",
+        "to": "sig_predicted_flowspike_pumpdump"
+      },
+      {
+        "relation": "implies",
+        "from": "pat_wdfail_pumpdump",
+        "to": "sig_zerowithdraw_pumpdump"
+      }
+    ],
+    "peak_balance": 19.5,
+    "final_balance": 0.0
+  },
+  "contract_honeypot": {
+    "inferred_types": [
+      "HoneyPot"
+    ],
+    "reasoner_classified": true,
+    "signals": [
+      "sig_zerowithdraw_honeypot"
+    ],
+    "patterns": [
+      "pat_distrib_honeypot",
+      "pat_wdfail_honeypot",
+      "pat_inflowcont_honeypot"
+    ],
+    "causal_edges": [
+      {
+        "relation": "implies",
+        "from": "pat_wdfail_honeypot",
+        "to": "sig_zerowithdraw_honeypot"
+      }
+    ],
+    "peak_balance": 8.0,
+    "final_balance": 8.0
+  },
+  "contract_normal": {
+    "inferred_types": [],
+    "reasoner_classified": true,
+    "signals": [],
+    "patterns": [
+      "pat_collector_normal",
+      "pat_midexit_normal",
+      "pat_distrib_normal",
+      "pat_insiderexit_normal",
+      "pat_inflowcont_normal"
+    ],
+    "causal_edges": [
+      {
+        "relation": "triggers",
+        "from": "pat_midexit_normal",
+        "to": "sig_predicted_flowspike_normal"
+      }
+    ],
+    "peak_balance": 15.0,
+    "final_balance": 4.555
+  }
+}
