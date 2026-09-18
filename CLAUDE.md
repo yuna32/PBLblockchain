@@ -795,3 +795,24 @@ SelectiveTrap(오너만 인출 성공, 나머지 전원 실패)이 `dynamic_anal
   하위 3rd-party 클론(CRPWarner, GTN2vec)과 동일하게 이번 커밋에서 제외 —
   기존 관례(대용량 외부 데이터는 추적 안 함)를 따름.
 확인 완료, 추가 조치는 팀 논의 후 결정
+
+## CLAUDE.md 정정 — N=272 드리프트 원인 재정정 (2026-09)
+
+이전 기록("SelectiveTrap 미커밋분이 N=272 드리프트 원인")은 틀렸음.
+git stash 재대조 결과 HEAD 상태에서도 동일 드리프트(주소 3개:
+0x582e3d8d/0x9a2e9235/0x2c2e3baa) 재현됨 — 이번 세션 커밋 2건과 무관.
+
+진짜 원인: comparison_report_v3_patched.md가 isError 필터 수정
+커밋(3386f41, 8e30d32) 이후 재생성되지 않은 낡은 스냅샷. 그 시점 이후
+known_outliers.csv/logs/*.csv는 갱신됐으나 리포트만 안 따라감.
+
+**영향 범위 미확인 — 중요**: v3_patched는 letter v0.2 표1 및 8-1절
+한계 수치의 근거 파일이었음("v2_clean272는 참조금지, v3_patched만
+신뢰"로 이전에 못박음). isError 필터 수정이 판정 결과에 실질 영향을
+줬다면 letter 표1 수치 자체가 최신이 아닐 가능성 있음 — 재생성 후
+letter 수치와 대조 필요.
+
+v3_patched 재생성은 이번 세션에서 미실행(승인 대기). 다음 세션 우선
+처리 항목.
+
+확인 완료, 추가 조치는 팀 논의 후 결정
