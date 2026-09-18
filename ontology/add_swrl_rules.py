@@ -110,6 +110,27 @@ with onto:
     )
     imp5b.name = "Rule_HoneyPot_SelectiveTrap"
 
+    # ── Rule 5c/5d: HoneyPot 코드축 서브클래스 (2026-09, Torres et al. 2019
+    # HoneyBadger 8기법 중 빈도 상위 2종 — 실측 382/690·101/690건). 위
+    # HoneyPot_SelectiveTrap(행동 기반, hasPattern/hasSignal)과 별개 축 —
+    # hasCodePattern(정적 소스코드 패턴, boolean)으로만 판정하며 다른 HoneyPot
+    # 서브클래스 규칙과 완전히 격리된 순수 부가 추론이다.
+    imp5c = Imp()
+    imp5c.set_as_rule(
+        "HoneyPot(?c), "
+        "hasCodePattern(?c, ?p), HiddenStateUpdatePattern(?p) "
+        "-> HoneyPot_HiddenStateUpdate(?c)"
+    )
+    imp5c.name = "Rule_HoneyPot_HiddenStateUpdate"
+
+    imp5d = Imp()
+    imp5d.set_as_rule(
+        "HoneyPot(?c), "
+        "hasCodePattern(?c, ?p), StrawManContractPattern(?p) "
+        "-> HoneyPot_StrawManContract(?c)"
+    )
+    imp5d.name = "Rule_HoneyPot_StrawManContract"
+
     # ── Rule 6: RugPull_SlowDrain subclass ────────────────────────────────────
     # Evasion subclass: RugPull with InflowStop signal
     imp6 = Imp()
@@ -242,6 +263,14 @@ except Exception as e:
                 return False
             return any(pat_cls in p.is_a for p in getattr(instance, "hasPattern", []))
 
+        # 2026-09, HoneyPot 코드축 서브클래스 — hasCodePattern(정적, boolean) 엣지 검사.
+        # hasPattern/hasSignal과 별도 축이라 별도 헬퍼로 분리한다.
+        def _has_codepattern_type(instance, pat_name):
+            pat_cls = onto[pat_name]
+            if pat_cls is None:
+                return False
+            return any(pat_cls in p.is_a for p in getattr(instance, "hasCodePattern", []))
+
         def _assert_type(instance, cls_name):
             cls = onto[cls_name]
             if cls is None:
@@ -264,6 +293,8 @@ except Exception as e:
                 return _has_signal_type(instance, arg)
             if check_type == "pattern":
                 return _has_pattern_type(instance, arg)
+            if check_type == "codepattern":
+                return _has_codepattern_type(instance, arg)
             # 2026-09, SelectiveTrap 오분류 수정 동반작업 — balanceAtFailure 등
             # DatatypeProperty 수치 비교(swrlb builtin에 대응). peakBalance/
             # finalBalance는 이전까지 어떤 규칙 body에도 쓰인 적이 없어(순수
@@ -340,6 +371,22 @@ except Exception as e:
                     ("data_le", ("nonPrivilegedSuccessRate", 0.05)),
                 ],
                 "head": "HoneyPot_SelectiveTrap",
+            },
+            {
+                "name": "Rule_HoneyPot_HiddenStateUpdate",
+                "body": [
+                    ("type",        "HoneyPot"),
+                    ("codepattern", "HiddenStateUpdatePattern"),
+                ],
+                "head": "HoneyPot_HiddenStateUpdate",
+            },
+            {
+                "name": "Rule_HoneyPot_StrawManContract",
+                "body": [
+                    ("type",        "HoneyPot"),
+                    ("codepattern", "StrawManContractPattern"),
+                ],
+                "head": "HoneyPot_StrawManContract",
             },
             {
                 "name": "Rule_RugPull_SlowDrain",

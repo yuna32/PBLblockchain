@@ -21,6 +21,12 @@
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">컨트랙트가 행동 패턴을 보임</rdfs:comment>
 </owl:ObjectProperty>
 
+<owl:ObjectProperty rdf:about="#hasCodePattern">
+  <rdfs:domain rdf:resource="#FraudContract"/>
+  <rdfs:range rdf:resource="#HoneypotCodePattern"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">컨트랙트가 특정 코드축 함정 패턴(정적, boolean)을 가짐 — hasPattern/hasSignal(행동/신호 축)과 별도 축 (2026-09 신규)</rdfs:comment>
+</owl:ObjectProperty>
+
 <owl:ObjectProperty rdf:about="#usesEvasion">
   <rdfs:domain rdf:resource="#FraudContract"/>
   <rdfs:range rdf:resource="#EvasionTechnique"/>
@@ -116,6 +122,11 @@
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">행동 패턴 분류</rdfs:comment>
 </owl:Class>
 
+<owl:Class rdf:about="#HoneypotCodePattern">
+  <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">허니팟 코드축 서브클래스 판정에 쓰이는 정적 코드 패턴 최상위 개념</rdfs:comment>
+</owl:Class>
+
 <owl:Class rdf:about="#EvasionTechnique">
   <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">탐지 회피 기법 최상위 개념</rdfs:comment>
@@ -164,6 +175,16 @@
 <owl:Class rdf:about="#HoneyPot_SelectiveTrap">
   <rdfs:subClassOf rdf:resource="#HoneyPot"/>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">선택적 허니팟: 오너/배포자 주소만 인출 성공, 나머지 전원 실패</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#HoneyPot_HiddenStateUpdate">
+  <rdfs:subClassOf rdf:resource="#HoneyPot"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">숨겨진 상태값 비교형: 해시/시크릿 비교 가드에 쓰이는 상태변수의 write 지점이 2개 이상 (배포 후 재설정 가능)</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#HoneyPot_StrawManContract">
+  <rdfs:subClassOf rdf:resource="#HoneyPot"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">위장 컨트랙트 호출형: 송금 문장 이후 생성자로 주입된 컨트랙트 상태변수에 대한 고수준 외부호출(또는 owner-settable 주소로의 인접 delegatecall)이 이어짐</rdfs:comment>
 </owl:Class>
 
 <owl:Class rdf:about="#PonziScheme_BalanceDropEvasion">
@@ -344,6 +365,16 @@
 <owl:Class rdf:about="#InflowContinues">
   <rdfs:subClassOf rdf:resource="#BehaviorPattern"/>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">첫 인출 시도 후에도 입금 계속</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#HiddenStateUpdatePattern">
+  <rdfs:subClassOf rdf:resource="#HoneypotCodePattern"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">해시/시크릿 비교(keccak256/sha3) 가드에 쓰이는 상태변수의 write 지점이 2개 이상 존재</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#StrawManContractPattern">
+  <rdfs:subClassOf rdf:resource="#HoneypotCodePattern"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">msg.sender 송금 문장 이후 생성자 파라미터로 주입된 컨트랙트 상태변수에 대한 고수준 외부호출이 이어짐 (delegatecall 변종 포함)</rdfs:comment>
 </owl:Class>
 
 <owl:Class rdf:about="#SplitWithdrawal">
@@ -709,9 +740,9 @@
 
 <swrl:Variable rdf:about="urn:swrl#n"/>
 
-<swrl:Variable rdf:about="urn:swrl#s"/>
-
 <swrl:Variable rdf:about="urn:swrl#p"/>
+
+<swrl:Variable rdf:about="urn:swrl#s"/>
 
 <swrl:Imp>
   <swrl:body>
@@ -1175,6 +1206,98 @@
       <rdf:first>
         <swrl:ClassAtom>
           <swrl:classPredicate rdf:resource="#RugPull_SlowDrain"/>
+          <swrl:argument1 rdf:resource="urn:swrl#c"/>
+        </swrl:ClassAtom>
+      </rdf:first>
+      <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+    </rdf:Description>
+  </swrl:head>
+</swrl:Imp>
+
+<swrl:Imp>
+  <swrl:body>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:ClassAtom>
+          <swrl:classPredicate rdf:resource="#HoneyPot"/>
+          <swrl:argument1 rdf:resource="urn:swrl#c"/>
+        </swrl:ClassAtom>
+      </rdf:first>
+      <rdf:rest>
+        <rdf:Description>
+          <rdf:first>
+            <swrl:IndividualPropertyAtom>
+              <swrl:propertyPredicate rdf:resource="#hasCodePattern"/>
+              <swrl:argument1 rdf:resource="urn:swrl#c"/>
+              <swrl:argument2 rdf:resource="urn:swrl#p"/>
+            </swrl:IndividualPropertyAtom>
+          </rdf:first>
+          <rdf:rest>
+            <rdf:Description>
+              <rdf:first>
+                <swrl:ClassAtom>
+                  <swrl:classPredicate rdf:resource="#StrawManContractPattern"/>
+                  <swrl:argument1 rdf:resource="urn:swrl#p"/>
+                </swrl:ClassAtom>
+              </rdf:first>
+              <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+            </rdf:Description>
+          </rdf:rest>
+        </rdf:Description>
+      </rdf:rest>
+    </rdf:Description>
+  </swrl:body>
+  <swrl:head>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:ClassAtom>
+          <swrl:classPredicate rdf:resource="#HoneyPot_StrawManContract"/>
+          <swrl:argument1 rdf:resource="urn:swrl#c"/>
+        </swrl:ClassAtom>
+      </rdf:first>
+      <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+    </rdf:Description>
+  </swrl:head>
+</swrl:Imp>
+
+<swrl:Imp>
+  <swrl:body>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:ClassAtom>
+          <swrl:classPredicate rdf:resource="#HoneyPot"/>
+          <swrl:argument1 rdf:resource="urn:swrl#c"/>
+        </swrl:ClassAtom>
+      </rdf:first>
+      <rdf:rest>
+        <rdf:Description>
+          <rdf:first>
+            <swrl:IndividualPropertyAtom>
+              <swrl:propertyPredicate rdf:resource="#hasCodePattern"/>
+              <swrl:argument1 rdf:resource="urn:swrl#c"/>
+              <swrl:argument2 rdf:resource="urn:swrl#p"/>
+            </swrl:IndividualPropertyAtom>
+          </rdf:first>
+          <rdf:rest>
+            <rdf:Description>
+              <rdf:first>
+                <swrl:ClassAtom>
+                  <swrl:classPredicate rdf:resource="#HiddenStateUpdatePattern"/>
+                  <swrl:argument1 rdf:resource="urn:swrl#p"/>
+                </swrl:ClassAtom>
+              </rdf:first>
+              <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+            </rdf:Description>
+          </rdf:rest>
+        </rdf:Description>
+      </rdf:rest>
+    </rdf:Description>
+  </swrl:body>
+  <swrl:head>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:ClassAtom>
+          <swrl:classPredicate rdf:resource="#HoneyPot_HiddenStateUpdate"/>
           <swrl:argument1 rdf:resource="urn:swrl#c"/>
         </swrl:ClassAtom>
       </rdf:first>

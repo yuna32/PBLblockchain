@@ -22,6 +22,7 @@ FRAUD_CLASSES = {
     "PumpDump_MaxTxEvasion", "PumpDump_SlowDrain",
     "PumpDump_DistributedDump",
     "HoneyPot_SelectiveTrap",
+    "HoneyPot_HiddenStateUpdate", "HoneyPot_StrawManContract",
 }
 
 INSTANCE_NAMES = ["ponzi", "rugpull", "laundering", "pumpdump", "honeypot", "normal",
@@ -37,8 +38,9 @@ for name in INSTANCE_NAMES:
         c.name for c in instance.is_a
         if hasattr(c, "name") and c.name in FRAUD_CLASSES
     ]
-    signals  = [s.name for s in getattr(instance, "hasSignal",  [])]
-    patterns = [p.name for p in getattr(instance, "hasPattern", [])]
+    signals       = [s.name for s in getattr(instance, "hasSignal",  [])]
+    patterns      = [p.name for p in getattr(instance, "hasPattern", [])]
+    code_patterns = [p.name for p in getattr(instance, "hasCodePattern", [])]
 
     # triggers/implies 인과관계 엣지 (설계서 4-3절, v0.2 신규) — 부가 정보이며
     # inferred_types/signals/patterns 등 기존 필드에는 영향을 주지 않는다.
@@ -54,6 +56,7 @@ for name in INSTANCE_NAMES:
         "reasoner_classified": True,
         "signals":             signals,
         "patterns":            patterns,
+        "code_patterns":       code_patterns,
         "causal_edges":        causal_edges,
         "peak_balance":        getattr(instance, "peakBalance",  None),
         "final_balance":       getattr(instance, "finalBalance", None),

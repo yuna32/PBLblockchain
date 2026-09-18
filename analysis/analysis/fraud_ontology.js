@@ -272,6 +272,66 @@
         panel2: '출금 비율 0 + 트랜잭션 투명성 최저',
         panel3: 'total_in 지속 증가 + total_out 항상 0',
         panel4: ['ZERO_WITHDRAW', 'INPUT_OPACITY']
+      },
+      // 코드축 서브클래스 (Torres et al. 2019 HoneyBadger 8기법 중 빈도 상위 2종,
+      // 실측 382/690·101/690건, 합산 커버리지 약 70%). 위 evasionSubclasses(다른
+      // 사기유형 4종에 존재하는 "행동 기반 탐지 회피")와는 별개 축 — 컨트랙트
+      // 소스코드 자체에 내장된 함정 기법 분류다. 판정은 신뢰도 점수(dynamic_
+      // analyzer.js의 detectEvasionSubclass 방식)가 아니라 순수 불리언 매치
+      // (패턴 존재/부재) — 임계값을 조정할 여지가 없는 "코드에 있냐 없냐"의
+      // 문제이기 때문. OWL 레이어의 hasCodePattern ObjectProperty +
+      // HoneypotCodePattern 인스턴스(HiddenStateUpdatePattern/
+      // StrawManContractPattern)와 대응한다.
+      codePatternSubclasses: {
+        HiddenStateUpdate: {
+          id: 'HoneyPot_HiddenStateUpdate',
+          label: '숨겨진 상태값 비교형',
+          axiom: {
+            baseClass: 'HoneypotTrap',
+            conditions: [
+              {
+                pattern: 'HASH_GUARD_ON_MUTABLE_STATE_VAR',
+                description: '해시/시크릿 비교(keccak256/sha3, 상태변수와 == 비교)를 ' +
+                  '쓰는 가드 함수가 있고, 그 비교에 쓰이는 상태변수의 write 지점이 ' +
+                  '2개 이상 존재 (배포 후 owner가 정답/비밀값을 재설정할 수 있음을 시사)',
+                threshold: 'hash_guard_present AND state_var_write_count(guard_var) >= 2'
+              }
+            ]
+          },
+          matchType: 'boolean',
+          // 원안에 있던 "조회형 함수명 가중치 가산" 보조 신호는 채택하지 않음 —
+          // boolean 판정 원칙에 맞지 않아 임계값 논쟁을 다시 부른다. 필요하면
+          // reasoning_chain에 참고 정보로만 노출하고 판정에는 반영하지 않는다.
+          consequence: '해시/시크릿 비교값을 배포 후에도 재설정 가능 → 특정 사용자만 ' +
+            '통과시키거나 전원 차단 가능 (겉보기 출금 조건과 실제 통과 조건이 다름)',
+          counter_detection: '가드 조건에 쓰인 상태변수의 write 지점을 정적으로 카운트, ' +
+            '2개 이상이면(생성자 초기화 + 재설정 함수) 경고'
+        },
+        StrawManContract: {
+          id: 'HoneyPot_StrawManContract',
+          label: '위장 컨트랙트 호출형',
+          axiom: {
+            baseClass: 'HoneypotTrap',
+            conditions: [
+              {
+                pattern: 'SEND_THEN_INJECTED_CONTRACT_CALL',
+                description: 'msg.sender에게 .call.value()/.send()로 송금하는 문장 ' +
+                  '이후(또는 owner-settable 주소로의 delegatecall 변종은 직전/직후), ' +
+                  '생성자 파라미터로 주입된 컨트랙트 타입 상태변수에 대한 일반 외부 ' +
+                  '호출(저수준 .call/.delegatecall 아님)이 이어짐',
+                threshold: 'send_to_msg_sender_present AND ' +
+                  '(injected_contract_high_level_call_after_send OR ' +
+                  'owner_settable_delegatecall_adjacent_to_send)'
+              }
+            ]
+          },
+          matchType: 'boolean',
+          consequence: '실제로는 송금 성공 여부가 생성자로 주입된 위장(straw man) ' +
+            '컨트랙트의 응답에 좌우됨 → 겉보기엔 정상 송금 로직이지만 위장 ' +
+            '컨트랙트가 항상 실패를 반환하도록 배포자가 별도 조작 가능',
+          counter_detection: '생성자 파라미터→상태변수 대입 추적 + 해당 변수에 대한 ' +
+            '고수준 외부호출이 송금문과 인접해 있는지 정적 확인'
+        }
       }
     },
     PumpDump: {

@@ -706,3 +706,92 @@ SelectiveTrap(오너만 인출 성공, 나머지 전원 실패)이 `dynamic_anal
     로직도 함께 갱신해야 함을 기억할 것** (SWRL XML만 고치고 폴백을 빠뜨리면
     선언은 있는데 실제로는 적용 안 되는 상태가 됨).
 확인 완료, 추가 조치는 팀 논의 후 결정
+
+## HoneyPot 코드축 서브클래스 추가 — Torres et al. 2019 HoneyBadger 상위 2기법 (2026-09-19)
+
+위 SelectiveTrap(행동 기반, `hasPattern`/`hasSignal`)과 독립된 별도 축 — 컨트랙트
+소스코드 자체에 내장된 함정 기법 분류. 신뢰도 점수가 아닌 순수 boolean 판정.
+
+- **채택 기법 2종**: HiddenStateUpdate(해시/시크릿 비교 가드 변수의 write 지점
+  ≥2), StrawManContract(msg.sender 송금 후 생성자 주입 컨트랙트 변수에 대한
+  고수준 외부호출, 또는 owner 전용 세터로 변경 가능한 주소로의 인접
+  delegatecall). Torres et al. 원논문 8기법 중 빈도 상위 2종(실측 382/690·
+  101/690건, 합산 커버리지 약 70%)만 채택 — 나머지 6종은 미구현.
+- **0단계 조사에서 확인된 선행 오류 정정**: (1) JS 레이어 클래스명은
+  `HoneyPot`이 아니라 `HoneypotTrap`(OWL은 `HoneyPot` — 3개 레이어 표기 혼재는
+  기존 상태, 이번에 통일 시도 안 함). (2) "지난 세션에 설계 완료"라던
+  `hasCodePattern`/`HoneypotCodePattern`은 실제 파일 어디에도 없었음 — 이번에
+  처음부터 신규 설계. (3) `prevention_reasoner.js`에는 "기본 유형 확정 후
+  2단계 서브클래스" 패턴 자체가 없었음(그 패턴은 `dynamic_analyzer.js`의
+  `detectEvasionSubclass()`에만 존재, CSV 로그·신뢰도 점수 기반이라 구조가
+  다름) — 복제 아닌 신규 구현.
+- **구현**: `fraud_ontology.js`에 `HoneypotTrap.codePatternSubclasses` 신설(boolean
+  전용, 기존 `evasionSubclasses`와 스키마 다름). `prevention_reasoner.js`에
+  `detectHiddenStateUpdate`/`detectStrawManContract` 함수 추가(순수 정규식+줄
+  인덱스, AST 미사용 — 기존 파일 철학 유지), `fraudType==="HoneypotTrap"`일
+  때만 2차 분류로 실행, 신규 필드 `honeypot_code_pattern_subclasses`로 노출.
+  OWL: `build_ontology.py`에 `HoneyPot_HiddenStateUpdate`/
+  `HoneyPot_StrawManContract`/`HoneypotCodePattern`(+ 하위
+  `HiddenStateUpdatePattern`/`StrawManContractPattern`)/`hasCodePattern` 추가.
+  `load_instances.py`는 CSV가 아니라 `analysis/contracts/Honeypot.sol` 원본을
+  직접 읽어 JS와 동일 로직을 Python으로 독립 재구현(교차검산, SelectiveTrap
+  때의 `balanceAtFailure` 설계 원칙과 동일). `add_swrl_rules.py`에
+  `Rule_HoneyPot_HiddenStateUpdate`/`Rule_HoneyPot_StrawManContract` 및 Python
+  forward-chaining 폴백용 `codepattern` check_type 신규 추가.
+- **회귀 테스트**: 7개 시뮬레이션 컨트랙트(Honeypot/MoneyLaundering/
+  NormalStaking/PonziLab/PonziLabPatched/PumpDump/RugPull) 전부 기존
+  risk_score/risk_level/checklist/fraud_type_suspected byte-identical(신규
+  필드 추가와 Honeypot의 신규 reasoning_chain 2줄만 diff — 순수 부가 추론
+  확인). OWL 파이프라인 4단계 전체 재실행 결과 기존 7개 인스턴스 분류·
+  triggers/implies 예측 전부 불변, 신규 규칙 둘 다 발동 안 함(Honeypot.sol은
+  두 기법 모두 True Negative).
+- **N=272 XBlock 드리프트 조사 (중요, 오판정 정정)**: 커밋 전 최종 확인 과정에서
+  `evaluate_comparison.js` 재실행 시 3개 주소(`0x582e3d8d`/`0x9a2e9235`/
+  `0x2c2e3baa`)의 예측이 `comparison_report_v3_patched.md` 스냅샷과 달라지는
+  것을 발견했다. **최초 가설("이번 세션의 미커밋 `dynamic_analyzer.js` 변경분이
+  원인")은 `git stash`로 그 파일만 HEAD로 되돌려 재실행해도 동일한 드리프트가
+  그대로 재현되어 틀렸음이 확인됨.** 진짜 원인: 세 주소 전부
+  `evaluation/ponzi_comparison/data/known_outliers.csv`에 이미 기록된 항목이며
+  (`0x582e3d8d`=unresolved_corrupt, `0x9a2e9235`/`0x2c2e3baa`=resolved_genuine),
+  해당 CSV와 `data/logs/*.csv`는 `comparison_report_v3_patched.md`가 생성된
+  시점 **이후**의 별도 세션(커밋 `3386f41` "Phase 1.5 이상치 격리", `8e30d32`
+  "unreviewed 이상치 8건 조사 완료" — 둘 다 이미 커밋되어 있고 이번 세션과
+  무관)에서 `fetch_and_convert.js`의 isError 필터 수정으로 갱신된 것이다. 즉
+  `comparison_report_v3_patched.md`가 그 수정 이후 재생성되지 않은 **오래된
+  스냅샷**이라 드리프트가 나는 것이며, 이번 SelectiveTrap 세션·HoneyBadger
+  코드축 세션 둘 다와 무관하다. 두 세션의 실제 영향은 각각 독립적으로
+  `git stash` 대조로 재확인해 완전 불변임을 확인했다(SelectiveTrap: 이 절;
+  HoneyBadger 코드축: 아래 항목). **`comparison_report_v3_patched.md` 재생성
+  여부는 별도 승인 필요 — 이번 세션에서는 스냅샷을 건드리지 않았다.**
+- **HoneyBadger 실데이터 검증** (`evaluation/honeypot_comparison/`,
+  `christoftorres/HoneyBadger` 클론): `evaluate_honeybadger.js`로 실제
+  `datasets/source_code/{hidden_state_update(164)/straw_man_contract(34)}` +
+  `results/evaluation/*.csv` 정답 라벨 대조. 첫 실행에서 두 탐지기 모두
+  매치율 100%가 나와 의심했고, 원인은 테스트 하네스가 `{matched,evidence}`
+  객체를 boolean으로 오판정한 버그였음(프로덕션 코드 `runPrevention()`은
+  처음부터 `.matched`로 정상 접근 — 버그는 평가 스크립트에만 있었음).
+  버그 수정 후 `cross_validate.js`로 다른 6개 기법 폴더(총 278개 파일)를
+  음성 대조군 삼아 재검증 — 두 탐지기 모두 자기 범주 밖에서는 0% 오탐.
+  자기 범주 내에서는 HSU 63/164(38.4%), SMC 초기 0/34 — SMC 0%의 원인을
+  추적해 (a) 실데이터 34건 전부 `constructor` 키워드가 없는 구버전(^0.4.18)
+  Solidity라 생성자 주입 추출이 전무했던 점, (b) 3/34만 `onlyOwner` 모디파이어를
+  쓰고 나머지는 인라인 `require(msg.sender==owner)` 가드를 쓰는 점, (c)
+  delegatecall 변종이 생성자 주입 유무에 종속되어 있던 제어흐름 버그를 각각
+  수정 → SMC 13/34(38.2%)로 개선. 두 항목 모두 **정밀도 100%(TP/(TP+FP)),
+  FP=0** — 원논문 수치(HSU 81.7%, SMC 88.2%)보다 오히려 높은 정밀도이나
+  재현율은 38%대로 원논문(둘 다 자체 탐지기 관점 100%에 가까움)보다 크게
+  낮음. **정밀-저재현 성향**: boolean 정규식/줄 기반 탐지기가 "canonical"
+  형태는 정확히 잡지만 복잡한 변형(예: 송금 대상이 `msg.sender`가 아닌
+  호출자 지정 파라미터인 경우)은 놓친다 — 이런 경우까지 잡으려면 과제 명세의
+  axiom 문구("msg.sender에게 송금")를 벗어나야 해서 이번 세션에서는 확장하지
+  않음(향후 재검토 후보로 기록). 상세 수치는
+  `evaluation/honeypot_comparison/results/honeybadger_precision_report.json`.
+- **부산물**: `evaluation/honeypot_comparison/data/rcamino`에 이미
+  `rcamino/honeypot-detection`(별개 논문 저장소)이 클론돼 있었고 그 안의
+  `honeybadger_labels/`에도 HoneyBadger 원 논문의 동일 평가 CSV 8종 사본이
+  있음을 발견 — 이번 검증에는 공식 저장소(`data/HoneyBadger/`)를 새로 클론해
+  사용, rcamino 쪽은 소스코드가 없어(라벨만 존재) 이번 목적엔 미사용.
+  `data/HoneyBadger`·`data/rcamino`는 다른 `evaluation/*_comparison/data/`
+  하위 3rd-party 클론(CRPWarner, GTN2vec)과 동일하게 이번 커밋에서 제외 —
+  기존 관례(대용량 외부 데이터는 추적 안 함)를 따름.
+확인 완료, 추가 조치는 팀 논의 후 결정

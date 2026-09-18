@@ -45,6 +45,21 @@ with onto:
     class HoneyPot_SelectiveTrap(HoneyPot):
         comment = ["선택적 허니팟: 오너/배포자 주소만 인출 성공, 나머지 전원 실패"]
 
+    # HoneyPot 코드축 서브클래스 (2026-09, Torres et al. 2019 HoneyBadger 8기법 중
+    # 빈도 상위 2종 — 실측 382/690·101/690건, 합산 커버리지 약 70%). 위
+    # HoneyPot_SelectiveTrap(행동 기반, dynamic_analyzer.js CSV 로그)과 달리 컨트랙트
+    # 소스코드 자체에 내장된 함정 기법 분류다. hasCodePattern 경유로만 도출되며
+    # (아래 hasCodePattern ObjectProperty 참고), 판정은 fraud_ontology.js의
+    # codePatternSubclasses와 마찬가지로 신뢰도 점수가 아닌 순수 boolean이다.
+    class HoneyPot_HiddenStateUpdate(HoneyPot):
+        comment = ["숨겨진 상태값 비교형: 해시/시크릿 비교 가드에 쓰이는 상태변수의 "
+                   "write 지점이 2개 이상 (배포 후 재설정 가능)"]
+
+    class HoneyPot_StrawManContract(HoneyPot):
+        comment = ["위장 컨트랙트 호출형: 송금 문장 이후 생성자로 주입된 컨트랙트 "
+                   "상태변수에 대한 고수준 외부호출(또는 owner-settable 주소로의 "
+                   "인접 delegatecall)이 이어짐"]
+
     # ── Evasion subclasses (from evasionSubclasses in fraud_ontology.js) ───────
     class PonziScheme_BalanceDropEvasion(PonziScheme):
         comment = ["잔고 급락 회피형 폰지: 단일 인출 80% 미만 분할"]
@@ -144,6 +159,20 @@ with onto:
     class InflowContinues(BehaviorPattern):
         comment = ["첫 인출 시도 후에도 입금 계속"]
 
+    # ── HoneyPot 코드축 패턴 클래스 (2026-09 신규, hasCodePattern range) ───────
+    # BehaviorPattern(행동/트랜잭션 로그 기반)과 별도 축 — 정적 소스코드 분석
+    # 결과만 담는다. fraud_ontology.js의 codePatternSubclasses와 대응.
+    class HoneypotCodePattern(Thing):
+        comment = ["허니팟 코드축 서브클래스 판정에 쓰이는 정적 코드 패턴 최상위 개념"]
+
+    class HiddenStateUpdatePattern(HoneypotCodePattern):
+        comment = ["해시/시크릿 비교(keccak256/sha3) 가드에 쓰이는 상태변수의 "
+                   "write 지점이 2개 이상 존재"]
+
+    class StrawManContractPattern(HoneypotCodePattern):
+        comment = ["msg.sender 송금 문장 이후 생성자 파라미터로 주입된 컨트랙트 "
+                   "상태변수에 대한 고수준 외부호출이 이어짐 (delegatecall 변종 포함)"]
+
     # ── Evasion technique classes (from evasionTechniques in fraud_ontology.js) ─
     class EvasionTechnique(Thing):
         comment = ["탐지 회피 기법 최상위 개념"]
@@ -173,6 +202,12 @@ with onto:
         domain = [FraudContract]
         range  = [BehaviorPattern]
         comment = ["컨트랙트가 행동 패턴을 보임"]
+
+    class hasCodePattern(ObjectProperty):
+        domain = [FraudContract]
+        range  = [HoneypotCodePattern]
+        comment = ["컨트랙트가 특정 코드축 함정 패턴(정적, boolean)을 가짐 — "
+                   "hasPattern/hasSignal(행동/신호 축)과 별도 축 (2026-09 신규)"]
 
     class usesEvasion(ObjectProperty):
         domain = [FraudContract]

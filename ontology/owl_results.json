@@ -14,6 +14,7 @@
       "pat_distrib_ponzi",
       "pat_insiderexit_ponzi"
     ],
+    "code_patterns": [],
     "causal_edges": [
       {
         "relation": "triggers",
@@ -47,6 +48,7 @@
       "pat_distrib_rugpull",
       "pat_insiderexit_rugpull"
     ],
+    "code_patterns": [],
     "causal_edges": [
       {
         "relation": "triggers",
@@ -80,6 +82,7 @@
       "pat_distrib_laundering",
       "pat_insiderexit_laundering"
     ],
+    "code_patterns": [],
     "causal_edges": [
       {
         "relation": "triggers",
@@ -111,6 +114,7 @@
       "pat_insiderexit_pumpdump",
       "pat_wdfail_pumpdump"
     ],
+    "code_patterns": [],
     "causal_edges": [
       {
         "relation": "triggers",
@@ -142,6 +146,7 @@
       "pat_wdfail_honeypot",
       "pat_inflowcont_honeypot"
     ],
+    "code_patterns": [],
     "causal_edges": [
       {
         "relation": "implies",
@@ -166,6 +171,7 @@
       "pat_insiderexit_normal",
       "pat_inflowcont_normal"
     ],
+    "code_patterns": [],
     "causal_edges": [
       {
         "relation": "triggers",
@@ -197,6 +203,7 @@
       "pat_wdfail_honeypot_selective",
       "pat_inflowcont_honeypot_selective"
     ],
+    "code_patterns": [],
     "causal_edges": [
       {
         "relation": "triggers",
