@@ -72,16 +72,43 @@ with onto:
     imp4.name = "Rule_HoneyPot"
 
     # ── Rule 5: PumpAndDump ────────────────────────────────────────────────────
-    # InsiderExitSuccess + WithdrawAttemptFail (mixed outcomes)
-    # Some withdrawals succeed (insiders), some return 0 (latecomers)
+    # InsiderExitSuccess + WithdrawAttemptFail (mixed outcomes) + balanceAtFailure≈0
+    # Some withdrawals succeed (insiders), some return 0 (latecomers), AND the
+    # failed-withdrawal balance is (near-)zero — i.e. funds were actually
+    # exhausted, not merely gated by a privileged address. The third condition
+    # is new (2026-09, SelectiveTrap 오분류 수정 동반작업): without it this rule
+    # also matched a HoneyPot_SelectiveTrap contract (owner-only success while
+    # balance stays >0), which is the OWL-side counterpart of the JS
+    # dynamic_analyzer.js hintFraudType() Priority 2/3 bug fixed on the JS side.
+    # ε는 미확정 — dynamic_analyzer.js의 PUMPDUMP_BALANCE_AT_FAILURE_EPSILON=0과
+    # 동일하게 엄격한 0 비교(equal)만 적용, 임의로 0.01 등을 넣지 않음(TODO).
     imp5 = Imp()
     imp5.set_as_rule(
         "FraudContract(?c), "
         "hasPattern(?c, ?p1), InsiderExitSuccess(?p1), "
-        "hasPattern(?c, ?p2), WithdrawAttemptFail(?p2) "
+        "hasPattern(?c, ?p2), WithdrawAttemptFail(?p2), "
+        "balanceAtFailure(?c, ?bal), equal(?bal, 0.0) "
         "-> PumpAndDump(?c)"
     )
     imp5.name = "Rule_PumpAndDump"
+
+    # ── Rule 5b: HoneyPot_SelectiveTrap subclass ──────────────────────────────
+    # HoneyPot(오너/배포자만 성공, balanceAtFailure>0으로 이미 성립) 중에서
+    # withdrawSuccessRate>0(=누군가는 성공) ∧ nonPrivilegedSuccessRate≤0.05
+    # (=오너 제외 성공률이 거의 0)인 경우만 SelectiveTrap 서브클래스로 세분화.
+    # 기존 Rule_HoneyPot(위 Rule 4) 자체는 건드리지 않는다 — JS 쪽에서도
+    # nonPrivilegedSuccessRate≤0.05 ∧ balanceAtFailure>0 ∧ inflowContinues 조건
+    # 자체는 Rule_HoneyPot과 동등하게 유지하고 서브클래스만 별도 도출한 것과 동일한
+    # 구조. UniversalTrap(withdrawSuccessRate=0)은 Rule_HoneyPot과 사실상 동치라
+    # 별도 규칙을 추가하지 않았다(설계서 반영 시 참고).
+    imp5b = Imp()
+    imp5b.set_as_rule(
+        "HoneyPot(?c), "
+        "withdrawSuccessRate(?c, ?w), greaterThan(?w, 0.0), "
+        "nonPrivilegedSuccessRate(?c, ?n), lessThanOrEqual(?n, 0.05) "
+        "-> HoneyPot_SelectiveTrap(?c)"
+    )
+    imp5b.name = "Rule_HoneyPot_SelectiveTrap"
 
     # ── Rule 6: RugPull_SlowDrain subclass ────────────────────────────────────
     # Evasion subclass: RugPull with InflowStop signal
@@ -237,6 +264,21 @@ except Exception as e:
                 return _has_signal_type(instance, arg)
             if check_type == "pattern":
                 return _has_pattern_type(instance, arg)
+            # 2026-09, SelectiveTrap 오분류 수정 동반작업 — balanceAtFailure 등
+            # DatatypeProperty 수치 비교(swrlb builtin에 대응). peakBalance/
+            # finalBalance는 이전까지 어떤 규칙 body에도 쓰인 적이 없어(순수
+            # 서술용 메타데이터) 이 분기가 처음 생겼다.
+            if check_type in ("data_eq", "data_gt", "data_le"):
+                prop_name, threshold = arg
+                actual = getattr(instance, prop_name, None)
+                if actual is None:
+                    return False
+                if check_type == "data_eq":
+                    return actual == threshold
+                if check_type == "data_gt":
+                    return actual > threshold
+                if check_type == "data_le":
+                    return actual <= threshold
             return False
 
         # Mirrors the SWRL rules above for the forward-chaining evaluator
@@ -286,8 +328,18 @@ except Exception as e:
                     ("type",    "FraudContract"),
                     ("pattern", "InsiderExitSuccess"),
                     ("pattern", "WithdrawAttemptFail"),
+                    ("data_eq", ("balanceAtFailure", 0.0)),
                 ],
                 "head": "PumpAndDump",
+            },
+            {
+                "name": "Rule_HoneyPot_SelectiveTrap",
+                "body": [
+                    ("type",    "HoneyPot"),
+                    ("data_gt", ("withdrawSuccessRate", 0.0)),
+                    ("data_le", ("nonPrivilegedSuccessRate", 0.05)),
+                ],
+                "head": "HoneyPot_SelectiveTrap",
             },
             {
                 "name": "Rule_RugPull_SlowDrain",
@@ -317,7 +369,8 @@ except Exception as e:
             },
         ]
 
-        NAMES = ["ponzi", "rugpull", "laundering", "pumpdump", "honeypot", "normal"]
+        NAMES = ["ponzi", "rugpull", "laundering", "pumpdump", "honeypot", "normal",
+                 "honeypot_selective"]
         instances = {
             n: onto.search_one(iri=f"*contract_{n}")
             for n in NAMES
@@ -409,10 +462,12 @@ FRAUD_CLASSES = {
     "PonziScheme_SlowDrain", "PonziScheme_MaxTxEvasion", "PonziScheme_BalanceDropEvasion",
     "MoneyLaundering_HopLaundering", "MoneyLaundering_SlowDrain",
     "PumpDump_MaxTxEvasion", "PumpDump_SlowDrain", "PumpDump_DistributedDump",
+    "HoneyPot_SelectiveTrap",
 }
 
 print("\n" + "=" * 60)
-for n in ["ponzi", "rugpull", "laundering", "pumpdump", "honeypot", "normal"]:
+for n in ["ponzi", "rugpull", "laundering", "pumpdump", "honeypot", "normal",
+          "honeypot_selective"]:
     inst = onto.search_one(iri=f"*contract_{n}")
     if inst:
         types = [c.name for c in inst.is_a

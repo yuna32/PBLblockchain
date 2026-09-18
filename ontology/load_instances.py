@@ -9,13 +9,22 @@ from owlready2 import *
 onto = get_ontology("ontology/fraud.owl").load()
 
 CSV_MAP = {
-    "ponzi":      ("analysis/logs/ponzi_log.csv",      "PonziScheme"),
-    "rugpull":    ("analysis/logs/rugpull_log.csv",     "RugPull"),
-    "laundering": ("analysis/logs/laundering_log.csv",  "MoneyLaundering"),
-    "pumpdump":   ("analysis/logs/pumpdump_log.csv",    "PumpAndDump"),
-    "honeypot":   ("analysis/logs/honeypot_log.csv",    "HoneyPot"),
-    "normal":     ("analysis/logs/normal_log.csv",      "NormalContract"),
+    "ponzi":               ("analysis/logs/ponzi_log.csv",               "PonziScheme"),
+    "rugpull":             ("analysis/logs/rugpull_log.csv",              "RugPull"),
+    "laundering":          ("analysis/logs/laundering_log.csv",           "MoneyLaundering"),
+    "pumpdump":            ("analysis/logs/pumpdump_log.csv",             "PumpAndDump"),
+    "honeypot":            ("analysis/logs/honeypot_log.csv",             "HoneyPot"),
+    "normal":              ("analysis/logs/normal_log.csv",               "NormalContract"),
+    # 2026-09, SelectiveTrap 오분류 수정 동반작업 — JS 쪽 회귀 테스트에 쓴 신규
+    # 고정 fixture(analysis/logs/honeypot_selective_log.csv)와 동일한 인스턴스.
+    # 기존 6개 중에는 SelectiveTrap 조건을 만족하는 사례가 없어(모두
+    # withdrawSuccessRate=0인 UniversalTrap이거나 해당 패턴 자체가 없음) 신규
+    # 규칙이 실제로 발동하는지 검증하려면 이 인스턴스가 필요하다.
+    "honeypot_selective":  ("analysis/logs/honeypot_selective_log.csv",   "HoneyPot_SelectiveTrap"),
 }
+
+# dynamic_analyzer.js hintFraudType()의 OWNER_ADDRESS와 동일한 고정값(1안).
+OWNER_ADDRESS = "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"
 
 with onto:
     for name, (csv_path, class_name) in CSV_MAP.items():
@@ -83,6 +92,34 @@ with onto:
 
         depositor_addrs = set(deposits["from"].str.lower().dropna())
 
+        # ── SelectiveTrap 데이터 속성 3종 (JS dynamic_analyzer.js hintFraudType()와
+        # 동일한 정의를 CSV에서 직접 재계산 — 값을 복사해오지 않고 같은 원본에서
+        # 같은 방식으로 다시 계산해 JS/OWL 두 레이어가 서로 검산되도록 한다) ──────
+        if len(all_withdrawals) > 0:
+            withdraw_success_rate = float((all_withdrawals["amount_eth_f"] > 0).sum()) / len(all_withdrawals)
+        else:
+            withdraw_success_rate = 0.0
+
+        non_priv_withdrawals = all_withdrawals[
+            all_withdrawals["to"].astype(str).str.lower() != OWNER_ADDRESS
+        ]
+        if len(non_priv_withdrawals) > 0:
+            non_privileged_success_rate = (
+                float((non_priv_withdrawals["amount_eth_f"] > 0).sum()) / len(non_priv_withdrawals)
+            )
+        else:
+            non_privileged_success_rate = 0.0
+
+        failed_withdrawals = all_withdrawals[all_withdrawals["amount_eth_f"] == 0]
+        if len(failed_withdrawals) > 0:
+            balance_at_failure = float(failed_withdrawals["contract_balance_eth"].astype(float).max())
+        else:
+            balance_at_failure = 0.0
+
+        instance.withdrawSuccessRate       = withdraw_success_rate
+        instance.nonPrivilegedSuccessRate  = non_privileged_success_rate
+        instance.balanceAtFailure          = balance_at_failure
+
         if len(pos_withdrawals) > 0:
             # Largest withdrawal row
             max_idx       = pos_withdrawals["amount_eth_f"].idxmax()
@@ -141,6 +178,9 @@ with onto:
         print(f"\nCreated: contract_{name}  ({class_name})")
         print(f"  peakBalance  = {instance.peakBalance:.4f} ETH")
         print(f"  finalBalance = {instance.finalBalance:.4f} ETH")
+        print(f"  withdrawSuccessRate      = {instance.withdrawSuccessRate:.4f}")
+        print(f"  nonPrivilegedSuccessRate = {instance.nonPrivilegedSuccessRate:.4f}")
+        print(f"  balanceAtFailure         = {instance.balanceAtFailure:.4f} ETH")
         print(f"  Signals  : {[s.name for s in instance.hasSignal]}")
         print(f"  Patterns : {[p.name for p in instance.hasPattern]}")
 

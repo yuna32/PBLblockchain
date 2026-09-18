@@ -21,9 +21,11 @@ FRAUD_CLASSES = {
     "MoneyLaundering_SlowDrain",
     "PumpDump_MaxTxEvasion", "PumpDump_SlowDrain",
     "PumpDump_DistributedDump",
+    "HoneyPot_SelectiveTrap",
 }
 
-INSTANCE_NAMES = ["ponzi", "rugpull", "laundering", "pumpdump", "honeypot", "normal"]
+INSTANCE_NAMES = ["ponzi", "rugpull", "laundering", "pumpdump", "honeypot", "normal",
+                  "honeypot_selective"]
 
 results = {}
 for name in INSTANCE_NAMES:
@@ -55,6 +57,9 @@ for name in INSTANCE_NAMES:
         "causal_edges":        causal_edges,
         "peak_balance":        getattr(instance, "peakBalance",  None),
         "final_balance":       getattr(instance, "finalBalance", None),
+        "withdraw_success_rate":       getattr(instance, "withdrawSuccessRate",      None),
+        "non_privileged_success_rate": getattr(instance, "nonPrivilegedSuccessRate", None),
+        "balance_at_failure":          getattr(instance, "balanceAtFailure",         None),
     }
 
 out_path = "ontology/owl_results.json"

@@ -80,6 +80,27 @@
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">시뮬레이션 종료 시 잔고 (ETH)</rdfs:comment>
 </owl:DatatypeProperty>
 
+<owl:DatatypeProperty rdf:about="#withdrawSuccessRate">
+  <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+  <rdfs:domain rdf:resource="#FraudContract"/>
+  <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">성공 출금 건수 / 전체 출금 시도 건수 (0-1)</rdfs:comment>
+</owl:DatatypeProperty>
+
+<owl:DatatypeProperty rdf:about="#nonPrivilegedSuccessRate">
+  <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+  <rdfs:domain rdf:resource="#FraudContract"/>
+  <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">오너 주소를 제외한 성공 출금 비율 (0-1) — SelectiveTrap 핵심 지표</rdfs:comment>
+</owl:DatatypeProperty>
+
+<owl:DatatypeProperty rdf:about="#balanceAtFailure">
+  <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+  <rdfs:domain rdf:resource="#FraudContract"/>
+  <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">amount_eth=0으로 실패한 출금 시점의 컨트랙트 잔고 최댓값 (ETH)</rdfs:comment>
+</owl:DatatypeProperty>
+
 <owl:Class rdf:about="#FraudContract">
   <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">블록체인 사기 컨트랙트 최상위 개념</rdfs:comment>
@@ -138,6 +159,11 @@
 <owl:Class rdf:about="#HoneyPot">
   <rdfs:subClassOf rdf:resource="#FundFreezeFraud"/>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">허니팟: 입금은 가능하나 출금이 항상 실패</rdfs:comment>
+</owl:Class>
+
+<owl:Class rdf:about="#HoneyPot_SelectiveTrap">
+  <rdfs:subClassOf rdf:resource="#HoneyPot"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">선택적 허니팟: 오너/배포자 주소만 인출 성공, 나머지 전원 실패</rdfs:comment>
 </owl:Class>
 
 <owl:Class rdf:about="#PonziScheme_BalanceDropEvasion">
@@ -356,6 +382,9 @@
   <rdf:type rdf:resource="#PonziScheme"/>
   <peakBalance rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10.0</peakBalance>
   <finalBalance rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.0</finalBalance>
+  <withdrawSuccessRate rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">1.0</withdrawSuccessRate>
+  <nonPrivilegedSuccessRate rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">1.0</nonPrivilegedSuccessRate>
+  <balanceAtFailure rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.0</balanceAtFailure>
 </owl:NamedIndividual>
 
 <owl:NamedIndividual rdf:about="#sig_balancedrop_ponzi">
@@ -395,6 +424,9 @@
   <rdf:type rdf:resource="#RugPull"/>
   <peakBalance rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">19.0</peakBalance>
   <finalBalance rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.0</finalBalance>
+  <withdrawSuccessRate rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">1.0</withdrawSuccessRate>
+  <nonPrivilegedSuccessRate rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.0</nonPrivilegedSuccessRate>
+  <balanceAtFailure rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.0</balanceAtFailure>
 </owl:NamedIndividual>
 
 <owl:NamedIndividual rdf:about="#sig_balancedrop_rugpull">
@@ -434,6 +466,9 @@
   <rdf:type rdf:resource="#MoneyLaundering"/>
   <peakBalance rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">3.51</peakBalance>
   <finalBalance rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.0</finalBalance>
+  <withdrawSuccessRate rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">1.0</withdrawSuccessRate>
+  <nonPrivilegedSuccessRate rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">1.0</nonPrivilegedSuccessRate>
+  <balanceAtFailure rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.0</balanceAtFailure>
 </owl:NamedIndividual>
 
 <owl:NamedIndividual rdf:about="#sig_balancedrop_laundering">
@@ -475,6 +510,9 @@
   <rdf:type rdf:resource="#PumpDump_MaxTxEvasion"/>
   <peakBalance rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">19.5</peakBalance>
   <finalBalance rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.0</finalBalance>
+  <withdrawSuccessRate rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.375</withdrawSuccessRate>
+  <nonPrivilegedSuccessRate rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.375</nonPrivilegedSuccessRate>
+  <balanceAtFailure rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.0</balanceAtFailure>
 </owl:NamedIndividual>
 
 <owl:NamedIndividual rdf:about="#sig_balancedrop_pumpdump">
@@ -520,6 +558,9 @@
   <rdf:type rdf:resource="#HoneyPot"/>
   <peakBalance rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">8.0</peakBalance>
   <finalBalance rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">8.0</finalBalance>
+  <withdrawSuccessRate rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.0</withdrawSuccessRate>
+  <nonPrivilegedSuccessRate rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.0</nonPrivilegedSuccessRate>
+  <balanceAtFailure rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">8.0</balanceAtFailure>
 </owl:NamedIndividual>
 
 <owl:NamedIndividual rdf:about="#sig_zerowithdraw_honeypot">
@@ -548,6 +589,9 @@
   <hasPattern rdf:resource="#pat_inflowcont_normal"/>
   <peakBalance rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">15.0</peakBalance>
   <finalBalance rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">4.555</finalBalance>
+  <withdrawSuccessRate rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">1.0</withdrawSuccessRate>
+  <nonPrivilegedSuccessRate rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">1.0</nonPrivilegedSuccessRate>
+  <balanceAtFailure rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.0</balanceAtFailure>
 </owl:NamedIndividual>
 
 <owl:NamedIndividual rdf:about="#pat_collector_normal">
@@ -571,6 +615,60 @@
   <rdf:type rdf:resource="#InflowContinues"/>
 </owl:NamedIndividual>
 
+<owl:NamedIndividual rdf:about="#contract_honeypot_selective">
+  <rdf:type rdf:resource="#FraudContract"/>
+  <hasSignal rdf:resource="#sig_zerowithdraw_honeypot_selective"/>
+  <hasSignal rdf:resource="#sig_inflowstop_honeypot_selective"/>
+  <hasPattern rdf:resource="#pat_ownerwithdraw_honeypot_selective"/>
+  <hasPattern rdf:resource="#pat_midexit_honeypot_selective"/>
+  <hasPattern rdf:resource="#pat_distrib_honeypot_selective"/>
+  <hasPattern rdf:resource="#pat_insiderexit_honeypot_selective"/>
+  <hasPattern rdf:resource="#pat_wdfail_honeypot_selective"/>
+  <hasPattern rdf:resource="#pat_inflowcont_honeypot_selective"/>
+  <rdf:type rdf:resource="#HoneyPot"/>
+  <rdf:type rdf:resource="#HoneyPot_SelectiveTrap"/>
+  <peakBalance rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">9.0</peakBalance>
+  <finalBalance rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">9.0</finalBalance>
+  <withdrawSuccessRate rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.16666666666666666</withdrawSuccessRate>
+  <nonPrivilegedSuccessRate rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.0</nonPrivilegedSuccessRate>
+  <balanceAtFailure rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">9.0</balanceAtFailure>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#sig_zerowithdraw_honeypot_selective">
+  <rdf:type rdf:resource="#ZeroWithdrawBlock"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#sig_inflowstop_honeypot_selective">
+  <rdf:type rdf:resource="#InflowStop"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_ownerwithdraw_honeypot_selective">
+  <rdf:type rdf:resource="#OwnerWithdrawAll"/>
+  <triggers rdf:resource="#sig_predicted_balancedrop_honeypot_selective"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_midexit_honeypot_selective">
+  <rdf:type rdf:resource="#ParticipantMidExit"/>
+  <triggers rdf:resource="#sig_predicted_flowspike_honeypot_selective"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_distrib_honeypot_selective">
+  <rdf:type rdf:resource="#DistributedInflow"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_insiderexit_honeypot_selective">
+  <rdf:type rdf:resource="#InsiderExitSuccess"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_wdfail_honeypot_selective">
+  <rdf:type rdf:resource="#WithdrawAttemptFail"/>
+  <implies rdf:resource="#sig_zerowithdraw_honeypot_selective"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#pat_inflowcont_honeypot_selective">
+  <rdf:type rdf:resource="#InflowContinues"/>
+</owl:NamedIndividual>
+
 <owl:NamedIndividual rdf:about="#sig_predicted_maxtxalert_rugpull">
   <rdf:type rdf:resource="#MaxTxAlert"/>
 </owl:NamedIndividual>
@@ -587,6 +685,14 @@
   <rdf:type rdf:resource="#FlowSpike"/>
 </owl:NamedIndividual>
 
+<owl:NamedIndividual rdf:about="#sig_predicted_balancedrop_honeypot_selective">
+  <rdf:type rdf:resource="#BalanceDrop"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#sig_predicted_flowspike_honeypot_selective">
+  <rdf:type rdf:resource="#FlowSpike"/>
+</owl:NamedIndividual>
+
 <swrl:Variable rdf:about="urn:swrl#c"/>
 
 <swrl:Variable rdf:about="urn:swrl#s1"/>
@@ -596,6 +702,12 @@
 <swrl:Variable rdf:about="urn:swrl#p2"/>
 
 <swrl:Variable rdf:about="urn:swrl#p3"/>
+
+<swrl:Variable rdf:about="urn:swrl#bal"/>
+
+<swrl:Variable rdf:about="urn:swrl#w"/>
+
+<swrl:Variable rdf:about="urn:swrl#n"/>
 
 <swrl:Variable rdf:about="urn:swrl#s"/>
 
@@ -1076,6 +1188,93 @@
     <rdf:Description>
       <rdf:first>
         <swrl:ClassAtom>
+          <swrl:classPredicate rdf:resource="#HoneyPot"/>
+          <swrl:argument1 rdf:resource="urn:swrl#c"/>
+        </swrl:ClassAtom>
+      </rdf:first>
+      <rdf:rest>
+        <rdf:Description>
+          <rdf:first>
+            <swrl:DatavaluedPropertyAtom>
+              <swrl:propertyPredicate rdf:resource="#withdrawSuccessRate"/>
+              <swrl:argument1 rdf:resource="urn:swrl#c"/>
+              <swrl:argument2 rdf:resource="urn:swrl#w"/>
+            </swrl:DatavaluedPropertyAtom>
+          </rdf:first>
+          <rdf:rest>
+            <rdf:Description>
+              <rdf:first>
+                <swrl:BuiltinAtom>
+                  <swrl:builtin rdf:resource="http://www.w3.org/2003/11/swrlb#greaterThan"/>
+                  <swrl:arguments>
+                    <rdf:Description>
+                      <rdf:first rdf:resource="urn:swrl#w"/>
+                      <rdf:rest>
+                        <rdf:Description>
+                          <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                          <rdf:first rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.0</rdf:first>
+                        </rdf:Description>
+                      </rdf:rest>
+                    </rdf:Description>
+                  </swrl:arguments>
+                </swrl:BuiltinAtom>
+              </rdf:first>
+              <rdf:rest>
+                <rdf:Description>
+                  <rdf:first>
+                    <swrl:DatavaluedPropertyAtom>
+                      <swrl:propertyPredicate rdf:resource="#nonPrivilegedSuccessRate"/>
+                      <swrl:argument1 rdf:resource="urn:swrl#c"/>
+                      <swrl:argument2 rdf:resource="urn:swrl#n"/>
+                    </swrl:DatavaluedPropertyAtom>
+                  </rdf:first>
+                  <rdf:rest>
+                    <rdf:Description>
+                      <rdf:first>
+                        <swrl:BuiltinAtom>
+                          <swrl:builtin rdf:resource="http://www.w3.org/2003/11/swrlb#lessThanOrEqual"/>
+                          <swrl:arguments>
+                            <rdf:Description>
+                              <rdf:first rdf:resource="urn:swrl#n"/>
+                              <rdf:rest>
+                                <rdf:Description>
+                                  <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                  <rdf:first rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.05</rdf:first>
+                                </rdf:Description>
+                              </rdf:rest>
+                            </rdf:Description>
+                          </swrl:arguments>
+                        </swrl:BuiltinAtom>
+                      </rdf:first>
+                      <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                    </rdf:Description>
+                  </rdf:rest>
+                </rdf:Description>
+              </rdf:rest>
+            </rdf:Description>
+          </rdf:rest>
+        </rdf:Description>
+      </rdf:rest>
+    </rdf:Description>
+  </swrl:body>
+  <swrl:head>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:ClassAtom>
+          <swrl:classPredicate rdf:resource="#HoneyPot_SelectiveTrap"/>
+          <swrl:argument1 rdf:resource="urn:swrl#c"/>
+        </swrl:ClassAtom>
+      </rdf:first>
+      <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+    </rdf:Description>
+  </swrl:head>
+</swrl:Imp>
+
+<swrl:Imp>
+  <swrl:body>
+    <rdf:Description>
+      <rdf:first>
+        <swrl:ClassAtom>
           <swrl:classPredicate rdf:resource="#FraudContract"/>
           <swrl:argument1 rdf:resource="urn:swrl#c"/>
         </swrl:ClassAtom>
@@ -1114,7 +1313,38 @@
                           <swrl:argument1 rdf:resource="urn:swrl#p2"/>
                         </swrl:ClassAtom>
                       </rdf:first>
-                      <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                      <rdf:rest>
+                        <rdf:Description>
+                          <rdf:first>
+                            <swrl:DatavaluedPropertyAtom>
+                              <swrl:propertyPredicate rdf:resource="#balanceAtFailure"/>
+                              <swrl:argument1 rdf:resource="urn:swrl#c"/>
+                              <swrl:argument2 rdf:resource="urn:swrl#bal"/>
+                            </swrl:DatavaluedPropertyAtom>
+                          </rdf:first>
+                          <rdf:rest>
+                            <rdf:Description>
+                              <rdf:first>
+                                <swrl:BuiltinAtom>
+                                  <swrl:builtin rdf:resource="http://www.w3.org/2003/11/swrlb#equal"/>
+                                  <swrl:arguments>
+                                    <rdf:Description>
+                                      <rdf:first rdf:resource="urn:swrl#bal"/>
+                                      <rdf:rest>
+                                        <rdf:Description>
+                                          <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                          <rdf:first rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.0</rdf:first>
+                                        </rdf:Description>
+                                      </rdf:rest>
+                                    </rdf:Description>
+                                  </swrl:arguments>
+                                </swrl:BuiltinAtom>
+                              </rdf:first>
+                              <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                            </rdf:Description>
+                          </rdf:rest>
+                        </rdf:Description>
+                      </rdf:rest>
                     </rdf:Description>
                   </rdf:rest>
                 </rdf:Description>

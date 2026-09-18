@@ -37,6 +37,14 @@ with onto:
     class HoneyPot(FundFreezeFraud):
         comment = ["허니팟: 입금은 가능하나 출금이 항상 실패"]
 
+    # HoneyPot 서브클래스 (2026-09, SelectiveTrap 오분류 수정 동반작업).
+    # JS 레이어(dynamic_analyzer.js hintFraudType)의 2단계 추론과 짝을 맞춘다.
+    # UniversalTrap(withdrawSuccessRate=0, 전원 실패)은 기존 Rule_HoneyPot과
+    # 사실상 동치라 별도 규칙을 추가하지 않았고(JS 쪽도 subclass 필드로만 노출),
+    # SelectiveTrap만 신규 SWRL 규칙으로 도출한다 — add_swrl_rules.py 참고.
+    class HoneyPot_SelectiveTrap(HoneyPot):
+        comment = ["선택적 허니팟: 오너/배포자 주소만 인출 성공, 나머지 전원 실패"]
+
     # ── Evasion subclasses (from evasionSubclasses in fraud_ontology.js) ───────
     class PonziScheme_BalanceDropEvasion(PonziScheme):
         comment = ["잔고 급락 회피형 폰지: 단일 인출 80% 미만 분할"]
@@ -214,6 +222,25 @@ with onto:
         domain = [FraudContract]
         range  = [float]
         comment = ["시뮬레이션 종료 시 잔고 (ETH)"]
+
+    # JS 레이어(dynamic_analyzer.js hintFraudType)의 SelectiveTrap 판정 데이터
+    # 속성 3종을 그대로 미러링한다(2026-09). 계산은 여전히 JS/load_instances.py의
+    # 파이썬 쪽에서 CSV로부터 수행하고, OWL은 그 결과값만 DatatypeProperty로
+    # 보유한다 — OWL이 직접 계산하는 것이 아님.
+    class withdrawSuccessRate(DataProperty, FunctionalProperty):
+        domain = [FraudContract]
+        range  = [float]
+        comment = ["성공 출금 건수 / 전체 출금 시도 건수 (0-1)"]
+
+    class nonPrivilegedSuccessRate(DataProperty, FunctionalProperty):
+        domain = [FraudContract]
+        range  = [float]
+        comment = ["오너 주소를 제외한 성공 출금 비율 (0-1) — SelectiveTrap 핵심 지표"]
+
+    class balanceAtFailure(DataProperty, FunctionalProperty):
+        domain = [FraudContract]
+        range  = [float]
+        comment = ["amount_eth=0으로 실패한 출금 시점의 컨트랙트 잔고 최댓값 (ETH)"]
 
     # ── triggers / implies 인과관계 공리 (설계서 4-3절, v0.2 신규) ──────────────
     # BehaviorPattern 서브클래스가 대응 AnomalySignal 서브클래스를 triggers/implies

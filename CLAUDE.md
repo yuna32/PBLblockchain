@@ -422,6 +422,32 @@ dynamic_analyzer.js` 변경 전 439-444번 줄)는 순수 집합 멤버십
   스타일 이상치 트리아지 초안 자동화 — 범위가 좁아 2순위.
   Phase 2(설계)는 다음 세션으로 이월.
 
+## 네트워크 시각화 Phase 1 — v2_clean272 참조 금지 (2026-09-09)
+
+`evaluation/network_viz/`(온톨로지 네트워크 그래프 시각화, Fig.3 스타일)
+Phase 1 데이터 준비 중 발견.
+
+- **`evaluation/ponzi_comparison/results/ontology_predictions.csv` 및
+  `comparison_report_v2_clean272.md`는 `dynamic_analyzer.js`의 회피 내성
+  패치(연속 점수화, "권고 1-7" — 위 "회피 시뮬레이션 패치" 절 참고) 이전
+  스냅샷이며, 현재 코드 상태와 불일치한다.** 직접 재확인: `reasoning_raw.json`
+  생성 시 현재 `dynamic_analyzer.js`/`fraud_ontology.js`를 그대로 재실행해
+  N=272 전체의 final_exact_pred/final_super_pred를 다시 계산한 결과
+  (정확 155건/상위 196건)가 v2_clean272의 수치(정확 88건/상위 129건)와
+  전혀 다르고, **`comparison_report_v3_patched.md`(정확 155건→Precision
+  64.52%/Recall 73.53%/F1 68.73%, 상위 196건→57.65%/83.09%/68.07%)와
+  정확히 일치했다.**
+- **역산 검증 완료**: `온톨로지_방법론_letter.docx`(zipfile로 word/document.xml
+  직접 추출, docx 뷰어 없이 텍스트 확인)의 "표 1. XBlock 실데이터(N=272)
+  비교 검증 결과"에 실린 온톨로지(정적 OR 동적) 수치가 Exact
+  64.52%/73.53%/68.73%, Superclass 57.65%/83.09%/68.07%로
+  v3_patched와 **완전히 일치**한다. 즉 논문에 실제로 인용된 것은
+  v3_patched이며, v2_clean272는 이미 폐기된 중간 산출물이다.
+- **앞으로 이 데이터셋(N=272 XBlock 폰지 비교) 언급 시 반드시
+  `comparison_report_v3_patched.md` 또는 재실행 결과(`evaluation/
+  network_viz/reasoning_raw.json`) 기준으로 작업할 것 — `ontology_predictions.csv`와
+  `comparison_report_v2_clean272.md`는 참조 금지.**
+
 ## Known issues
 
 - **NormalStaking 오탐성 예측 신호**: `analysis/analysis/prevention_reasoner.js`의
@@ -431,3 +457,252 @@ dynamic_analyzer.js` 변경 전 439-444번 줄)는 순수 집합 멤버십
   `triggers`/`implies` 엣지로만 연결되어 있어 실제 분류 결과(정상 판정)에는 영향을
   주지 않는다. 다만 향후 대시보드 시각화(Phase 5, UI 연결) 시 이 예측 신호가
   사용자에게 오탐처럼 보이지 않도록 표시 방식에 주의가 필요하다.
+
+## OWL/SWRL 4개 파일 직접 검증 결과 (2026-09-11)
+
+`ontology/fraud.owl`, `fraud_with_instances.owl`, `fraud_with_rules.owl`,
+`fraud_reasoned.owl` 네 파일과 `온톨로지_설계서_v0.2.docx`,
+`온톨로지_방법론_letter.docx`를 직접 열어(docx는 zipfile로 word/document.xml
+추출) 대조 검증했다. 아래는 중요도 순 정리이며, 제기됐던 초기 초안 중 일부
+수치(인스턴스 개수)는 실제 파일과 달라 본 절에서 바로잡았다.
+
+### 1. [최우선] triggers/implies: OWL 규칙은 "선행 신호 필요", JS 레이어는 "순수 예측" — 서로 다른 두 구현이 "1:1 대응"이라 주석에 잘못 기재됨
+
+- `fraud_with_rules.owl`의 인과관계 SWRL 규칙 5개(파일 내 1~5번째 `<swrl:Imp>`,
+  예: `Trig_SingleLargeOutflow`)는 body에 `hasPattern(c,p)∧SingleLargeOutflow(p)`
+  뿐 아니라 `hasSignal(c,s)∧MaxTxAlert(s)`처럼 **결과 신호가 이미 인스턴스로
+  존재할 것**을 요구한다. 즉 이미 공존하는 두 사실에 인과관계 라벨만 얹는
+  방식이며, 온톨로지_방법론_letter.docx 3.2절의 "추론기가 행동 패턴만
+  관측해도 파생될 이상 신호를 예측할 수 있는 구조를 v0.2에서 반영할
+  계획"이라는 서술과는 형식적으로 다르다.
+- 그런데 **`fraud_reasoned.owl`에는 이 OWL 규칙만으로는 나올 수 없는
+  개체가 실제로 존재한다**: `sig_predicted_maxtxalert_rugpull`,
+  `sig_predicted_maxtxalert_laundering`, `sig_predicted_flowspike_pumpdump`,
+  `sig_predicted_flowspike_normal` (라인 574-588). `MaxTxAlert` 타입 개체는
+  `fraud_with_instances.owl`/`fraud_with_rules.owl` 어디에도 사전 인스턴스가
+  **단 하나도 없고**, `contract_normal`은 애초에 `hasSignal` 자체가 하나도
+  없는데도(`hasPattern`만 5개) `pat_midexit_normal`에 `triggers →
+  sig_predicted_flowspike_normal`이 붙어 있다. 표준 SWRL/DL 추론기는 head에서
+  새 개체를 생성할 수 없으므로, 이 4개 개체는 `fraud_with_rules.owl`의
+  규칙을 실제로 실행해서 나온 결과일 수 없다 — 즉 `fraud_reasoned.owl`을
+  "Pellet/HermiT 추론기 실행 결과"(설계서 1-2절, 7-3절)라고 부르는 것 자체가
+  이 4개 개체에 한해서는 사실과 다르다.
+- 진짜 출처는 JS 레이어다: `analysis/analysis/prevention_reasoner.js:58-63`
+  주석에 "OWL 레이어의 triggers/implies SWRL 규칙과 1:1 대응"이라고
+  적혀 있지만, 바로 아래 `predictCausalSignals()` 함수(64행~)는 소스코드에서
+  BehaviorPattern의 정적 프록시(정규식)만 매치되면 **대응 AnomalySignal이
+  실제로 관측됐는지와 무관하게** 예측을 발동시킨다 — 이게 바로 letter
+  3.2절이 묘사한 동작이다. 요컨대 letter 3.2절의 "예측" 서술은 JS 레이어
+  기준으로는 맞고, OWL/SWRL 레이어 기준으로는 틀리다. 두 레이어가 같은
+  기능을 다르게 구현해놓고 "1:1 대응"이라 주석 처리한 것 자체가 문서화
+  오류이며, `fraud_reasoned.owl`의 predicted 개체 4종은 이 JS 결과를 OWL로
+  내보내면서 섞여 들어간 것으로 보인다(내보내기 스크립트 자체는 미확인).
+- **영향**: (a) letter 3.2절은 "수정 필요"가 아니라 "어느 레이어 기준인지
+  명시 필요"로 재분류해야 함. (b) 설계서 1-2절/7-3절의 "fraud_reasoned.owl =
+  Pellet/HermiT 실행 결과" 서술은 최소 4개 개체에 대해 부정확 — 순수 SWRL
+  산출물과 JS 예측 산출물이 한 파일에 섞여 있음을 명기할 필요. (c) 위 "Known
+  issues"의 NormalStaking 오탐 신호 항목도 JS 레이어뿐 아니라 OWL
+  파일(`fraud_reasoned.owl`)에도 동일하게 새어 들어가 있다는 뜻이므로 범위를
+  넓혀 인지할 것.
+확인 완료, 추가 조치는 팀 논의 후 결정
+
+### 2. [운영] OWL 관련 파일 4개 분리 + 인스턴스 개수 정정
+
+- 실제 구조: `fraud.owl`(스키마만, `<owl:NamedIndividual>` 0개·`<swrl:Imp>`
+  0개) / `fraud_with_instances.owl`(스키마+인스턴스 **41개**, 규칙 0개) /
+  `fraud_with_rules.owl`(스키마+인스턴스 41개+규칙 **13개**) /
+  `fraud_reasoned.owl`(전체+추론후 인스턴스 **45개**+규칙 13개). 개수는
+  `grep -c "<owl:NamedIndividual"` / `<swrl:Imp>` 직접 카운트로 확인했다
+  (초기 보고됐던 "82개/90개"는 실제 파일과 불일치 — 41/45가 맞는 수치다).
+  `fraud_reasoned.owl`의 +4개는 위 1번 항목의 predicted 신호 개체들이다.
+- 설계서_v0.2.docx 1-2절 표는 OWL 관련 항목으로 "표준 OWL 파일=fraud.owl
+  (W3C OWL 표준 포맷, 학술 근거 레이어)"와 "SWRL 추론 결과=fraud_reasoned.owl
+  (Pellet/HermiT 추론기 실행 결과)" 2개 행만 두고 있고, `fraud_with_instances.owl`·
+  `fraud_with_rules.owl`은 표에 아예 등장하지 않는다 — 정확히는 "규칙 정의"라는
+  표현이 쓰인 건 아니고 fraud.owl의 역할 설명이 스키마/인스턴스/규칙 구성을
+  구분하지 않고 뭉뚱그려져 있는 것이다. SWRL 규칙 자체를 찾으려면
+  `fraud_with_rules.owl` 또는 `fraud_reasoned.owl`을 봐야 한다.
+확인 완료, 추가 조치는 팀 논의 후 결정
+
+### 3. [설계서 보완] 5-5절 SWRL 규칙 표는 5개, 실제 분류 규칙은 8개(총 13개 중 인과관계 5개 제외)
+
+- 설계서 5-6절(인과관계 5개: Trig_OwnerWithdrawAll/Trig_SingleLargeOutflow/
+  Trig_ParticipantMidExit/Imp_InsiderBulkDeposit/Imp_WithdrawAttemptFail)은
+  `fraud_with_rules.owl`의 첫 5개 `<swrl:Imp>`와 정확히 일치한다.
+- 그러나 나머지 8개 분류 규칙 중 5-5절 표에 실린 것은 Rule_RugPull,
+  Rule_PonziScheme, Rule_MoneyLaundering, Rule_HoneyPot, Rule_RugPull_SlowDrain
+  5개뿐이다. 표에서 누락된 3개:
+  - `FraudContract(c)∧hasPattern(c,p1)∧InsiderExitSuccess(p1)∧hasPattern(c,p2)∧
+    WithdrawAttemptFail(p2) → PumpAndDump(c)` — PumpAndDump 기본분류 규칙.
+    다만 이 조건 자체는 7-3절 표("contract_pumpdump: ... InsiderExitSuccess +
+    WithdrawAttemptFail (2-iter 승격)")에 비형식적으로는 언급돼 있다.
+  - `PumpAndDump(c)∧hasPattern(c,p1)∧InsiderExitSuccess(p1)∧hasPattern(c,p2)∧
+    DistributedInflow(p2) → PumpDump_MaxTxEvasion(c)` — 5-5절 각주("※
+    PumpDump_MaxTxEvasion은 Iteration 2에서 승격됨")로만 존재를 암시할 뿐
+    실제 body는 어디에도 기재돼 있지 않다.
+  - `PonziScheme(c)∧hasPattern(c,p)∧ParticipantMidExit(p)∧hasSignal(c,s)∧
+    InflowStop(s) → PonziScheme_MaxTxEvasion(c)` — 설계서 어디에도 전혀
+    언급이 없다.
+확인 완료, 추가 조치는 팀 논의 후 결정
+
+### 4. [설계서 정정] 5-5절 규칙 3건의 body 조건이 실제 SWRL과 다름
+
+- **Rule_RugPull**: 문서 = `hasSignal(BalanceDrop)∧hasPattern(OwnerWithdrawAll)∧
+  hasSignal(MaxTxAlert)`. 실제(`fraud_with_rules.owl` 12번째 `<swrl:Imp>`) =
+  `hasSignal(BalanceDrop)∧hasPattern(OwnerWithdrawAll)∧hasPattern(SingleLargeOutflow)`
+  — 세 번째 조건이 `hasSignal(MaxTxAlert)`가 아니라 `hasPattern(SingleLargeOutflow)`.
+- **Rule_PonziScheme**: 문서 = `hasSignal(BalanceDrop)∧hasSignal(FlowSpike)∧
+  hasPattern(ParticipantMidExit)`. 실제(13번째 `<swrl:Imp>`) =
+  `hasSignal(BalanceDrop)∧hasPattern(OwnerWithdrawAll)∧hasPattern(ParticipantMidExit)`
+  — 두 번째 조건이 `hasSignal(FlowSpike)`가 아니라 `hasPattern(OwnerWithdrawAll)`.
+- **Rule_MoneyLaundering**: 문서 = 2조건(`hasPattern(DistributedInflow)∧
+  hasPattern(SingleLargeOutflow)`). 실제(11번째 `<swrl:Imp>`) = 3조건
+  (`hasPattern(DistributedInflow)∧hasPattern(CollectorIsDepositor)∧
+  hasPattern(SingleLargeOutflow)`) — `CollectorIsDepositor` 조건이 문서에서
+  누락됨.
+- **Rule_HoneyPot**·**Rule_RugPull_SlowDrain**은 문서와 실제 body가 정확히
+  일치함을 확인했다(불일치 없음).
+확인 완료, 추가 조치는 팀 논의 후 결정
+
+### 5. [경미] 3-1절 클래스 계층 트리에서 회피 서브클래스 3개 누락
+
+- 설계서_v0.2.docx 3-1절 트리 그림에는 `PumpDump_BalanceDropEvasion`,
+  `MoneyLaundering_BalanceDropEvasion`, `MoneyLaundering_MaxTxEvasion`이
+  빠져 있다(PumpAndDump 아래 3개만, MoneyLaundering 아래 2개만 표시).
+  같은 문서 3-3절 본문("공통 3종 — PonziScheme/RugPull/MoneyLaundering/PumpDump
+  전체 적용")과 `fraud.owl` 실제 클래스 정의(해당 3개 클래스 모두 존재,
+  `#PumpDump_BalanceDropEvasion` 등)에는 이 3개가 정상적으로 포함돼 있어,
+  트리 그림만 축약되어 그려진 것으로 보인다.
+확인 완료, 추가 조치는 팀 논의 후 결정
+
+## GTN2vec 데이터셋 조사 — MoneyLaundering 실데이터 검증 1단계 (2026-09-14)
+
+`evaluation/laundering_comparison/data/GTN2vec` 조사 완료. 결론: **부분호환**
+(사실상 규칙11은 불호환)으로 보류, 변환/평가 파이프라인은 아직 작성하지 않음.
+
+- git 최신 커밋엔 코드(`GTN2vec.py`, `GTN2vec_walk.py`)와 라벨(`mllabel.txt`)만
+  있고 실제 그래프 데이터는 없었다 — 과거 커밋(`6367045`)에서 삭제된
+  `dataset.rar`를 `git show`로 복구해서 확인함(RAR5 포맷, WSL에 없던 `unrar`을
+  받아서 해제).
+- 노드 = 익명화된 정수ID(hex 주소 매핑 없음), 엣지 = (발신, 수신, gas가격,
+  timestamp)만 존재 — **금액(value) 컬럼이 논문에서 의도적으로 제외됨**
+  ("gas price가 거래금액보다 자금세탁 구분에 유효하다"는 저자 판단, 원 논문
+  "Graph Embedding-Based Money Laundering Detection for Ethereum", *Electronics*
+  2023, 12, 3180 확인).
+- 라벨(815/815)은 일반 자금세탁이 아니라 **2019 업비트 해킹 단일 사건 태그**
+  (Etherscan "Upbit Hack" 태그) — 위 "외부 데이터 소스 (EthereumHeist)"
+  섹션과 동일한 "단일사건 라벨 스코프" 문제가 재발. 자금세탁 실데이터 전반의
+  구조적 한계일 가능성으로 기록해 둔다.
+- `fraud_with_rules.owl` 규칙11(`DistributedInflow ∧ CollectorIsDepositor ∧
+  SingleLargeOutflow`) 중 `DistributedInflow`(5개 이상 고유 입금주소)만
+  위상정보로 계산 가능, 나머지 2개는 "최대 인출" 판정에 금액이 필요해 계산
+  불가 → AND 규칙 전체를 이 데이터로 평가할 수 없다.
+- 미해결 항목(우선순위 낮음, 필요시 재확인): 노드 수 6% 불일치(실측 48,237 vs
+  논문 45,585), 논문 서술("2-order")과 실제 파일명(`1ordertrans_*`) 불일치.
+- **향후 자금세탁류 데이터셋 검토 시 먼저 체크**: (1) 라벨이 단일 사건의
+  파생물인지, (2) 거래 금액 컬럼이 실제로 존재하는지 — 이 두 가지를 먼저
+  확인하면 이번처럼 깊이 파고든 뒤에야 막히는 상황을 방지할 수 있다.
+확인 완료, 추가 조치는 팀 논의 후 결정
+
+## CRPWarner RugPull 데이터셋 조사 결과 (2026-09-14)
+
+`evaluation/rugpull_comparison/data/CRPWarner` 조사 완료. 결론: **불호환**
+(GTN2vec보다 근본적, 변환으로 해결 불가).
+
+- CRPWarner는 러그풀 탐지 도구가 아니라 정적 바이트코드 분석(Mint/Leak/
+  Limit 함수 존재 여부)이 실제 산출물. 우리 공리(`singleLargeOutflow ∧
+  ownerWithdrawAll ∧ NOT participantMidExit`)는 관측된 트랜잭션 행위라
+  분석 축 자체가 다름 — 방법론 불일치.
+- `rugpullevents.xlsx`(103건, 독립 사건 — 라벨 스코프 문제는 없음)는
+  컨트랙트 주소 자체가 없어 즉시 사용 불가. `Loss(kUSD)`도 사건 전체
+  추정 피해액이지 개별 트랜잭션 출금액이 아니다.
+- 배포자 EOA 주소, 잔고 시계열, 개별 출금 트랜잭션 모두 저장소에
+  원천 부재 — 확보하려면 Etherscan 등에서 완전히 새로 수집해야 한다.
+- 백업 후보 `Ethereum-BSC-token-dataset`(USENIX Sec'23)도 확인함 —
+  토큰 생성 메타데이터뿐이고 러그풀 판정 라벨 자체가 없어 CRPWarner
+  보다도 우리 목적에서 더 멀다.
+- **실데이터 확장 시도 누적 패턴**: PumpAndDump(단위불일치)/
+  MoneyLaundering(라벨스코프+필드부재)/RugPull(방법론불일치) 전부 다른
+  이유로 불호환. 성공은 Ponzi(XBlock) 하나뿐. 향후 데이터셋 검토 시
+  "우리 온톨로지가 요구하는 원시 트랜잭션+금액+행위라벨" 조건을 가장
+  먼저 확인할 것.
+확인 완료, 추가 조치는 팀 논의 후 결정
+
+## HoneyPot SelectiveTrap 오분류 버그 수정 (2026-09)
+
+SelectiveTrap(오너만 인출 성공, 나머지 전원 실패)이 `dynamic_analyzer.js`의
+동적 우선순위 체인에서 PumpAndDump로 오분류되던 버그를 재현·수정. 데이터
+속성 추가(1~2단계) → 재현 확인 → 조건 교체(3단계) 순으로 진행.
+
+- **파일 위치 착오 주의**: `analysis/analysis/fraud_ontology.js`는 클래스/공리/
+  체크리스트를 담은 **선언적 데이터 객체**일 뿐 분기 로직(if/else)이 없다
+  (grep으로 `Priority`/`allWithdrawalsBlocked`/`insiderExit` 전무 확인). 실제
+  동적 로그 분류 우선순위 체인은 `analysis/dynamic_analyzer.js`의
+  `hintFraudType()`에 있다. `evaluation/ponzi_comparison/evaluate_comparison.js`·
+  `evaluation/network_viz/extract_reasoning.mjs`가 두 파일을 `import('../../analysis/
+  dynamic_analyzer.js')`와 `import('../../analysis/analysis/fraud_ontology.js')`로
+  **별도 모듈로 병행 import**하는 것으로 역할 분리를 재확인함(전자=동적 분류,
+  후자=`prevention_reasoner.js`용 정적 소스 예방 체크리스트). 앞으로 "5-1절/5-2절
+  분류 우선순위" 관련 작업은 `dynamic_analyzer.js`를 볼 것.
+- **데이터 속성 3종 추가** (`hintFraudType()` 내부, 기존 `insiderExitDetected`
+  계산 직후): `withdrawSuccessRate`(성공 출금/전체 출금 시도),
+  `nonPrivilegedSuccessRate`(오너 주소 제외 성공률 — 오너는 시뮬레이션 스크립트의
+  `ownerClient` 고정 주소 `0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266`로 식별,
+  1안), `balanceAtFailure`(기존 `someWithdrawalsFail` 필터, 즉 `amount_eth===0`인
+  withdraw 행의 `contract_balance_eth` **최댓값** — 평균이 아니라 최댓값을 쓴
+  이유는 오너 드레인 전/후로 실패 시점이 섞이면 평균이 희석되기 때문). 세 값
+  모두 `reasoning_steps`와 `analyzeDynamic()` 최상위 반환 필드
+  (`withdraw_success_rate`/`non_privileged_success_rate`/`balance_at_failure_eth`)에
+  노출.
+- **Priority 2(HoneyPot) 조건 교체** (추가가 아니라 대체): 기존
+  `allWithdrawalsBlocked ∧ inflowContinues` → `nonPrivilegedSuccessRate ≤ 0.05 ∧
+  balanceAtFailure > 0 ∧ inflowContinues`. 기존 "전원 실패" 케이스도
+  `nonPrivilegedSuccessRate=0`으로 자동 포함됨을 `honeypot_log.csv` 회귀로 확인.
+  스펙에 없던 방어로 `nonPrivilegedWithdrawals.length > 0` 가드를 추가함(비-오너
+  시도가 0건일 때 0/0→0으로 계산돼 증거 없이 honeypot 오분류되는 것 방지).
+- **Priority 3(PumpAndDump) 조건에 `balanceAtFailure ≤ ε` 추가** — 이번 버그
+  수정 자체엔 불필요(Priority 2에서 이미 가로챔)하지만 PumpDump="잔고 0 소진" vs
+  Honeypot="잔고 잔존" 대칭을 데이터 정의에도 명시. **ε는 미확정**: `NON_
+  PRIVILEGED_SUCCESS_EPSILON=0.05`, `PUMPDUMP_BALANCE_AT_FAILURE_EPSILON=0`
+  둘 다 코드에 TODO 주석과 함께 상수로 분리해둠 — 임의로 확정하지 않음, 실데이터
+  회귀분석 필요.
+- **HoneyPot 2단계 서브클래스 추론 추가**: `withdrawSuccessRate=0` →
+  `HoneyPot_UniversalTrap`, `withdrawSuccessRate>0 ∧ nonPrivilegedSuccessRate≤ε` →
+  `HoneyPot_SelectiveTrap`. `honeypot_subclass` 필드로 노출(해당 없으면 `null`).
+- **`insiderExitDetected`는 미수정**: 오너가 입금 이력 없이 인출하면
+  구조적으로 거의 항상 true가 되는 조건이지만(SelectiveTrap류 전반의 일반적
+  특성), Priority 2가 Priority 3보다 먼저 실행되는 기존 순서가 이미 올바르므로
+  재배치도 불필요했음 — 조건 내용 교체만으로 충분함을 확인.
+- **회귀 테스트**: git HEAD(이번 작업 전 커밋 `fa83059`) 버전과 현재 버전을
+  동일 CSV 8종(7-1/7-2절은 같은 CSV를 공유하므로 중복 제거) + OWL 인스턴스
+  6종(`ontology/owl_results.json`)에 대해 직접 실행 비교. **PumpDump 포함 기존
+  7개 결과 전부 불변**, 신규 `analysis/logs/honeypot_selective_log.csv`만
+  `pump_and_dump`(버그 재현) → `honeypot`/`HoneyPot_SelectiveTrap`(수정 확인)로
+  의도대로 변경됨. OWL 6종은 미수정이라 당연히 불변.
+- **OWL 레이어도 동반 수정 완료** (2026-09, 후속 작업) — `fraud.owl`~
+  `owl_results.json` 5개 파일 전부 JS와 함께 갱신됨. 4단계 파이프라인
+  (`build_ontology.py` → `load_instances.py` → `add_swrl_rules.py` →
+  `export_results.py`) 순서대로 재실행해 산출물을 생성 — `fraud_with_rules.owl`
+  만 수동 XML 편집하지 않음, 이 프로젝트는 스크립트가 산출물(.owl)을 매번
+  새로 생성하는 구조임을 재확인.
+  - `Rule_PumpAndDump`(파일 내 9번째 `<swrl:Imp>`) body에
+    `balanceAtFailure=0.0`(엄격한 0 비교, ε 미확정 TODO 주석 포함) 조건 추가.
+  - `Rule_HoneyPot_SelectiveTrap` 신규 규칙 추가(`withdrawSuccessRate>0 ∧
+    nonPrivilegedSuccessRate≤0.05`), 기존 `Rule_HoneyPot`은 불변 — 규칙9
+    조건 추가만으로 두 레이어 간 층간 충돌이 해소되는 구조임을 확인함(재배치
+    불필요, JS 쪽 수정 때와 동일한 결론).
+  - **검증**: JS·OWL 두 레이어가 `balanceAtFailure` 등 3개 값을 "같은 CSV
+    원본에서 각자 재계산"하는 방식으로 교차검산하도록 구현 — 기존 6개
+    인스턴스 전부 소수점까지 일치, 신규 `contract_honeypot_selective`
+    인스턴스에서 양쪽 다 SelectiveTrap 판정이 일치함을 확인.
+  - `run_reasoner.py`는 `add_swrl_rules.py`와 별개로 존재하는 낡은 8규칙짜리
+    중복 스크립트이며 `export_results.py`가 실제로 읽는 대상이 아님 — 이번
+    작업 범위 밖, 기존부터 있던 불일치로 남겨둠(필요 시 별도 정리 대상).
+  - SWRL 빌트인(`equal`/`greaterThan`/`lessThanOrEqual`) 수치비교 규칙은
+    이번이 이 프로젝트 최초 사례다 — 기존 13개 규칙은 전부 클래스 멤버십
+    규칙이었음. Java 미가용 환경이라 실제 추론은 Python forward-chaining
+    폴백이 수행하므로 `data_eq`/`data_gt`/`data_le` 분기를 그 폴백 로직에도
+    별도로 동기화해야 했음 — **향후 수치비교 규칙을 추가할 때마다 이 폴백
+    로직도 함께 갱신해야 함을 기억할 것** (SWRL XML만 고치고 폴백을 빠뜨리면
+    선언은 있는데 실제로는 적용 안 되는 상태가 됨).
+확인 완료, 추가 조치는 팀 논의 후 결정
