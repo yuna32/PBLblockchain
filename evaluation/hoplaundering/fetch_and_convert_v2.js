@@ -68,6 +68,13 @@ function weiToEth(weiStr) {
   catch { return parseFloat(weiStr)    / 1e18; }
 }
 
+// tokenSymbol은 토큰 배포자가 임의로 지정 가능한 신뢰할 수 없는 필드라
+// 쉼표/따옴표/개행이 포함될 수 있음 — CSV 컬럼 밀림 방지용 이스케이핑.
+function csvSafe(v) {
+  const s = String(v ?? '');
+  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
 let _lastCallAt = 0;
 async function waitForSlot() {
   const gap = RATE_MS - (Date.now() - _lastCallAt);
@@ -244,6 +251,25 @@ function saveAddressData(address, blockRows, edges) {
   );
 }
 
+const TOKENTX_CSV_HEADER =
+  'block,timestamp,from,to,value_raw,token_decimal,token_symbol,token_contract,hash';
+
+// tokentx(ERC-20 전송 내역)는 블록 집계 없이 원시 로그 그대로 저장한다.
+// value_raw는 토큰마다 decimal이 달라 여기서 임의로 wei/eth 변환하면 안 되므로
+// Etherscan 원본 문자열 그대로 둔다 (변환은 이 데이터를 쓰는 다음 단계에서 처리).
+function saveTokenTxData(address, tokenTxs) {
+  const sorted = [...tokenTxs].sort((a, b) =>
+    (+a.blockNumber - +b.blockNumber) || ((+a.timeStamp || 0) - (+b.timeStamp || 0)));
+
+  fs.writeFileSync(
+    path.join(LOGS_DIR, `${address}_tokentx.csv`),
+    [TOKENTX_CSV_HEADER, ...sorted.map(tx =>
+      `${tx.blockNumber},${tx.timeStamp || 0},${tx.from?.toLowerCase() || ''},${tx.to?.toLowerCase() || ''},` +
+      `${tx.value},${tx.tokenDecimal},${csvSafe(tx.tokenSymbol)},${tx.contractAddress?.toLowerCase() || ''},${tx.hash}`
+    )].join('\n') + '\n', 'utf8'
+  );
+}
+
 // ── 실 API 처리 ─────────────────────────────────────────────────────────────
 async function processOne(address) {
   const addr = address.toLowerCase();
@@ -257,8 +283,21 @@ async function processOne(address) {
   if (blockRows.length === 0) return { status: 'skipped', reason: 'no_value_transactions' };
 
   saveAddressData(addr, blockRows, edges);
+
+  // tokentx는 기존 파이프라인과 완전히 분리된 별도 산출물이므로, 실패해도
+  // (토큰 전송이 없는 주소가 대부분) 전체 처리 결과에는 영향을 주지 않는다.
+  let tokenTxCount = 0;
+  try {
+    const tokenTxs = await fetchAllTxs('tokentx', addr);
+    if (tokenTxs.length > 0) saveTokenTxData(addr, tokenTxs);
+    tokenTxCount = tokenTxs.length;
+  } catch (e) {
+    process.stdout.write(`\n  [tokentx 경고] ${e.message}\n`);
+  }
+
   return { status: 'ok', blocks: blockRows.length, edges: edges.length,
-           normalTxs: normalTxs.length, internalTxs: internalTxs.length };
+           normalTxs: normalTxs.length, internalTxs: internalTxs.length,
+           tokenTxs: tokenTxCount };
 }
 
 // ── 오프라인 스모크 테스트 (API 키 불필요) ──────────────────────────────────────
@@ -361,4 +400,4 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename
   main().catch(err => { console.error(err); process.exit(1); });
 }
 
-export { processOne, aggregateByBlockV2, saveAddressData, LOGS_DIR, DATA_DIR };
+export { processOne, aggregateByBlockV2, saveAddressData, saveTokenTxData, LOGS_DIR, DATA_DIR };
