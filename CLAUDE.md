@@ -816,3 +816,13 @@ v3_patched 재생성은 이번 세션에서 미실행(승인 대기). 다음 세
 처리 항목.
 
 확인 완료, 추가 조치는 팀 논의 후 결정
+
+## CLAUDE.md 정정 — dynamic_analyzer.js 실제 경로 재확인 (2026-09)
+
+이전 기록("실제 우선순위 체인은 analysis/analysis/dynamic_analyzer.js에
+있음")은 최소 이 시점 기준으로 부정확함. `grep -rl "nonPrivilegedSuccessRate"
+~/pbl` 실측 결과 유일하게 걸리는 파일은 `analysis/dynamic_analyzer.js`
+(최상위, `analysis/analysis/` 아님). 향후 이 파일 참조 시 grep으로
+재확인 후 진행할 것 — 경로가 세션 간 바뀌었을 가능성 있음.
+
+확인 완료, 추가 조치는 팀 논의 후 결정
