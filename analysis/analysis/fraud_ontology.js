@@ -332,6 +332,84 @@
           counter_detection: '생성자 파라미터→상태변수 대입 추적 + 해당 변수에 대한 ' +
             '고수준 외부호출이 송금문과 인접해 있는지 정적 확인'
         }
+      },
+      // 행동축 서브클래스 (2026-09, SelectiveTrap 오분류 수정의 JS 지식 저장소 반영).
+      // 위 codePatternSubclasses(소스코드 축, boolean)와 별개 축 — 트랜잭션 로그의
+      // 출금 성공 패턴으로 HoneypotTrap을 세분화한다. 판정 로직 자체는
+      // analysis/dynamic_analyzer.js hintFraudType()의 Priority 2(:367-402)에 있고,
+      // 이 항목은 그 조건·임계값을 지식으로 기술한 것이다(값을 새로 정하지 않음).
+      // evasionSubclasses 키를 쓰지 않는 이유: analysis/analysis/dynamic_analyzer.js
+      // (:416-422)가 fraudTypes[*].evasionSubclasses를 회피 서브클래스로 조회한다.
+      // 두 서브클래스 모두 부모 HoneypotTrap 판정(parentCondition,
+      // dynamic_analyzer.js:376-380)이 먼저 성립한 경우에만 적용된다.
+      // 지표 정의: withdrawSuccessRate = 출금 시도 중 성공(amount_eth > 0) 비율(:320),
+      // nonPrivilegedSuccessRate = OWNER_ADDRESS 수신을 제외한 성공 비율(:327),
+      // balanceAtFailure = amount_eth = 0 인 출금 시점 잔고의 최댓값(:342).
+      behaviorSubclasses: {
+        UniversalTrap: {
+          id: 'HoneyPot_UniversalTrap',
+          label: '전면 차단형 (오너 포함 전원 인출 실패)',
+          parentCondition: 'nonPrivilegedWithdrawals.length > 0 AND ' +
+            'nonPrivilegedSuccessRate <= NON_PRIVILEGED_SUCCESS_EPSILON AND ' +
+            'balanceAtFailure > 0 AND inflowContinues',
+          axiom: {
+            baseClass: 'HoneypotTrap',
+            conditions: [
+              {
+                metric: 'withdrawSuccessRate',
+                description: '성공한 출금이 한 건도 없음 (오너도 시도 안 함/실패)',
+                threshold: 'withdrawSuccessRate == 0'
+              }
+            ]
+          },
+          parameters: {
+            NON_PRIVILEGED_SUCCESS_EPSILON: 0.05,       // dynamic_analyzer.js:309 (잠정값)
+            PUMPDUMP_BALANCE_AT_FAILURE_EPSILON: 0      // dynamic_analyzer.js:318 (TODO 미확정)
+          },
+          matchType: 'threshold',
+          // 출처: analysis/dynamic_analyzer.js:393-394
+          // OWL 클래스 없음: Rule_HoneyPot 과 동치라 생략 (build_ontology.py:42-44,
+          // add_swrl_rules.py:102). JS에서는 honeypot_subclass 필드로만 노출된다.
+          owlClass: null,
+          consequence: '입금은 받되 누구의 출금도 성공하지 않음 → 예치금 전액이 컨트랙트에 동결',
+          counter_detection: '출금 시도 대비 성공 건수 0 + 실패 시점 잔고 > 0 확인'
+        },
+        SelectiveTrap: {
+          id: 'HoneyPot_SelectiveTrap',
+          label: '선택적 차단형 (오너만 인출 성공)',
+          parentCondition: 'nonPrivilegedWithdrawals.length > 0 AND ' +
+            'nonPrivilegedSuccessRate <= NON_PRIVILEGED_SUCCESS_EPSILON AND ' +
+            'balanceAtFailure > 0 AND inflowContinues',
+          axiom: {
+            baseClass: 'HoneypotTrap',
+            conditions: [
+              {
+                metric: 'withdrawSuccessRate',
+                description: '성공한 출금이 존재 (누군가는 인출 가능)',
+                threshold: 'withdrawSuccessRate > 0'
+              },
+              {
+                metric: 'nonPrivilegedSuccessRate',
+                description: '오너를 제외한 출금 성공 비율이 ε 이하 (오너만 성공)',
+                threshold: 'nonPrivilegedSuccessRate <= NON_PRIVILEGED_SUCCESS_EPSILON'
+              }
+            ]
+          },
+          parameters: {
+            NON_PRIVILEGED_SUCCESS_EPSILON: 0.05,       // dynamic_analyzer.js:309 (잠정값)
+            PUMPDUMP_BALANCE_AT_FAILURE_EPSILON: 0,     // dynamic_analyzer.js:318 (TODO 미확정)
+            OWNER_ADDRESS: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266'  // dynamic_analyzer.js:305
+          },
+          matchType: 'threshold',
+          // 출처: analysis/dynamic_analyzer.js:396-397. OWL 대응:
+          // Rule_HoneyPot_SelectiveTrap (add_swrl_rules.py:95-111, 같은 ε 0.05),
+          // 클래스 HoneyPot_SelectiveTrap (build_ontology.py:45)
+          owlClass: 'HoneyPot_SelectiveTrap',
+          consequence: '오너/배포자 주소만 인출 성공, 나머지 참여자는 전원 실패 → ' +
+            '겉보기엔 출금이 동작하는 것처럼 보여 탐지가 늦어짐',
+          counter_detection: '오너 주소를 제외한 출금 성공률 계산 + 실패 시점 잔고 > 0 확인 ' +
+            '(PumpAndDump는 실패 시점 잔고 <= PUMPDUMP_BALANCE_AT_FAILURE_EPSILON)'
+        }
       }
     },
     PumpDump: {
