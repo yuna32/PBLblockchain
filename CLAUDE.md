@@ -1,5 +1,78 @@
 # PBL 프로젝트 메모
 
+## 저장소 구조 (2026-09-28 기준)
+
+> 2026-09-28 정리 결과를 기준으로 한 현재 구조. 아래 과거 기록 절들의 경로·상태
+> 서술과 충돌하면 이 절이 우선한다.
+
+### 작업 흐름 ② vs ③
+
+| 구분 | 흐름 ② (주 흐름) | 흐름 ③ (중첩 hardhat) |
+|---|---|---|
+| 실행 위치 | 저장소 루트 | `analysis/` |
+| hardhat 프로젝트 | `package.json`, `hardhat.config.js` | `analysis/package.json`, `analysis/hardhat.config.js` |
+| contracts | `contracts/` (A) | `analysis/contracts/` (B) |
+| 시뮬레이션 | `scripts/simulate_*.js` | `analysis/scripts/simulate_*.js` (honeypot, evasion_patched 포함) |
+| 로그 | `analysis/logs/` | `analysis/analysis/logs/` |
+| 파이프라인 (`npm run analyze`) | `analysis/pipeline.js` | `analysis/analysis/pipeline.js` |
+| prevention | `analysis/prevention_reasoner.js` (구본, contracts A) | `analysis/analysis/prevention_reasoner.js` (중첩본, contracts B) |
+| 리포트 | `analysis/reports/` | `analysis/analysis/reports/` |
+| 대시보드 | `analysis/dashboard.html` (Panel 5 포함) | `analysis/analysis/dashboard.html` (Panel 5 이전) |
+
+- N=272 실데이터 비교(`evaluation/ponzi_comparison/evaluate_comparison.js`)는 흐름 ②의
+  `analysis/dynamic_analyzer.js`와 `analysis/analysis/fraud_ontology.js`의 `preventionRules`를 쓴다.
+- HSU/SMC 평가(`evaluation/honeypot_comparison/`)는 흐름 ③의 중첩 `prevention_reasoner.js`를 쓴다.
+- 루트에 있던 초기 파이프라인 사본 9개 항목은 `archive/2026-09_pre-cleanup/`로 옮겼다(f27a283, 해당 폴더 README 참고).
+
+### 파일별 정본
+
+- `dynamic_analyzer.js`: **`analysis/dynamic_analyzer.js`(②)**. 메인 pipeline, N=272 평가,
+  `scenarios/`, `analysis/compare_evasion.js`가 사용. `analysis/analysis/dynamic_analyzer.js`는
+  ③ pipeline 전용(FraudOntology 연동 버전).
+- `prevention_reasoner.js`: 두 벌이며 용도가 다르다.
+  - `analysis/prevention_reasoner.js`(205줄 구본): `analysis/pipeline.js:7`,
+    `scenarios/run_all_scenarios.js:51`이 사용. contracts A를 읽으며 HSU/SMC 탐지 없음.
+  - `analysis/analysis/prevention_reasoner.js`(중첩본): HSU/SMC 탐지와 `predictCausalSignals` 포함.
+    ③ pipeline과 `evaluation/honeypot_comparison/*`가 사용. contracts B를 읽음.
+    온톨로지 지식 관련 수정은 이 파일 기준.
+- `fraud_ontology.js`: **`analysis/analysis/fraud_ontology.js` 하나뿐**. 구본 reasoner도
+  `./analysis/fraud_ontology.js` 경로로 이 파일을 import한다.
+- `dashboard.html`: **`analysis/dashboard.html`**.
+
+### contracts
+
+- 공유 5개(MoneyLaundering, NormalStaking, PonziLab, PumpDump, RugPull)는 A와 B의 git blob이
+  동일하다(저장소 이력 전체에서도 파일당 blob 1개). 작업트리의 차이는 줄바꿈뿐이다.
+- A(`contracts/`)에만: FlashLoanPattern, EvasiveContract.
+  B(`analysis/contracts/`)에만: Honeypot, PonziLabPatched.
+- 그래서 흐름 ②의 `analysis/pipeline.js`는 Honeypot·PonziLabPatched를 "소스 파일 없음"으로 처리한다.
+
+### 알려진 주의
+
+- `.git/config`에 `core.autocrlf=true`가 설정되어 작업트리에 CRLF와 LF가 섞여 있다.
+  파일 비교는 CR 제거 후(`tr -d '\r'`) 할 것 — `cmp`로 바로 비교하면 가짜 차이가 난다.
+- WSL을 재시작하면 `/tmp`가 비워진다. 임시 사본은 `~/pbl_backup/` 아래에 만들 것.
+- WSL의 `npm`은 Windows 쪽 실행 파일(`/mnt/c/Program Files/nodejs/npm`)이라 WSL 경로에서
+  신뢰할 수 없다. `package.json`의 script 문자열을 읽어 `node`로 직접 실행할 것.
+
+### 기준선
+
+- 로컬 태그 `pre-cleanup-20260928` (8f7a5bb).
+- `~/pbl_backup/baseline_lf/`: 태그 시점 LF 추출본(`src/`), N=272(`results_empty/`)·
+  N=259(`results_outliers/`) 결과, `EXCLUDE_outliers.txt`, `SHA256SUMS`.
+- 회귀 확인: 생성 4개 파일(`ontology_predictions.csv`, `disagreement_cases.csv`,
+  `comparison_report.md`, `mcnemar_report.md`)을 이 기준선과 비교(CSV는 CR 제거 후 `cmp`,
+  리포트는 `생성:` 줄 제외 `diff`).
+
+### 논문 v3 수치
+
+- v3 산출물(21203cb)은 20a3d5c에서 바이트 단위로 재현된다(제외 없음 조건,
+  `fraud_ontology.js`는 1694a4c 버전으로 대체). 21203cb 자체에는 평가 스크립트·데이터가 없다.
+- 8e30d32(isError 필터로 주소 8개 재수집, 그중 로그 내용이 바뀐 것은 7개)부터 HEAD와
+  결과가 달라진다(3개 주소).
+  이후 코드 변경은 N=272 결과에 영향이 없다.
+- 상세: `~/pbl_backup/repro/`, `~/pbl_backup/paper_v4/`.
+
 ## 실제 동작하는 파이프라인 경로
 
 프로젝트에 `analysis/*.js`(최상위)와 `analysis/analysis/*.js`(중첩) 두 개의 파이프라인
@@ -16,9 +89,12 @@
   `prevention_reasoner.js`의 `import { FraudOntology } from "./analysis/fraud_ontology.js"`는
   상대경로 계산상 정확히 `analysis/analysis/fraud_ontology.js`(중첩)를 가리켜서 **정상
   import된다.** 다만 컨트랙트 소스는 `PROJECT_ROOT/contracts/`(= pbl 최상위 `contracts/`)
-  에서 읽는데, 이 폴더에는 Honeypot·PonziLabPatched가 아예 없고 RugPull/MoneyLaundering/
-  PumpDump.sol 내용도 `analysis/contracts/`의 것과 **다르다**(구버전으로 추정, `diff`로
-  확인됨). 즉 "깨진" 게 아니라 "구버전 5개 컨트랙트만 커버하는 별도 스냅샷"이다.
+  에서 읽는데, 이 폴더에는 Honeypot·PonziLabPatched가 아예 없다. 두 디렉터리에 공통으로
+  있는 5개 .sol(MoneyLaundering, NormalStaking, PonziLab, PumpDump, RugPull)은 내용이 같고
+  (git blob 동일, 작업트리 차이는 줄바꿈뿐), 차이는 파일 구성(`contracts/`에만
+  FlashLoanPattern·EvasiveContract, `analysis/contracts/`에만 Honeypot·PonziLabPatched)뿐이다.
+  **(2026-09-28 정정)** 이전 서술 "RugPull/MoneyLaundering/PumpDump.sol 내용이 다르다"는
+  CRLF 차이를 내용 차이로 잘못 읽은 것이었다. 즉 "깨진" 게 아니라 "구버전 5개 컨트랙트만 커버하는 별도 스냅샷"이다.
   `analysis/dynamic_analyzer.js`(최상위)는 `fraud_ontology.js`에 의존하지 않는
   자기완결형 축약 버전이며, `evaluation/ponzi_comparison/evaluate_comparison.js`가
   바로 이 최상위 버전을 사용한다(중첩 버전이 아님 — import 경로 `'../../analysis/dynamic_analyzer.js'`
@@ -309,7 +385,7 @@ dynamic_analyzer.js` 변경 전 439-444번 줄)는 순수 집합 멤버십
   실증된 2개 주소로 한정 — n=8 규모를 근거로 과확장하지 않음.
 - **회귀 확인**: BELLE 케이스 HopLaundering 점수 100→0(bothSides
   3→1로 트리거 조건 자체가 깨짐), Plus Token Ponzi 1은 100→100 불변.
-  기존 6개 컨트랙트+3개 회피 시나리오(`compare_evasion.js`)와 N=272
+  기존 6개 컨트랙트+3개 회피 시나리오(`analysis/compare_evasion.js`)와 N=272
   실데이터(`evaluate_comparison.js`, EXCLUDE_ADDRESSES 기존 설정 유지)는
   변경 전후 출력이 byte-identical — 회귀 없음.
 - **문서**: 온톨로지 설계서(`온톨로지_방법론_letter.docx`)는 바이너리라
@@ -319,10 +395,17 @@ dynamic_analyzer.js` 변경 전 439-444번 줄)는 순수 집합 멤버십
 
 ## 대시보드 조사 + Panel 5 "탐지 근거" 구현 (2026-08-30)
 
-- **정본 파일**: `analysis/dashboard.html`이 유일한 정본. `analysis/
-  analysis/dashboard.html`(별도 중첩 git 저장소, 죽은 코드)은 함수
-  인벤토리가 완전히 동일한 방치된 복제본일 뿐 — 두 파일 다 git
-  이력이 초기 업로드 커밋(`fc9aa60`) 하나뿐, 이후 수정 없음.
+- **정본 파일**: `analysis/dashboard.html`이 Panel 5를 포함한 정본이다.
+  `analysis/analysis/dashboard.html`은 Panel 5 추가 이전 상태의 대시보드다.
+  **(2026-09-28 정정)** 이전 서술("`analysis/analysis/`는 별도 중첩 git
+  저장소, 죽은 코드")은 사실이 아니었다. 중첩 git 저장소는
+  `analysis/analysis/`가 아니라 `analysis/.git`이었고, 2026-09-28에 저장소
+  밖(`~/pbl_backup/analysis_dotgit`, 번들 `~/pbl_backup/nested_20260928.bundle`)으로
+  옮겨 현재는 없다. `analysis/analysis/`는 죽은 코드가 아니라
+  `analysis/package.json`의 `analyze` 진입점이자 중첩 hardhat 시뮬레이션의
+  별도 작업 흐름이다(`analysis/scripts/` → `analysis/analysis/logs/` →
+  `analysis/analysis/pipeline.js` → `analysis/analysis/dashboard.html`).
+  상세는 상단 "저장소 구조 (2026-09-28 기준)" 절 참고.
 - **mock vs 실데이터 경계**: L0/Panel 1~4/renderL1() 초기 렌더링은
   전부 하드코딩 `RAW_DATA`(주석: "Sample Data")를 클라이언트 JS로
   재계산한 것. 실 파이프라인 데이터는 `loadReport()` 함수 하나(주석

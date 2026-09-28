@@ -752,11 +752,22 @@ score = min(100, hopAddrs.length*30 + bothSides.length*20)
 ```
 
 `analysis/analysis/dynamic_analyzer.js`(중첩 디렉터리, `detectEvasionSubclass()`
-내부)에도 동일 조건식이 존재하지만, `analysis/` 자체가 별도의 독립 git
-저장소(origin: `yuna32/PBLblockchain`)이고 그 안에 프로젝트 전체가
-한 번 더 clone된 흔적이다. `run_all_scenarios.js`/`pipeline.js`/
-`compare_evasion.js`/`evaluate_comparison.js` 전부 최상위 버전만
-import하므로 **중첩 버전은 죽은 코드** — 이번 작업에서 건드리지 않았다.
+내부)에도 동일 조건식이 존재한다. `scenarios/run_all_scenarios.js`,
+`analysis/pipeline.js`, `analysis/compare_evasion.js`,
+`evaluation/ponzi_comparison/evaluate_comparison.js`는 모두 최상위
+`analysis/dynamic_analyzer.js`를 import하므로 이번 작업에서 중첩 버전은
+건드리지 않았다.
+**(2026-09-28 정정)** 이 자리의 이전 서술 중 "`analysis/`가 별도의 독립 git
+저장소"라는 부분은 작성 당시에는 맞았으나(`analysis/.git`, origin
+`yuna32/PBLblockchain`), 이 중첩 저장소는 2026-09-28에 저장소 밖
+(`~/pbl_backup/analysis_dotgit`, 번들 `~/pbl_backup/nested_20260928.bundle`)으로
+옮겨져 현재는 없다. "중첩 버전은 죽은 코드"라는 부분은 사실이 아니다 —
+`analysis/analysis/dynamic_analyzer.js`는 `analysis/analysis/pipeline.js`가
+import하며, 이 pipeline은 `analysis/package.json`의 `analyze` 진입점이자 중첩
+hardhat 시뮬레이션의 별도 작업 흐름이다(`analysis/scripts/` →
+`analysis/analysis/logs/` → `analysis/analysis/pipeline.js` →
+`analysis/analysis/dashboard.html`). 상세는 `CLAUDE.md`의 "저장소 구조
+(2026-09-28 기준)" 절 참고.
 
 **N=272 실데이터(XBlock, `evaluate_comparison.js`)에는 이 조건을 실행할
 입력 자체가 없다** — MoneyLaundering 라벨이 없고, `fetch_and_convert.js`의
