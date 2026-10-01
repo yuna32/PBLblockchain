@@ -55,7 +55,7 @@ npm run normal       # → analysis/logs/normal_log.csv
 npm run rugpull      # → analysis/logs/rugpull_log.csv
 npm run laundering   # → analysis/logs/laundering_log.csv
 npm run pumpdump     # → analysis/logs/pumpdump_log.csv
-npm run honeypot     # → analysis/logs/honeypot_log.csv
+npm run honeypot     # → analysis/logs/honeypot_sim_log.csv (fixture honeypot_log.csv는 덮어쓰지 않음)
 npm run evasion      # → analysis/logs/evasion_patched_log.csv
 ```
 
@@ -316,7 +316,8 @@ pbl/
 │   ├── dashboard.html           ← 대시보드 (허니팟탭·6축레이더·ZERO_WITHDRAW)
 │   ├── logs/                    ← 시뮬레이션 CSV 로그
 │   │   ├── ponzi_log.csv
-│   │   ├── honeypot_log.csv     ← (NEW)
+│   │   ├── honeypot_log.csv     ← 허니팟 fixture (8열·13행, 메인 pipeline 입력)
+│   │   ├── honeypot_sim_log.csv ← npm run honeypot 출력 (git 무시)
 │   │   ├── evasion_patched_log.csv ← (NEW)
 │   │   └── *.csv
 │   ├── reports/                 ← 파이프라인 출력 (자동 생성)
@@ -365,26 +366,34 @@ pbl/
 
 ```bash
 npm run honeypot
-# → analysis/logs/honeypot_log.csv
-# Phase 1: 10명 입금 (1.0 ETH 각, 2블록 간격)
-# Phase 2: 5명 출금 시도 → 실패 (withdraw_attempt, amount=0)
-# Phase 3: Owner가 ownerCollect()로 10 ETH 전액 수집
+# → analysis/logs/honeypot_sim_log.csv  (fixture analysis/logs/honeypot_log.csv는 덮어쓰지 않음)
+# Phase 1: 5명 입금 (1.0 ETH 각)
+# Phase 2: 먼저 입금한 3명 출금 시도 → withdraw() revert (컨트랙트→지갑 withdraw 행, amount_eth=0)
+# Phase 3: 출금 실패 이후에도 신규 3명 입금
+# Phase 4: 나머지 2명 출금 시도 → revert. ownerCollect() 호출 없이 8 ETH가 묶인 채 종료
 ```
 
-### CSV 특이 컬럼
+생성 로그는 메인 흐름 fixture `analysis/logs/honeypot_log.csv`(8열·13행)와 timestamp 열만 다릅니다
+(fixture의 timestamp는 합성값). 시뮬레이션은 행마다 2블록 간격으로 채굴해 block 값도 fixture와 맞춥니다.
 
-`honeypot_log.csv`는 `withdraw_success` 컬럼을 추가로 포함합니다:
-- 입금: 빈 값
-- 출금 시도: `false`
-- 오너 수집: 빈 값
+### CSV 컬럼
+
+메인 흐름 허니팟 로그는 다른 컨트랙트와 같은 8열
+(`block,timestamp,from,to,action,amount_eth,contract_balance_eth,participant_count`)입니다.
+`withdraw_success` 열은 없으며, 이 열을 읽는 코드도 없습니다.
+
+중첩(③) 흐름의 `analysis/analysis/logs/honeypot_log.csv`는 별개 시나리오의 9열·16행 fixture입니다
+(입금 10 → `withdraw_attempt` 5(`withdraw_success=false`) → `owner_collect` 10 ETH). 현재 생성기는 없습니다
+(9열을 만들던 이전 `scripts/simulate_honeypot.js`는 커밋 `cb3b746` 이전 git 이력에 있음). 메인 pipeline은
+`withdraw_attempt`·`owner_collect`를 출금으로 인식하지 않고, 입금이 모두 끝난 뒤 실패가 일어나 InflowContinues도
+성립하지 않으므로, 이 9열 로그를 메인에 넣으면 HoneyPot 판정이 사라집니다.
 
 ### 탐지 결과 (동적 분석)
 
-| 규칙 | 트리거 이유 |
-|------|----------|
-| ZERO_WITHDRAW_PATTERN | `withdraw_attempt` 존재 + 실제 출금 0 |
-| BALANCE_DROP | `owner_collect` 후 잔고 0으로 급락 |
-| FLOW_SPIKE | 단일 `owner_collect`가 총 입금의 100% |
+| 흐름 | 입력 로그 | 결과 |
+|------|----------|------|
+| 메인 (`analysis/pipeline.js`) | 8열 fixture | LOW_RISK / 0, `fraud_type_hint=honeypot`, `honeypot_subclass=HoneyPot_UniversalTrap` (비오너 출금 성공률 0, 실패 시점 잔고 8 ETH, 실패 이후 입금 지속) |
+| 중첩 (`analysis/analysis/pipeline.js`) | 9열 fixture | ZERO_WITHDRAW_PATTERN·BALANCE_DROP·FLOW_SPIKE·CONCENTRATION_DRAIN → HIGH_RISK / 100, `honeypot` |
 
 ---
 

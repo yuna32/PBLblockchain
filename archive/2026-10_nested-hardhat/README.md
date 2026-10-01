@@ -18,6 +18,10 @@
   루트 `scripts/`로 옮겼다(`git mv`). 루트 `package.json`의 `honeypot`, `evasion`
   script로 실행하며 출력은 `analysis/logs/`다. PonziLabPatched 로그 파일명은
   `analysis/pipeline.js`의 CONTRACT_MAP에 맞춰 `ponzipatched_log.csv`로 바꿨다.
+  (2026-10-01 이후) `simulate_honeypot.js`는 `cb3b746`에서 메인 흐름 fixture
+  `analysis/logs/honeypot_log.csv`(8열) 시나리오를 재현하도록 바꾸고 출력을
+  `analysis/logs/honeypot_sim_log.csv`로 분리했다. 옮겨 오기 전 스크립트는 9열 시나리오
+  (= `analysis/analysis/logs/honeypot_log.csv`)를 만들었다.
 - 나머지 파일은 루트 hardhat 프로젝트에 같은 파일이 있거나, 루트 쪽이 상위 버전이다.
 
 ## 옮긴 파일

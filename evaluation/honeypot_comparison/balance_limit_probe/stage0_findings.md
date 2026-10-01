@@ -43,6 +43,12 @@
    `0x3c44cddd...` 등)는 전부 Hardhat 기본 니모닉의 표준 테스트 계정이고,
    컨트랙트도 로그당 1개씩(총 2개)뿐이다. "244개 허니팟" 규모의 데이터가 될 수
    없다.
+   **(2026-10-01 정정)** 위 두 로그는 `analysis/scripts/simulate_honeypot.js`가 만든 것이
+   아니었다. 당시 그 스크립트는 9열 시나리오(`analysis/analysis/logs/honeypot_log.csv`)를
+   만들었고, 8열 `honeypot_log.csv`(헤더 포함 14줄 = 데이터 13행, timestamp는 합성값)와
+   `honeypot_selective_log.csv`는 생성기가 없는 고정 fixture였다. 지금은 `scripts/simulate_honeypot.js`가
+   `honeypot_log.csv` 시나리오를 재현하고 출력은 `analysis/logs/honeypot_sim_log.csv`다(fixture는
+   덮어쓰지 않음). "실데이터가 아니라 합성 시뮬레이션"이라는 결론은 그대로다.
 
 즉 이 저장소에는 **HoneyBadger 주소를 기준으로 실제 이더리움 온체인 트랜잭션을
 수집한 로그가 없다.** `fetch_and_convert_v2.js`(`evaluation/hoplaundering/`)는

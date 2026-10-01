@@ -67,11 +67,18 @@
 
 ### 시뮬레이션
 
-- `npm run honeypot`(`scripts/simulate_honeypot.js`)은 `analysis/logs/honeypot_log.csv`를 **다른
-  시나리오로 덮어쓴다**. 현재 그 파일(8열·13행, 입금/`withdraw` 혼합)은 메인 pipeline과
-  `ontology/load_instances.py`가 읽는 회귀 기준 로그이고, 스크립트는 9열·16행
-  (`withdraw_attempt`·`owner_collect`, = `analysis/analysis/logs/honeypot_log.csv`) 로그를 만든다.
-  실행 전 `analysis/logs/`를 백업할 것.
+- 메인 흐름 Honeypot fixture는 `analysis/logs/honeypot_log.csv`(8열·13행: 입금 5 → 출금 실패 3 →
+  입금 3 → 출금 실패 2, 8 ETH 묶임)이고, 메인 pipeline과 `ontology/load_instances.py`가 읽는다.
+  `npm run honeypot`(`scripts/simulate_honeypot.js`)은 같은 시나리오를 만들어
+  `analysis/logs/honeypot_sim_log.csv`에 쓴다(`.gitignore` 대상, fixture는 덮어쓰지 않음, `cb3b746`).
+  출금 실패는 `withdraw()`의 실제 revert를 확인한 뒤 기록하고, 행마다 2블록 간격으로 채굴해 block 값까지
+  맞춘다. fixture의 timestamp는 합성값이라 생성 로그와는 timestamp 열만 다르다.
+- 중첩(③) 흐름 fixture `analysis/analysis/logs/honeypot_log.csv`는 별개 시나리오의 9열·16행 로그다
+  (입금 10 → `withdraw_attempt` 5 → `owner_collect` 10 ETH). 지금은 생성기가 없다(만들던 이전
+  `scripts/simulate_honeypot.js`는 `cb3b746` 이전 이력에 있음). 메인 pipeline에 넣으면
+  `withdraw_attempt`·`owner_collect`를 출금으로 인식하지 못하고 InflowContinues도 성립하지 않아
+  HoneyPot 판정이 사라진다(동적 hint honeypot→unknown, OWL inferred_types ["HoneyPot"]→[]).
+- `withdraw_success` 열(9열 로그에만 있음)을 읽는 코드는 없다.
 - `npm run evasion`(`scripts/simulate_evasion_patched.js`)은 `analysis/logs/ponzipatched_log.csv`를
   쓴다(메인 pipeline CONTRACT_MAP의 이름). 현재 파일은 `analysis/analysis/logs/evasion_patched_log.csv`
   사본이며, 재실행 결과와 timestamp 열 외에 동일하다.
@@ -84,14 +91,14 @@
 - `analysis/.gitignore`: `node_modules/` 한 줄. 위 폴더를 지우면 함께 정리.
 - `analysis/GUIDE.md`: 루트 프로젝트 기준 초기 실습 안내(컨트랙트 6개 시절 트리·`npx` 명령) — 9개 구조로 갱신하거나 위치 재검토.
 - 옛 경로·로그명 표기: `PIPELINE_README.md`(`evasion_patched_log.csv`, `analysis/scripts/` 트리),
-  `EVASION_ANALYSIS.md:766-767`, `evaluation/honeypot_comparison/balance_limit_probe/stage0_findings.md:41`,
-  `analysis/dynamic_analyzer.js:302` 주석.
-- 두 honeypot 로그(`analysis/logs/` vs `analysis/analysis/logs/`) 중 회귀 기준 선택.
+  `EVASION_ANALYSIS.md:766-767`, `analysis/dynamic_analyzer.js:302` 주석.
 - 대시보드 `_TYPE_MAP`에 `honeypot` 항목이 없어 Honeypot 리포트를 불러오면 유형 표시가 ponzi로 바뀐다.
 - 중첩 `analysis/analysis/pipeline.js:276-285`는 prevention 필드를 골라 담기 때문에 중첩 리포트에는
   `honeypot_code_pattern_subclasses`가 실리지 않는다(`[코드패턴]` 추론 과정 2줄만 실림). 수정 보류.
 - (확인 후보) PonziLabPatched 리포트의 static 점수 0→100: 정적 분석기가 이 소스를 처음 분석한 결과다.
   패치 내용이 반영된 값인지, 정적 분석기의 한계인지는 아직 확인하지 않았다.
+- `ontology/owl_results.json`의 `contract_honeypot_selective.causal_edges`가 커밋본(3개)과 HEAD에서
+  OWL 파이프라인을 다시 돌린 결과(0개)에서 다르다. 이번 작업과 무관, 원인 미조사.
 
 ### 알려진 주의
 
