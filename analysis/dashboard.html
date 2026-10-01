@@ -249,6 +249,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Segoe UI',system-ui,sans-
       <button class="tpill" data-type="laundering">자금세탁</button>
       <button class="tpill" data-type="pumpdump">펌프앤덤프</button>
       <button class="tpill" data-type="flashloan">플래시론</button>
+      <button class="tpill" data-type="honeypot">허니팟</button>
       <button class="tpill" data-type="normal">정상 스테이킹</button>
     </div>
     <div class="rpt-loader" id="rpt-loader">
@@ -443,7 +444,8 @@ const CA = {
   rugpull:    '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512',
   laundering: '0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0',
   pumpdump:   '0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9',
-  flashloan:  '0xdc64a140aa3e981100a9beca4e685f962f0cf6c9'
+  flashloan:  '0xdc64a140aa3e981100a9beca4e685f962f0cf6c9',
+  honeypot:   '0x5fbdb2315678afecb367f032d93f642f64180aa3'
 };
 const DEPOSIT_ACTS  = new Set(['deposit','stake','fund_reward_pool']);
 const WITHDRAW_ACTS = new Set(['withdraw','unstake','owner_withdraw_all']);
@@ -455,7 +457,7 @@ const AX_WEIGHTS = [0.30, 0.25, 0.15, 0.15, 0.15];
 const AX_WT_LBL  = ['30%','25%','15%','15%','15%'];
 
 // Per-fraud-type highlight axes (0-indexed), used to flag key risk indicators
-const HL_AXES = { ponzi:[1], rugpull:[0], laundering:[0,2], pumpdump:[4], flashloan:[1], normal:[] };
+const HL_AXES = { ponzi:[1], rugpull:[0], laundering:[0,2], pumpdump:[4], flashloan:[1], normal:[], honeypot:[0] };
 
 // Base Trust Score vectors per fraud type [blacklist, flow, scam, age, diversity]
 const BASE_VEC = {
@@ -464,6 +466,7 @@ const BASE_VEC = {
   laundering: [10, 34, 18, 68, 22],
   pumpdump:   [58, 28, 48, 36, 15],
   flashloan:  [72,  8, 62, 82, 88],
+  honeypot:   [ 0,  5, 10, 45, 15],
   normal:     [92, 88, 95, 90, 88],
 };
 
@@ -473,6 +476,7 @@ const FRAUD_META = {
   laundering: { label:'자금세탁',     color:'#f85149', risk:'high' },
   pumpdump:   { label:'펌프앤덤프',   color:'#d29922', risk:'med'  },
   flashloan:  { label:'플래시론',     color:'#d29922', risk:'med'  },
+  honeypot:   { label:'허니팟',       color:'#f85149', risk:'high' },
   normal:     { label:'정상 스테이킹', color:'#3fb950', risk:'low' },
 };
 
@@ -482,6 +486,7 @@ const PATTERNS = {
   laundering: { verdict:'자금세탁 패턴 감지', desc:'<strong>다수 지갑의 소액 분산 입금</strong> 후 <strong>단일 지갑 대규모 집계 인출</strong>. 주소 분산을 통한 자금 출처 은닉(레이어링) 기법입니다.' },
   pumpdump:   { verdict:'펌프앤덤프 의심', desc:'<strong>내부자 대량 입금(pump)</strong> → 후발자 유입 → <strong>내부자 자신의 입금액 이상 인출(dump)</strong>. 후발자는 0 ETH 손실.' },
   flashloan:  { verdict:'플래시론 악용 의심', desc:'<strong>동일 블록 내 대규모 입금 + 즉시 전액 인출</strong> 반복. 담보 없이 일시적 유동성을 확보하는 플래시론 악용 패턴입니다.' },
+  honeypot:   { verdict:'허니팟 함정 감지', desc:'<strong>입금은 정상 작동하여 신뢰를 유도</strong>하지만 출금 함수 내부의 숨겨진 조건으로 <strong>모든 출금 시도가 실패</strong>합니다. 출금이 막힌 뒤에도 신규 입금이 이어지며 자금은 컨트랙트에 묶입니다.' },
   normal:     { verdict:'정상 컨트랙트', desc:'입출금이 <strong>전체 참여자에게 고르게 분산</strong>되며 잔고가 완만하게 감소합니다. 블랙리스트 연관성이 없고 활동 이력이 안정적입니다.' },
 };
 
@@ -502,6 +507,21 @@ const RAW_DATA = {
     {block:35,from:CA.ponzi,to:W[1],action:'withdraw',amount_eth:1.1,contract_balance_eth:7.8, participant_count:10},
     {block:37,from:CA.ponzi,to:W[2],action:'withdraw',amount_eth:1.1,contract_balance_eth:6.7, participant_count:10},
     {block:41,from:CA.ponzi,to:OWN, action:'owner_withdraw_all',amount_eth:6.7,contract_balance_eth:0.0,participant_count:10}
+  ],
+  honeypot:[
+    {block:2,from:W[0],to:CA.honeypot,action:'deposit',amount_eth:1.0,contract_balance_eth:1.0,participant_count:1},
+    {block:4,from:W[1],to:CA.honeypot,action:'deposit',amount_eth:1.0,contract_balance_eth:2.0,participant_count:2},
+    {block:6,from:W[2],to:CA.honeypot,action:'deposit',amount_eth:1.0,contract_balance_eth:3.0,participant_count:3},
+    {block:8,from:W[3],to:CA.honeypot,action:'deposit',amount_eth:1.0,contract_balance_eth:4.0,participant_count:4},
+    {block:10,from:W[4],to:CA.honeypot,action:'deposit',amount_eth:1.0,contract_balance_eth:5.0,participant_count:5},
+    {block:12,from:CA.honeypot,to:W[0],action:'withdraw',amount_eth:0.0,contract_balance_eth:5.0,participant_count:5},
+    {block:14,from:CA.honeypot,to:W[1],action:'withdraw',amount_eth:0.0,contract_balance_eth:5.0,participant_count:5},
+    {block:16,from:CA.honeypot,to:W[2],action:'withdraw',amount_eth:0.0,contract_balance_eth:5.0,participant_count:5},
+    {block:18,from:W[5],to:CA.honeypot,action:'deposit',amount_eth:1.0,contract_balance_eth:6.0,participant_count:6},
+    {block:20,from:W[6],to:CA.honeypot,action:'deposit',amount_eth:1.0,contract_balance_eth:7.0,participant_count:7},
+    {block:22,from:W[7],to:CA.honeypot,action:'deposit',amount_eth:1.0,contract_balance_eth:8.0,participant_count:8},
+    {block:24,from:CA.honeypot,to:W[3],action:'withdraw',amount_eth:0.0,contract_balance_eth:8.0,participant_count:8},
+    {block:26,from:CA.honeypot,to:W[4],action:'withdraw',amount_eth:0.0,contract_balance_eth:8.0,participant_count:8}
   ],
   normal:[
     {block:1, from:OWN,  to:CA.normal,action:'fund_reward_pool',amount_eth:5.0,contract_balance_eth:5.0, participant_count:0},
@@ -1086,7 +1106,7 @@ document.getElementById('addr-in').value=CA.ponzi;
   if(!names.length) document.getElementById('rpt-loader').style.display='none';
 })();
 
-const _TYPE_MAP={ponzi:'ponzi',rugpull:'rugpull',laundering:'laundering',pumpdump:'pumpdump',flashloan:'flashloan',normal:'normal'};
+const _TYPE_MAP={ponzi:'ponzi',rugpull:'rugpull',laundering:'laundering',pumpdump:'pumpdump',flashloan:'flashloan',honeypot:'honeypot',normal:'normal'};
 const _GRADE_COLORS={A:'var(--gr)',B:'var(--bl)',C:'var(--ye)',D:'var(--or)',F:'var(--re)'};
 const _GRADE_LABELS={A:'SAFE',B:'LOW_RISK',C:'MODERATE',D:'HIGH_RISK',F:'CRITICAL'};
 
