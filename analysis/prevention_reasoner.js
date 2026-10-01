@@ -3,6 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { FraudOntology } from "./analysis/fraud_ontology.js";
 import { analyzeStatic }  from "./static_analyzer.js";
+import { detectHiddenStateUpdate, detectStrawManContract } from "./honeypot_code_patterns.js";
 
 const __filename   = fileURLToPath(import.meta.url);
 const __dirname    = path.dirname(__filename);
@@ -84,6 +85,7 @@ export async function runPrevention(contractName) {
       risk_label: "파일 없음",
       unmet_conditions: [],
       deployment_recommendation: "파일을 찾을 수 없음",
+      honeypot_code_pattern_subclasses: [],
       ontology_reasoning_chain: [`오류: 소스 파일 없음 → ${solPath}`]
     };
   }
@@ -108,6 +110,7 @@ export async function runPrevention(contractName) {
       risk_label: "정상 구조",
       unmet_conditions: [],
       deployment_recommendation: "사기 패턴 미검출. 배포 가능.",
+      honeypot_code_pattern_subclasses: [],
       ontology_reasoning_chain: chain
     };
   }
@@ -184,6 +187,34 @@ export async function runPrevention(contractName) {
     chain.push(`결론: 배포 전 ${detectedCount}개 항목 수정 필요`);
   }
 
+  // ── HoneyPot 코드축 서브클래스 2차 분류 (boolean, 기존 판정에 영향 없는 부가 추론) ──
+  const honeypot_code_pattern_subclasses = [];
+  if (fraudType === "HoneypotTrap") {
+    const codePatterns = FraudOntology.fraudTypes.HoneypotTrap.codePatternSubclasses || {};
+
+    const hsu = detectHiddenStateUpdate(lines);
+    chain.push(`[코드패턴] HiddenStateUpdate: ${hsu.evidence} → ${hsu.matched ? "매치" : "불일치"}`);
+    if (hsu.matched) {
+      honeypot_code_pattern_subclasses.push({
+        id: codePatterns.HiddenStateUpdate.id,
+        label: codePatterns.HiddenStateUpdate.label,
+        codePattern: "HiddenStateUpdatePattern",
+        evidence: hsu.evidence
+      });
+    }
+
+    const smc = detectStrawManContract(src, lines);
+    chain.push(`[코드패턴] StrawManContract: ${smc.evidence} → ${smc.matched ? "매치" : "불일치"}`);
+    if (smc.matched) {
+      honeypot_code_pattern_subclasses.push({
+        id: codePatterns.StrawManContract.id,
+        label: codePatterns.StrawManContract.label,
+        codePattern: "StrawManContractPattern",
+        evidence: smc.evidence
+      });
+    }
+  }
+
   return {
     contract: contractName,
     fraud_type_suspected:     fraudType,
@@ -193,6 +224,7 @@ export async function runPrevention(contractName) {
     risk_label,
     unmet_conditions:         unmet,
     deployment_recommendation,
+    honeypot_code_pattern_subclasses,
     ontology_reasoning_chain: chain
   };
 }
