@@ -1,51 +1,97 @@
 # PBL 프로젝트 메모
 
-## 저장소 구조 (2026-09-28 기준)
+## 저장소 구조 (2026-10-01 기준)
 
-> 2026-09-28 정리 결과를 기준으로 한 현재 구조. 아래 과거 기록 절들의 경로·상태
-> 서술과 충돌하면 이 절이 우선한다.
+> 2026-10-01 정리(컨트랙트 9개 통합, 중첩 hardhat 아카이브, HSU/SMC 메인 연결) 결과를 기준으로 한
+> 현재 구조. 아래 과거 기록 절들의 경로·상태 서술과 충돌하면 이 절이 우선한다.
 
 ### 작업 흐름 ② vs ③
 
-| 구분 | 흐름 ② (주 흐름) | 흐름 ③ (중첩 hardhat) |
+| 구분 | 흐름 ② (주 흐름) | 흐름 ③ (중첩 pipeline) |
 |---|---|---|
-| 실행 위치 | 저장소 루트 | `analysis/` |
-| hardhat 프로젝트 | `package.json`, `hardhat.config.js` | `analysis/package.json`, `analysis/hardhat.config.js` |
-| contracts | `contracts/` (A) | `analysis/contracts/` (B) |
-| 시뮬레이션 | `scripts/simulate_*.js` | `analysis/scripts/simulate_*.js` (honeypot, evasion_patched 포함) |
-| 로그 | `analysis/logs/` | `analysis/analysis/logs/` |
-| 파이프라인 (`npm run analyze`) | `analysis/pipeline.js` | `analysis/analysis/pipeline.js` |
-| prevention | `analysis/prevention_reasoner.js` (구본, contracts A) | `analysis/analysis/prevention_reasoner.js` (중첩본, contracts B) |
+| 실행 위치 | 저장소 루트 | 저장소 루트 |
+| hardhat 프로젝트 | `package.json`, `hardhat.config.js` | 없음 — ②와 공유 (중첩 hardhat 묶음은 `archive/2026-10_nested-hardhat/`) |
+| contracts | `contracts/` (9개) | `contracts/` (②와 공유) |
+| 시뮬레이션 | `scripts/simulate_*.js` (honeypot, evasion_patched 포함) | 없음 — ②와 공유 |
+| 로그 | `analysis/logs/` | `analysis/analysis/logs/` (기존 로그 보존용. 새 시뮬레이션은 여기에 쓰지 않음) |
+| 파이프라인 | `analysis/pipeline.js` (`npm run analyze`) | `analysis/analysis/pipeline.js` (npm script 없음 — `node analysis/analysis/pipeline.js --contract <이름>`) |
+| prevention | `analysis/prevention_reasoner.js` (메인, HSU/SMC 2차 분류 포함) | `analysis/analysis/prevention_reasoner.js` (중첩본, `predictCausalSignals` 포함) |
+| HSU/SMC 탐지 | `analysis/honeypot_code_patterns.js` | 같은 모듈을 import·re-export |
 | 리포트 | `analysis/reports/` | `analysis/analysis/reports/` |
-| 대시보드 | `analysis/dashboard.html` (Panel 5 포함) | `analysis/analysis/dashboard.html` (Panel 5 이전) |
+| 대시보드 | `analysis/dashboard.html` (Panel 5, 코드 패턴 블록 포함) | `analysis/analysis/dashboard.html` (Panel 5 이전) |
 
 - N=272 실데이터 비교(`evaluation/ponzi_comparison/evaluate_comparison.js`)는 흐름 ②의
   `analysis/dynamic_analyzer.js`와 `analysis/analysis/fraud_ontology.js`의 `preventionRules`를 쓴다.
-- HSU/SMC 평가(`evaluation/honeypot_comparison/`)는 흐름 ③의 중첩 `prevention_reasoner.js`를 쓴다.
+- HSU/SMC 평가(`evaluation/honeypot_comparison/`)는 중첩 `prevention_reasoner.js`에서 import하지만,
+  실제 로직은 `analysis/honeypot_code_patterns.js`에 있다(중첩 reasoner는 re-export만 함).
 - 루트에 있던 초기 파이프라인 사본 9개 항목은 `archive/2026-09_pre-cleanup/`로 옮겼다(f27a283, 해당 폴더 README 참고).
+- 중첩 hardhat 묶음(`analysis/package.json`, `package-lock.json`, `hardhat.config.js`, `contracts/` 공유 5개,
+  `scripts/` 7개)은 `archive/2026-10_nested-hardhat/`로 옮겼다(해당 폴더 README 참고).
+  재생성 가능한 `analysis/artifacts/`, `analysis/cache/`는 삭제했다.
+- 2026-10-01 정리 커밋: `a110c00`(컨트랙트 통합·중첩 hardhat 아카이브), `53bb057`(HSU/SMC 공용 모듈·메인
+  reasoner 연결), `43bc6d0`(Panel 5 코드 패턴 블록·리포트 7개 재생성).
 
 ### 파일별 정본
 
 - `dynamic_analyzer.js`: **`analysis/dynamic_analyzer.js`(②)**. 메인 pipeline, N=272 평가,
   `scenarios/`, `analysis/compare_evasion.js`가 사용. `analysis/analysis/dynamic_analyzer.js`는
   ③ pipeline 전용(FraudOntology 연동 버전).
-- `prevention_reasoner.js`: 두 벌이며 용도가 다르다.
-  - `analysis/prevention_reasoner.js`(205줄 구본): `analysis/pipeline.js:7`,
-    `scenarios/run_all_scenarios.js:51`이 사용. contracts A를 읽으며 HSU/SMC 탐지 없음.
-  - `analysis/analysis/prevention_reasoner.js`(중첩본): HSU/SMC 탐지와 `predictCausalSignals` 포함.
-    ③ pipeline과 `evaluation/honeypot_comparison/*`가 사용. contracts B를 읽음.
+- `prevention_reasoner.js`: 두 벌이며 용도가 다르다. 둘 다 저장소 루트 `contracts/`를 읽는다.
+  - `analysis/prevention_reasoner.js`(237줄 메인): `analysis/pipeline.js:7`,
+    `scenarios/run_all_scenarios.js:51`이 사용. `fraudType==="HoneypotTrap"`일 때만 HSU/SMC 2차 분류를
+    실행해 추론 과정에 `[코드패턴]` 2줄을 더하고, `honeypot_code_pattern_subclasses`는 **모든 반환 경로**
+    (소스 없음, 패턴 미검출로 일찍 반환, 정상 반환)에 넣는다(해당 없으면 `[]`). `predictCausalSignals` 없음.
+  - `analysis/analysis/prevention_reasoner.js`(중첩본): `predictCausalSignals` 포함.
+    ③ pipeline과 `evaluation/honeypot_comparison/*`가 사용. HSU/SMC 함수는
+    `analysis/honeypot_code_patterns.js`에서 import해 같은 이름으로 re-export한다. 일찍 반환하는 경로
+    (NormalStaking 등)에는 `honeypot_code_pattern_subclasses`가 없다(메인과 다름, 반환 형태 유지).
     온톨로지 지식 관련 수정은 이 파일 기준.
-- `fraud_ontology.js`: **`analysis/analysis/fraud_ontology.js` 하나뿐**. 구본 reasoner도
+- `honeypot_code_patterns.js`: **`analysis/honeypot_code_patterns.js`** — HSU/SMC 탐지 정본
+  (2026-10-01 중첩 reasoner에서 로직 변경 없이 추출). `ontology/load_instances.py`에 같은 로직의
+  Python 독립 구현이 있으므로(교차검산용) 한쪽을 고치면 다른 쪽도 맞출 것.
+- `fraud_ontology.js`: **`analysis/analysis/fraud_ontology.js` 하나뿐**. 메인 reasoner도
   `./analysis/fraud_ontology.js` 경로로 이 파일을 import한다.
-- `dashboard.html`: **`analysis/dashboard.html`**.
+- `dashboard.html`: **`analysis/dashboard.html`**. Panel 5 예방 탭의 "코드 패턴" 블록은
+  `honeypot_code_pattern_subclasses`가 undefined면 "코드 패턴 분류 이전 버전(재실행 필요)",
+  `[]`면 "해당 코드 패턴 없음", 항목이 있으면 카드(label·id·codePattern·근거)로 표시한다.
 
 ### contracts
 
-- 공유 5개(MoneyLaundering, NormalStaking, PonziLab, PumpDump, RugPull)는 A와 B의 git blob이
-  동일하다(저장소 이력 전체에서도 파일당 blob 1개). 작업트리의 차이는 줄바꿈뿐이다.
-- A(`contracts/`)에만: FlashLoanPattern, EvasiveContract.
-  B(`analysis/contracts/`)에만: Honeypot, PonziLabPatched.
-- 그래서 흐름 ②의 `analysis/pipeline.js`는 Honeypot·PonziLabPatched를 "소스 파일 없음"으로 처리한다.
+- 저장소 루트 `contracts/` 한 곳에 9개: EvasiveContract, FlashLoanPattern, Honeypot, MoneyLaundering,
+  NormalStaking, PonziLab, PonziLabPatched, PumpDump, RugPull. 메인·중첩 pipeline과 reasoner,
+  `ontology/load_instances.py`가 모두 여기서 읽는다.
+- Honeypot·PonziLabPatched는 2026-10-01에 `analysis/contracts/`에서 `git mv`로 옮겼다. 남은 공유
+  5개 사본은 루트와 git blob이 같아 아카이브했다.
+- 그 결과 메인 리포트에서 Honeypot은 전체 등급 A→C(예방 HIGH로 상한 적용), PonziLabPatched는
+  A→B가 됐다(이전 A는 소스·로그가 없어 생긴 값).
+
+### 시뮬레이션
+
+- `npm run honeypot`(`scripts/simulate_honeypot.js`)은 `analysis/logs/honeypot_log.csv`를 **다른
+  시나리오로 덮어쓴다**. 현재 그 파일(8열·13행, 입금/`withdraw` 혼합)은 메인 pipeline과
+  `ontology/load_instances.py`가 읽는 회귀 기준 로그이고, 스크립트는 9열·16행
+  (`withdraw_attempt`·`owner_collect`, = `analysis/analysis/logs/honeypot_log.csv`) 로그를 만든다.
+  실행 전 `analysis/logs/`를 백업할 것.
+- `npm run evasion`(`scripts/simulate_evasion_patched.js`)은 `analysis/logs/ponzipatched_log.csv`를
+  쓴다(메인 pipeline CONTRACT_MAP의 이름). 현재 파일은 `analysis/analysis/logs/evasion_patched_log.csv`
+  사본이며, 재실행 결과와 timestamp 열 외에 동일하다.
+- 루트 `artifacts/`, `cache/`는 git 추적 대상이라 compile하면 변경이 생긴다. Honeypot·PonziLabPatched
+  산출물은 아직 커밋하지 않았다 — compile 후에는 되돌리거나 별도 커밋으로 판단할 것.
+
+### 남은 정리 후보
+
+- `analysis/node_modules/`: 아카이브된 중첩 hardhat용. git 추적 대상 아님, 수동 삭제 가능.
+- `analysis/.gitignore`: `node_modules/` 한 줄. 위 폴더를 지우면 함께 정리.
+- `analysis/GUIDE.md`: 루트 프로젝트 기준 초기 실습 안내(컨트랙트 6개 시절 트리·`npx` 명령) — 9개 구조로 갱신하거나 위치 재검토.
+- 옛 경로·로그명 표기: `PIPELINE_README.md`(`evasion_patched_log.csv`, `analysis/scripts/` 트리),
+  `EVASION_ANALYSIS.md:766-767`, `evaluation/honeypot_comparison/balance_limit_probe/stage0_findings.md:41`,
+  `analysis/dynamic_analyzer.js:302` 주석.
+- 두 honeypot 로그(`analysis/logs/` vs `analysis/analysis/logs/`) 중 회귀 기준 선택.
+- 대시보드 `_TYPE_MAP`에 `honeypot` 항목이 없어 Honeypot 리포트를 불러오면 유형 표시가 ponzi로 바뀐다.
+- 중첩 `analysis/analysis/pipeline.js:276-285`는 prevention 필드를 골라 담기 때문에 중첩 리포트에는
+  `honeypot_code_pattern_subclasses`가 실리지 않는다(`[코드패턴]` 추론 과정 2줄만 실림). 수정 보류.
+- (확인 후보) PonziLabPatched 리포트의 static 점수 0→100: 정적 분석기가 이 소스를 처음 분석한 결과다.
+  패치 내용이 반영된 값인지, 정적 분석기의 한계인지는 아직 확인하지 않았다.
 
 ### 알려진 주의
 
@@ -95,6 +141,7 @@
   FlashLoanPattern·EvasiveContract, `analysis/contracts/`에만 Honeypot·PonziLabPatched)뿐이다.
   **(2026-09-28 정정)** 이전 서술 "RugPull/MoneyLaundering/PumpDump.sol 내용이 다르다"는
   CRLF 차이를 내용 차이로 잘못 읽은 것이었다. 즉 "깨진" 게 아니라 "구버전 5개 컨트랙트만 커버하는 별도 스냅샷"이다.
+  **(2026-10-01 정정)** 이제 루트 `contracts/`에 9개가 모두 있고 메인·중첩 reasoner가 같은 곳을 읽는다(상단 "저장소 구조" 절).
   `analysis/dynamic_analyzer.js`(최상위)는 `fraud_ontology.js`에 의존하지 않는
   자기완결형 축약 버전이며, `evaluation/ponzi_comparison/evaluate_comparison.js`가
   바로 이 최상위 버전을 사용한다(중첩 버전이 아님 — import 경로 `'../../analysis/dynamic_analyzer.js'`
@@ -406,6 +453,7 @@ dynamic_analyzer.js` 변경 전 439-444번 줄)는 순수 집합 멤버십
   별도 작업 흐름이다(`analysis/scripts/` → `analysis/analysis/logs/` →
   `analysis/analysis/pipeline.js` → `analysis/analysis/dashboard.html`).
   상세는 상단 "저장소 구조 (2026-09-28 기준)" 절 참고.
+  **(2026-10-01 정정)** `analysis/package.json`·`analysis/scripts/`는 `archive/2026-10_nested-hardhat/`로 옮겼다. ③ pipeline은 `node analysis/analysis/pipeline.js`로 실행한다.
 - **mock vs 실데이터 경계**: L0/Panel 1~4/renderL1() 초기 렌더링은
   전부 하드코딩 `RAW_DATA`(주석: "Sample Data")를 클라이언트 JS로
   재계산한 것. 실 파이프라인 데이터는 `loadReport()` 함수 하나(주석
@@ -580,6 +628,7 @@ Phase 1 데이터 준비 중 발견.
   기능을 다르게 구현해놓고 "1:1 대응"이라 주석 처리한 것 자체가 문서화
   오류이며, `fraud_reasoned.owl`의 predicted 개체 4종은 이 JS 결과를 OWL로
   내보내면서 섞여 들어간 것으로 보인다(내보내기 스크립트 자체는 미확인).
+  **(2026-10-01 정정)** 줄 번호가 이동했다: 해당 주석은 지금 `analysis/analysis/prevention_reasoner.js:61-66`, `predictCausalSignals()`는 67행부터.
 - **영향**: (a) letter 3.2절은 "수정 필요"가 아니라 "어느 레이어 기준인지
   명시 필요"로 재분류해야 함. (b) 설계서 1-2절/7-3절의 "fraud_reasoned.owl =
   Pellet/HermiT 실행 결과" 서술은 최소 4개 개체에 대해 부정확 — 순수 SWRL
@@ -821,6 +870,7 @@ SelectiveTrap(오너만 인출 성공, 나머지 전원 실패)이 `dynamic_anal
   때의 `balanceAtFailure` 설계 원칙과 동일). `add_swrl_rules.py`에
   `Rule_HoneyPot_HiddenStateUpdate`/`Rule_HoneyPot_StrawManContract` 및 Python
   forward-chaining 폴백용 `codepattern` check_type 신규 추가.
+  **(2026-10-01 정정)** `load_instances.py`가 읽는 경로는 `contracts/Honeypot.sol`로 바뀌었고, JS 탐지 함수는 `analysis/honeypot_code_patterns.js`로 추출돼 메인 reasoner·대시보드 Panel 5에도 연결됐다.
 - **회귀 테스트**: 7개 시뮬레이션 컨트랙트(Honeypot/MoneyLaundering/
   NormalStaking/PonziLab/PonziLabPatched/PumpDump/RugPull) 전부 기존
   risk_score/risk_level/checklist/fraud_type_suspected byte-identical(신규
