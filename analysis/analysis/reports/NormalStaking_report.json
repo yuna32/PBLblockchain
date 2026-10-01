@@ -1,20 +1,29 @@
 {
   "contract": "NormalStaking",
   "type": "normal",
-  "timestamp": "2026-06-05T04:41:01.849Z",
+  "timestamp": "2026-10-01T13:36:35.911Z",
   "overall_grade": "A",
   "prevention": {
-    "risk_level": "LOW",
+    "contract": "NormalStaking",
+    "fraud_type_suspected": null,
+    "checklist": [],
     "risk_score": 0,
+    "risk_level": "LOW",
+    "risk_label": "정상 구조",
+    "unmet_conditions": [],
     "deployment_recommendation": "사기 패턴 미검출. 배포 가능.",
-    "checklist_summary": {
-      "total_items": 0,
-      "detected_risks": 0,
-      "unmet_conditions": []
-    },
+    "predicted_anomaly_signals": [
+      {
+        "relation": "triggers",
+        "pattern": "ParticipantMidExit",
+        "signal": "FlowSpike",
+        "rationale": "중간 출금 다발 → 순유출 급증"
+      }
+    ],
     "ontology_reasoning_chain": [
       "소스 로드: NormalStaking.sol (102줄)",
-      "유형별 패턴 점수: {\"PonziScheme\":0,\"RugPull\":0,\"MoneyLaundering\":0,\"HoneypotTrap\":0}",
+      "[triggers] ParticipantMidExit 감지 → FlowSpike 발생 예상 (중간 출금 다발 → 순유출 급증)",
+      "유형별 패턴 점수: {\"PonziScheme\":0,\"RugPull\":0,\"MoneyLaundering\":0,\"HoneypotTrap\":0,\"PumpDump\":0}",
       "모든 사기 유형 패턴 미검출 → 정상 구조로 판단"
     ]
   },
@@ -56,7 +65,11 @@
     "dynamic_risk_score": 0,
     "verdict": "LOW_RISK",
     "fraud_type_hint": "normal_staking",
-    "gui_emphasis": null
+    "gui_emphasis": null,
+    "evasion_subclass": null,
+    "evasion_detected": false,
+    "evasion_consequence": null,
+    "counter_detection": null
   },
   "trust": {
     "csv": "normal_log.csv",

@@ -1,8 +1,75 @@
 {
   "contract": "Honeypot",
   "type": "honeypot",
-  "timestamp": "2026-05-27T13:28:51.160Z",
+  "timestamp": "2026-10-01T13:36:36.131Z",
   "overall_grade": "D",
+  "prevention": {
+    "contract": "Honeypot",
+    "fraud_type_suspected": "HoneypotTrap",
+    "checklist": [
+      {
+        "id": "HIDDEN_WITHDRAW_BLOCK",
+        "label": "숨겨진 인출 차단 조건",
+        "detected": true,
+        "riskWeight": 3,
+        "evidence": "bool.*private.*false found at line 13",
+        "consequence": "인출이 비공개 조건으로 영구 차단될 수 있는 구조",
+        "fix": "비공개 인출 차단 변수 제거 또는 공개 활성화 함수 추가"
+      },
+      {
+        "id": "NO_PUBLIC_WITHDRAW_ACTIVATE",
+        "label": "공개 인출 활성화 경로 없음",
+        "detected": false,
+        "riskWeight": 2,
+        "evidence": "보호 패턴 'enableWithdraw' 검출 (위험 해소됨)",
+        "consequence": "외부에서 인출을 활성화할 수 없는 구조",
+        "fix": "public 함수로 인출 조건 변경 또는 hidden condition 완전 제거"
+      }
+    ],
+    "risk_score": 3,
+    "risk_level": "HIGH",
+    "risk_label": "수정 후 재검토",
+    "unmet_conditions": [
+      "HIDDEN_WITHDRAW_BLOCK"
+    ],
+    "deployment_recommendation": "배포 전 1개 항목 수정 후 재검토 필요.",
+    "predicted_anomaly_signals": [
+      {
+        "relation": "triggers",
+        "pattern": "SingleLargeOutflow",
+        "signal": "MaxTxAlert",
+        "rationale": "단일 대형 출금 → 최대 단일 TX 경보"
+      },
+      {
+        "relation": "triggers",
+        "pattern": "ParticipantMidExit",
+        "signal": "FlowSpike",
+        "rationale": "중간 출금 다발 → 순유출 급증"
+      },
+      {
+        "relation": "implies",
+        "pattern": "WithdrawAttemptFail",
+        "signal": "ZeroWithdrawBlock",
+        "rationale": "코드 내 차단 변수 존재 → 출금 시도 실패 함의"
+      }
+    ],
+    "honeypot_code_pattern_subclasses": [],
+    "ontology_reasoning_chain": [
+      "소스 로드: Honeypot.sol (62줄)",
+      "[triggers] SingleLargeOutflow 감지 → MaxTxAlert 발생 예상 (단일 대형 출금 → 최대 단일 TX 경보)",
+      "[triggers] ParticipantMidExit 감지 → FlowSpike 발생 예상 (중간 출금 다발 → 순유출 급증)",
+      "[implies] WithdrawAttemptFail 감지 → ZeroWithdrawBlock 발생 예상 (코드 내 차단 변수 존재 → 출금 시도 실패 함의)",
+      "유형별 패턴 점수: {\"PonziScheme\":2,\"RugPull\":0,\"MoneyLaundering\":0,\"HoneypotTrap\":3,\"PumpDump\":0}",
+      "사기 유형 결정: HoneypotTrap (점수 3)",
+      "HoneypotTrap 예방 체크리스트 시작",
+      "HIDDEN_WITHDRAW_BLOCK: bool.*private.*false found at line 13 → 검출 (위험 +3)",
+      "NO_PUBLIC_WITHDRAW_ACTIVATE: 보호 패턴 'enableWithdraw' 검출 (위험 해소됨) → 안전",
+      "총 위험 점수: 3",
+      "위험 등급: HIGH — 수정 후 재검토",
+      "[코드패턴] HiddenStateUpdate: 해시/시크릿 비교 가드 미검출 → 불일치",
+      "[코드패턴] StrawManContract: 송금문(line 39)과 생성자 주입 변수 없음, 고수준 외부호출/delegatecall 변종 미검출 → 불일치"
+    ]
+  },
   "static": {
     "file": "Honeypot.sol",
     "triggered_rules": [
@@ -39,23 +106,45 @@
     "triggered_rules": [
       {
         "id": "BALANCE_DROP",
-        "description": "오너 액션으로 잔고 90%+ 급락 (러그풀/폰지 탈출)",
-        "weight": 45
+        "description": "출금 발생 후 잔고 급락 — 하락폭에 비례한 연속 점수 (러그풀/폰지 탈출)",
+        "weight": 40,
+        "weight_max": 40,
+        "fraction": 1
       },
       {
         "id": "FLOW_SPIKE",
-        "description": "단일 출금이 총 입금의 50% 이상 (일거에 자금 흡수)",
-        "weight": 35
+        "description": "누적 출금이 총 입금의 50% 이상 (분산 인출 포함, 일거에 자금 흡수)",
+        "weight": 30,
+        "weight_max": 30,
+        "fraction": 1
       },
       {
         "id": "CONCENTRATION_DRAIN",
-        "description": "상위 3개 지갑이 총 출금의 80% 이상 집중 수령",
-        "weight": 30
+        "description": "출금 수령 집중도(HHI) — 소수 지갑에 집중될수록 높은 연속 점수",
+        "weight": 35,
+        "weight_max": 35,
+        "fraction": 1
+      },
+      {
+        "id": "TEMPORAL_PATTERN",
+        "description": "입금 종료 후 장기 대기 뒤 인출 또는 급격한 인출 속도 (시간 패턴 이상)",
+        "weight": 20,
+        "weight_max": 20,
+        "fraction": 1
+      },
+      {
+        "id": "BALANCE_TIMESERIES_DRAIN",
+        "description": "action 종류와 무관하게 15블록 이내 잔고 50%+ 급락 탐지",
+        "weight": 20,
+        "weight_max": 20,
+        "fraction": 1
       },
       {
         "id": "ZERO_WITHDRAW_PATTERN",
         "description": "출금 시도가 모두 실패(amount=0)하고 오너만 최종 수령 (허니팟 의심)",
-        "weight": 40
+        "weight": 40,
+        "weight_max": 40,
+        "fraction": 1
       }
     ],
     "dynamic_risk_score": 100,
@@ -69,7 +158,11 @@
         "ZERO_WITHDRAW",
         "INPUT_OPACITY"
       ]
-    }
+    },
+    "evasion_subclass": null,
+    "evasion_detected": false,
+    "evasion_consequence": null,
+    "counter_detection": null
   },
   "trust": {
     "csv": "honeypot_log.csv",

@@ -273,17 +273,7 @@ async function run() {
     type,
     timestamp:     new Date().toISOString(),
     overall_grade: grade,
-    prevention: preventionResult.error ? { error: preventionResult.error } : {
-      risk_level:               preventionResult.risk_level,
-      risk_score:               preventionResult.risk_score,
-      deployment_recommendation: preventionResult.deployment_recommendation,
-      checklist_summary: {
-        total_items:      preventionResult.checklist.length,
-        detected_risks:   preventionResult.checklist.filter(c => c.detected).length,
-        unmet_conditions: preventionResult.unmet_conditions
-      },
-      ontology_reasoning_chain: preventionResult.ontology_reasoning_chain
-    },
+    prevention:    preventionResult,
     static:        staticResult,
     dynamic:       dynamicResult,
     trust:         trustResult,
