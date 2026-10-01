@@ -29,7 +29,11 @@
   `scripts/` 7개)은 `archive/2026-10_nested-hardhat/`로 옮겼다(해당 폴더 README 참고).
   재생성 가능한 `analysis/artifacts/`, `analysis/cache/`는 삭제했다.
 - 2026-10-01 정리 커밋: `a110c00`(컨트랙트 통합·중첩 hardhat 아카이브), `53bb057`(HSU/SMC 공용 모듈·메인
-  reasoner 연결), `43bc6d0`(Panel 5 코드 패턴 블록·리포트 7개 재생성).
+  reasoner 연결), `43bc6d0`(Panel 5 코드 패턴 블록·리포트 7개 재생성). Honeypot 로그 정리: `cb3b746`(생성기를
+  8열 fixture 재현으로, 출력 분리), `ba92aff`(문서).
+- 2026-10-01 후속 커밋: `09a2ff9`(PIPELINE_README·EVASION_ANALYSIS 옛 표기 정정), `b6af00f`(analysis/ 잔재
+  정리·루트 artifacts/cache 추적 해제), `cfd5d27`(대시보드 honeypot 유형), `841b387`(중첩 pipeline이 prevention
+  전체를 리포트에 담음·중첩 리포트 7개 재생성), `ec36df5`(dynamic_analyzer.js 주석 경로, 로직 불변).
 
 ### 파일별 정본
 
@@ -45,6 +49,8 @@
     ③ pipeline과 `evaluation/honeypot_comparison/*`가 사용. HSU/SMC 함수는
     `analysis/honeypot_code_patterns.js`에서 import해 같은 이름으로 re-export한다. 일찍 반환하는 경로
     (NormalStaking 등)에는 `honeypot_code_pattern_subclasses`가 없다(메인과 다름, 반환 형태 유지).
+  - 두 pipeline 모두 `prevention` 결과 객체를 리포트에 그대로 담는다(중첩은 `841b387`부터, 그 전에는
+    `checklist_summary` 등 일부 필드만 골라 담았음).
     온톨로지 지식 관련 수정은 이 파일 기준.
 - `honeypot_code_patterns.js`: **`analysis/honeypot_code_patterns.js`** — HSU/SMC 탐지 정본
   (2026-10-01 중첩 reasoner에서 로직 변경 없이 추출). `ontology/load_instances.py`에 같은 로직의
@@ -82,28 +88,33 @@
 - `npm run evasion`(`scripts/simulate_evasion_patched.js`)은 `analysis/logs/ponzipatched_log.csv`를
   쓴다(메인 pipeline CONTRACT_MAP의 이름). 현재 파일은 `analysis/analysis/logs/evasion_patched_log.csv`
   사본이며, 재실행 결과와 timestamp 열 외에 동일하다.
-- 루트 `artifacts/`, `cache/`는 git 추적 대상이라 compile하면 변경이 생긴다. Honeypot·PonziLabPatched
-  산출물은 아직 커밋하지 않았다 — compile 후에는 되돌리거나 별도 커밋으로 판단할 것.
+- 루트 `artifacts/`, `cache/`는 `b6af00f`부터 추적하지 않는다(`.gitignore` 대상). `hardhat run`이 실행 시
+  자동으로 컴파일하므로 따로 커밋할 필요가 없다.
 
 ### 남은 정리 후보
 
-- `analysis/node_modules/`: 아카이브된 중첩 hardhat용. git 추적 대상 아님, 수동 삭제 가능.
-- `analysis/.gitignore`: `node_modules/` 한 줄. 위 폴더를 지우면 함께 정리.
-- `analysis/GUIDE.md`: 루트 프로젝트 기준 초기 실습 안내(컨트랙트 6개 시절 트리·`npx` 명령) — 9개 구조로 갱신하거나 위치 재검토.
-- 옛 경로·로그명 표기: `PIPELINE_README.md`(`evasion_patched_log.csv`, `analysis/scripts/` 트리),
-  `EVASION_ANALYSIS.md:766-767`, `analysis/dynamic_analyzer.js:302` 주석.
-- 대시보드 `_TYPE_MAP`에 `honeypot` 항목이 없어 Honeypot 리포트를 불러오면 유형 표시가 ponzi로 바뀐다.
-- 중첩 `analysis/analysis/pipeline.js:276-285`는 prevention 필드를 골라 담기 때문에 중첩 리포트에는
-  `honeypot_code_pattern_subclasses`가 실리지 않는다(`[코드패턴]` 추론 과정 2줄만 실림). 수정 보류.
-- (확인 후보) PonziLabPatched 리포트의 static 점수 0→100: 정적 분석기가 이 소스를 처음 분석한 결과다.
-  패치 내용이 반영된 값인지, 정적 분석기의 한계인지는 아직 확인하지 않았다.
-- `ontology/owl_results.json`의 `contract_honeypot_selective.causal_edges`가 커밋본(3개)과 HEAD에서
-  OWL 파이프라인을 다시 돌린 결과(0개)에서 다르다. 이번 작업과 무관, 원인 미조사.
+- `ontology/run_reasoner.py`: 실행하면 `fraud_reasoned.owl`을 조용히 덮어쓴다(`:254`). 인스턴스 목록이 6개로
+  고정되어(`:167`) `honeypot_selective`가 빠져 있어, 공식 4단계 뒤에 돌리면 그 인스턴스의 causal_edges가
+  사라진다. 아카이브 여부 미정.
+- 루트 `GUIDE.md`: 컨트랙트 6개 시절 트리와 `npx` 명령 기준 — 9개 구조와 node 직접 실행 방식으로 갱신.
+- (확인 후보, 미해결) PonziLabPatched 리포트의 static 점수 0→100: 정적 분석기가 이 소스를 처음 분석한
+  결과다. 패치 내용이 반영된 값인지, 정적 분석기의 한계인지는 아직 확인하지 않았다.
+- 해결됨(2026-10-01 후속): `analysis/node_modules` 저장소 밖 이동·`analysis/.gitignore`·`analysis/GUIDE.md`
+  삭제·루트 `artifacts/`·`cache/` 추적 해제(`b6af00f`), `PIPELINE_README.md` evasion 로그명·
+  `EVASION_ANALYSIS.md:766-767`(`09a2ff9`), `analysis/dynamic_analyzer.js:302` 주석(`ec36df5`),
+  대시보드 `_TYPE_MAP` honeypot(`cfd5d27`), 중첩 pipeline의 prevention 필드 선별(`841b387`).
+- `ontology/owl_results.json`의 `contract_honeypot_selective.causal_edges`(커밋본 3개)는 **드리프트가 아니다.**
+  0개로 보였던 것은 공식 4단계 뒤에 `run_reasoner.py`를 추가로 실행해 `fraud_reasoned.owl`을 덮어쓴
+  탓이다(`honeypot_selective`가 6개 고정 목록에서 빠져 있음). 공식 4단계(`build_ontology` → `load_instances`
+  → `add_swrl_rules` → `export_results`)만 다시 돌리면 OWL 산출물 5개가 커밋본과 바이트 단위로 같다.
 
 ### 알려진 주의
 
 - `.git/config`에 `core.autocrlf=true`가 설정되어 작업트리에 CRLF와 LF가 섞여 있다.
   파일 비교는 CR 제거 후(`tr -d '\r'`) 할 것 — `cmp`로 바로 비교하면 가짜 차이가 난다.
+- 줄바꿈과 BOM은 파일마다 다르다(예: 중첩 `analysis/analysis/pipeline.js`는 BOM+LF, `PIPELINE_README.md`는
+  BOM+CRLF, `analysis/dynamic_analyzer.js`는 CRLF). 스크립트로 수정할 때는 줄바꿈 가정을 먼저 확인하고,
+  셸 스크립트에는 `set -euo pipefail`을 넣을 것. 중첩 리포트 7개는 `841b387`에서 `1694a4c` 이후 처음 재생성됐다.
 - WSL을 재시작하면 `/tmp`가 비워진다. 임시 사본은 `~/pbl_backup/` 아래에 만들 것.
 - WSL의 `npm`은 Windows 쪽 실행 파일(`/mnt/c/Program Files/nodejs/npm`)이라 WSL 경로에서
   신뢰할 수 없다. `package.json`의 script 문자열을 읽어 `node`로 직접 실행할 것.
