@@ -10,6 +10,8 @@
     "laundering": "hardhat run scripts/simulate_laundering.js",
     "pumpdump": "hardhat run scripts/simulate_pumpdump.js",
     "flashloan": "hardhat run scripts/simulate_flashloan.js",
+    "honeypot": "hardhat run scripts/simulate_honeypot.js",
+    "evasion": "hardhat run scripts/simulate_evasion_patched.js",
     "analyze": "node analysis/pipeline.js",
     "gen": "node scenarios/generate_scenarios.js --count 10",
     "run:scenario": "node scenarios/run_scenario.js",

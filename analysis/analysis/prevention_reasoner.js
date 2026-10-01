@@ -7,6 +7,8 @@ import { analyzeStatic } from "./static_analyzer.js";
 const __filename  = fileURLToPath(import.meta.url);
 const __dirname   = path.dirname(__filename);
 const PROJECT_ROOT = path.resolve(__dirname, "..");
+// 컨트랙트 소스는 저장소 루트 contracts/ 한 곳에서 읽는다 (PROJECT_ROOT 는 analysis/)
+const CONTRACTS_DIR = path.resolve(__dirname, "..", "..", "contracts");
 
 function isAbsenceOnly(patternStr) {
   return patternStr.split("|").every(p => p.startsWith("ABSENCE:"));
@@ -266,7 +268,7 @@ function scoreAllFraudTypes(src) {
 }
 
 export async function runPrevention(contractName) {
-  const solPath = path.join(PROJECT_ROOT, "contracts", `${contractName}.sol`);
+  const solPath = path.join(CONTRACTS_DIR, `${contractName}.sol`);
   const chain   = [];
 
   if (!fs.existsSync(solPath)) {

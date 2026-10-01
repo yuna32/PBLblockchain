@@ -1,3 +1,5 @@
+// 주의: 실행하면 analysis/logs/honeypot_log.csv(메인 pipeline·ontology/load_instances.py가
+// 읽는 회귀 기준 로그)를 다른 시나리오로 덮어쓴다. 실행 전 analysis/logs/ 를 백업할 것.
 import { network } from "hardhat";
 import { parseEther, formatEther } from "viem";
 import fs from "fs";

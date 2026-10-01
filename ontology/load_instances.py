@@ -16,10 +16,10 @@ onto = get_ontology("ontology/fraud.owl").load()
 # SelectiveTrap 수정 때와 동일한 설계 원칙). 신뢰도 점수가 아닌 순수 boolean.
 
 SOL_SOURCE_MAP = {
-    "honeypot":           "analysis/contracts/Honeypot.sol",
+    "honeypot":           "contracts/Honeypot.sol",
     # honeypot_selective_log.csv는 별도 .sol 없이 동일 Honeypot.sol의 다른 실행
     # 시나리오를 시뮬레이션한 CSV — 코드 자체는 honeypot과 동일 소스를 공유한다.
-    "honeypot_selective":  "analysis/contracts/Honeypot.sol",
+    "honeypot_selective":  "contracts/Honeypot.sol",
 }
 
 

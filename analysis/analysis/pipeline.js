@@ -10,6 +10,8 @@ import { runPrevention }  from "./prevention_reasoner.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 const PROJECT_ROOT = path.resolve(__dirname, "..");
+// 컨트랙트 소스는 저장소 루트 contracts/ 한 곳에서 읽는다 (PROJECT_ROOT 는 analysis/)
+const CONTRACTS_DIR = path.resolve(__dirname, "..", "..", "contracts");
 
 const CONTRACT_MAP = {
   PonziLab:        { type: "ponzi",         csv: "ponzi_log.csv"          },
@@ -149,7 +151,7 @@ async function run() {
   }
 
   const { type, csv } = CONTRACT_MAP[contractName];
-  const solPath = path.join(PROJECT_ROOT, "contracts", `${contractName}.sol`);
+  const solPath = path.join(CONTRACTS_DIR, `${contractName}.sol`);
   const csvPath = path.join(PROJECT_ROOT, "analysis", "logs", csv);
 
   printBanner(contractName, type);

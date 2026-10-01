@@ -180,8 +180,8 @@ async function main() {
     ].join(","))
   ].join("\n");
 
-  fs.writeFileSync(path.join(logDir, "evasion_patched_log.csv"), csv);
-  console.log(`\n✅ 로그 저장 완료: analysis/logs/evasion_patched_log.csv`);
+  fs.writeFileSync(path.join(logDir, "ponzipatched_log.csv"), csv);
+  console.log(`\n✅ 로그 저장 완료: analysis/logs/ponzipatched_log.csv`);
   console.log(`   총 ${log.length}개 이벤트 기록`);
   console.log("\n=== 패치 검증 완료 ===");
   console.log("  패치 1 (타임락): ✅ 차단 확인");
