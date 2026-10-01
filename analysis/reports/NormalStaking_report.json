@@ -1,7 +1,7 @@
 {
   "contract": "NormalStaking",
   "type": "normal",
-  "timestamp": "2026-08-30T08:15:43.455Z",
+  "timestamp": "2026-10-01T08:52:29.803Z",
   "overall_grade": "A",
   "raw_grade": "A",
   "prevention_cap_applied": false,
@@ -15,6 +15,7 @@
     "risk_label": "정상 구조",
     "unmet_conditions": [],
     "deployment_recommendation": "사기 패턴 미검출. 배포 가능.",
+    "honeypot_code_pattern_subclasses": [],
     "ontology_reasoning_chain": [
       "소스 로드: NormalStaking.sol (102줄)",
       "유형별 패턴 점수: {\"PonziScheme\":0,\"RugPull\":0,\"MoneyLaundering\":0,\"HoneypotTrap\":0,\"PumpDump\":0}",
@@ -53,8 +54,15 @@
       "distributedInflow: true (11 unique depositors)",
       "ownerWithdrawAll: false (recipient 0x70997970... found in depositor list)",
       "participantMidExit: true (9 mid-exit withdrawals)",
+      "withdrawSuccessRate: 100.0% (10/10 succeeded)",
+      "nonPrivilegedSuccessRate: 100.0% (owner 0xf39fd6e5... 제외 10건 중 성공)",
+      "balanceAtFailure: 0.000 ETH (amount_eth=0 시점 잔고 최댓값, n=0)",
       "→ normal_staking (stake/unstake pattern, no fraud signals)"
     ],
+    "withdraw_success_rate": 1,
+    "non_privileged_success_rate": 1,
+    "balance_at_failure_eth": 0,
+    "honeypot_subclass": null,
     "anomaly_signals": {
       "INFLOW_STOP": {
         "detected": false,

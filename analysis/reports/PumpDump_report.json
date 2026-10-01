@@ -1,7 +1,7 @@
 {
   "contract": "PumpDump",
   "type": "pumpdump",
-  "timestamp": "2026-08-30T08:15:42.769Z",
+  "timestamp": "2026-10-01T08:52:29.907Z",
   "overall_grade": "D",
   "raw_grade": "C",
   "prevention_cap_applied": true,
@@ -67,6 +67,7 @@
       "PUMP_PHASE_NO_DISCLOSURE"
     ],
     "deployment_recommendation": "배포 전 필수 수정 항목 5개 존재. 수정 없이 배포 불가.",
+    "honeypot_code_pattern_subclasses": [],
     "ontology_reasoning_chain": [
       "소스 로드: PumpDump.sol (90줄)",
       "유형별 패턴 점수: {\"PonziScheme\":0,\"RugPull\":0,\"MoneyLaundering\":0,\"HoneypotTrap\":0,\"PumpDump\":9}",
@@ -150,8 +151,15 @@
       "distributedInflow: true (8 unique depositors)",
       "ownerWithdrawAll: false (recipient 0x70997970... found in depositor list)",
       "participantMidExit: true (3 mid-exit withdrawals)",
-      "→ pump_and_dump (mixed withdrawal outcomes + insider profit extraction)"
+      "withdrawSuccessRate: 37.5% (3/8 succeeded)",
+      "nonPrivilegedSuccessRate: 37.5% (owner 0xf39fd6e5... 제외 8건 중 성공)",
+      "balanceAtFailure: 0.000 ETH (amount_eth=0 시점 잔고 최댓값, n=5)",
+      "→ pump_and_dump (mixed withdrawal outcomes + insider profit extraction, balanceAtFailure 0.000 ETH <= ε)"
     ],
+    "withdraw_success_rate": 0.375,
+    "non_privileged_success_rate": 0.375,
+    "balance_at_failure_eth": 0,
+    "honeypot_subclass": null,
     "anomaly_signals": {
       "INFLOW_STOP": {
         "detected": true,

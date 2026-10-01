@@ -1,31 +1,60 @@
 {
   "contract": "Honeypot",
   "type": "honeypot",
-  "timestamp": "2026-08-30T07:22:49.855Z",
-  "overall_grade": "A",
+  "timestamp": "2026-10-01T08:52:29.939Z",
+  "overall_grade": "C",
   "raw_grade": "A",
-  "prevention_cap_applied": false,
-  "prevention_cap_reason": null,
+  "prevention_cap_applied": true,
+  "prevention_cap_reason": "HIGH prevention score (3) → grade capped at C",
   "prevention": {
     "contract": "Honeypot",
-    "error": "소스 파일 없음: \\\\wsl.localhost\\Ubuntu\\home\\kamatte\\pbl\\contracts\\Honeypot.sol",
-    "fraud_type_suspected": null,
-    "checklist": [],
-    "risk_score": 0,
-    "risk_level": "FILE_NOT_FOUND",
-    "risk_label": "파일 없음",
-    "unmet_conditions": [],
-    "deployment_recommendation": "파일을 찾을 수 없음",
+    "fraud_type_suspected": "HoneypotTrap",
+    "checklist": [
+      {
+        "id": "HIDDEN_WITHDRAW_BLOCK",
+        "label": "숨겨진 인출 차단 조건",
+        "detected": true,
+        "riskWeight": 3,
+        "evidence": "bool.*private.*false found at line 13",
+        "consequence": "인출이 비공개 조건으로 영구 차단될 수 있는 구조",
+        "fix": "비공개 인출 차단 변수 제거 또는 공개 활성화 함수 추가"
+      },
+      {
+        "id": "NO_PUBLIC_WITHDRAW_ACTIVATE",
+        "label": "공개 인출 활성화 경로 없음",
+        "detected": false,
+        "riskWeight": 2,
+        "evidence": "보호 패턴 'enableWithdraw' 검출 (위험 해소됨)",
+        "consequence": "외부에서 인출을 활성화할 수 없는 구조",
+        "fix": "public 함수로 인출 조건 변경 또는 hidden condition 완전 제거"
+      }
+    ],
+    "risk_score": 3,
+    "risk_level": "HIGH",
+    "risk_label": "수정 후 재검토",
+    "unmet_conditions": [
+      "HIDDEN_WITHDRAW_BLOCK"
+    ],
+    "deployment_recommendation": "배포 전 1개 항목 수정 후 재검토 필요.",
+    "honeypot_code_pattern_subclasses": [],
     "ontology_reasoning_chain": [
-      "오류: 소스 파일 없음 → \\\\wsl.localhost\\Ubuntu\\home\\kamatte\\pbl\\contracts\\Honeypot.sol"
+      "소스 로드: Honeypot.sol (62줄)",
+      "유형별 패턴 점수: {\"PonziScheme\":2,\"RugPull\":0,\"MoneyLaundering\":0,\"HoneypotTrap\":3,\"PumpDump\":0}",
+      "사기 유형 결정: HoneypotTrap (점수 3)",
+      "HoneypotTrap 예방 체크리스트 시작",
+      "HIDDEN_WITHDRAW_BLOCK: bool.*private.*false found at line 13 → 검출 (위험 +3)",
+      "NO_PUBLIC_WITHDRAW_ACTIVATE: 보호 패턴 'enableWithdraw' 검출 (위험 해소됨) → 안전",
+      "총 위험 점수: 3",
+      "위험 등급: HIGH — 수정 후 재검토",
+      "[코드패턴] HiddenStateUpdate: 해시/시크릿 비교 가드 미검출 → 불일치",
+      "[코드패턴] StrawManContract: 송금문(line 39)과 생성자 주입 변수 없음, 고수준 외부호출/delegatecall 변종 미검출 → 불일치"
     ]
   },
   "static": {
     "file": "Honeypot.sol",
-    "error": "파일을 찾을 수 없습니다",
     "triggered_rules": [],
     "static_risk_score": 0,
-    "verdict": "UNKNOWN"
+    "verdict": "LOW_RISK"
   },
   "dynamic": {
     "csv": "honeypot_log.csv",
@@ -47,8 +76,16 @@
       "distributedInflow: true (8 unique depositors)",
       "ownerWithdrawAll: false (recipient n/a... found in depositor list)",
       "participantMidExit: false (0 mid-exit withdrawals)",
-      "→ honeypot (all 5 withdrawals blocked, inflow continues)"
+      "withdrawSuccessRate: 0.0% (0/5 succeeded)",
+      "nonPrivilegedSuccessRate: 0.0% (owner 0xf39fd6e5... 제외 5건 중 성공)",
+      "balanceAtFailure: 8.000 ETH (amount_eth=0 시점 잔고 최댓값, n=5)",
+      "→ honeypot (nonPrivilegedSuccessRate 0.0% <= 5%, balanceAtFailure 8.000 ETH > 0, inflow continues)",
+      "→ honeypot subclass: HoneyPot_UniversalTrap (withdrawSuccessRate=0, 전원 실패)"
     ],
+    "withdraw_success_rate": 0,
+    "non_privileged_success_rate": 0,
+    "balance_at_failure_eth": 8,
+    "honeypot_subclass": "HoneyPot_UniversalTrap",
     "anomaly_signals": {
       "INFLOW_STOP": {
         "detected": false,

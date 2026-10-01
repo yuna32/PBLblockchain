@@ -1,7 +1,7 @@
 {
   "contract": "PonziLab",
   "type": "ponzi",
-  "timestamp": "2026-08-30T08:15:41.308Z",
+  "timestamp": "2026-10-01T08:52:29.730Z",
   "overall_grade": "F",
   "raw_grade": "F",
   "prevention_cap_applied": false,
@@ -67,6 +67,7 @@
       "NO_WITHDRAWAL_LIMIT"
     ],
     "deployment_recommendation": "배포 전 필수 수정 항목 5개 존재. 수정 없이 배포 불가.",
+    "honeypot_code_pattern_subclasses": [],
     "ontology_reasoning_chain": [
       "소스 로드: PonziLab.sol (96줄)",
       "유형별 패턴 점수: {\"PonziScheme\":8,\"RugPull\":0,\"MoneyLaundering\":0,\"HoneypotTrap\":0,\"PumpDump\":0}",
@@ -153,8 +154,15 @@
       "distributedInflow: true (10 unique depositors)",
       "ownerWithdrawAll: true (recipient 0xf39fd6e5... not in depositor list)",
       "participantMidExit: true (3 mid-exit withdrawals)",
+      "withdrawSuccessRate: 100.0% (4/4 succeeded)",
+      "nonPrivilegedSuccessRate: 100.0% (owner 0xf39fd6e5... 제외 3건 중 성공)",
+      "balanceAtFailure: 0.000 ETH (amount_eth=0 시점 잔고 최댓값, n=0)",
       "→ ponzi_scheme (balance drop + flow spike + 3 participant mid-exits)"
     ],
+    "withdraw_success_rate": 1,
+    "non_privileged_success_rate": 1,
+    "balance_at_failure_eth": 0,
+    "honeypot_subclass": null,
     "anomaly_signals": {
       "INFLOW_STOP": {
         "detected": false,

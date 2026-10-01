@@ -1,7 +1,7 @@
 {
   "contract": "RugPull",
   "type": "rugpull",
-  "timestamp": "2026-08-30T08:15:42.066Z",
+  "timestamp": "2026-10-01T08:52:29.836Z",
   "overall_grade": "D",
   "raw_grade": "D",
   "prevention_cap_applied": false,
@@ -37,6 +37,7 @@
       "NO_PARTICIPANT_REFUND"
     ],
     "deployment_recommendation": "배포 전 필수 수정 항목 2개 존재. 수정 없이 배포 불가.",
+    "honeypot_code_pattern_subclasses": [],
     "ontology_reasoning_chain": [
       "소스 로드: RugPull.sol (75줄)",
       "유형별 패턴 점수: {\"PonziScheme\":2,\"RugPull\":3,\"MoneyLaundering\":3,\"HoneypotTrap\":0,\"PumpDump\":0}",
@@ -117,8 +118,15 @@
       "distributedInflow: true (10 unique depositors)",
       "ownerWithdrawAll: true (recipient 0xf39fd6e5... not in depositor list)",
       "participantMidExit: false (0 mid-exit withdrawals)",
+      "withdrawSuccessRate: 100.0% (1/1 succeeded)",
+      "nonPrivilegedSuccessRate: 0.0% (owner 0xf39fd6e5... 제외 0건 중 성공)",
+      "balanceAtFailure: 0.000 ETH (amount_eth=0 시점 잔고 최댓값, n=0)",
       "→ rug_pull (large outflow to non-depositor address, no participant mid-exits)"
     ],
+    "withdraw_success_rate": 1,
+    "non_privileged_success_rate": 0,
+    "balance_at_failure_eth": 0,
+    "honeypot_subclass": null,
     "anomaly_signals": {
       "INFLOW_STOP": {
         "detected": false,

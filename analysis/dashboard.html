@@ -1226,12 +1226,28 @@ function renderEvidence(){
         </div>
       </details>`).join('');
     const chainSteps=(pv.ontology_reasoning_chain||[]).map(s=>`<li>${escHtml(s)}</li>`).join('');
+    // HoneyPot 코드축 서브클래스(HSU/SMC) — undefined(구버전 리포트)와 빈 배열(해당 없음)을 구분한다
+    const cps=pv.honeypot_code_pattern_subclasses;
+    const codePatternHtml=cps===undefined
+      ?'<div class="ev-empty">이 리포트는 코드 패턴 분류 이전 버전으로 생성되어 정보가 없습니다(재실행 필요)</div>'
+      :cps.length===0
+        ?'<div class="ev-empty">해당 코드 패턴 없음</div>'
+        :`<div class="ev-checklist">${cps.map(c=>`
+      <details class="chk-item on">
+        <summary><span class="chk-ico">✗</span><span class="chk-label">${escHtml(c.label)}</span><span class="chk-w">${escHtml(c.id)}</span></summary>
+        <div class="chk-detail">
+          <div><b>코드패턴</b> ${escHtml(c.codePattern)}</div>
+          <div><b>근거</b> ${escHtml(c.evidence)}</div>
+        </div>
+      </details>`).join('')}</div>`;
     prevEl.innerHTML=`
       <div class="ev-checklist">${items||'<div class="ev-empty">검출된 항목 없음</div>'}</div>
       <div class="ev-summary">
         <span class="ev-sum-grade" style="color:${_RISK_COLORS[pv.risk_level]||'var(--mu)'}">${pv.risk_score}점 · ${pv.risk_level}(${escHtml(pv.risk_label)})</span>
         <span class="ev-sum-rec">${escHtml(pv.deployment_recommendation)}</span>
       </div>
+      <div class="ev-subhdr">코드 패턴 (HoneyPot 2차 분류)</div>
+      ${codePatternHtml}
       <details class="ev-chain">
         <summary>추론 로그 보기 (${(pv.ontology_reasoning_chain||[]).length}단계)</summary>
         <ol class="rc-timeline">${chainSteps}</ol>
