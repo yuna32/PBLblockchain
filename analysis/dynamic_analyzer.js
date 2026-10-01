@@ -299,7 +299,7 @@ function hintFraudType(rows, triggered) {
 
   // ── SelectiveTrap 판정 보강용 데이터 속성 (5-1절 우선순위 조건 자체는 아직 미변경) ──
   // 오너 판별 1안: 배포자/ownerClient 주소를 상수로 식별한다.
-  // analysis/scripts/simulate_*.js가 공통으로 hardhat 기본 니모닉의 계정 0을
+  // scripts/simulate_*.js가 공통으로 hardhat 기본 니모닉의 계정 0을
   // ownerClient로 사용하므로(예: ponzi_log.csv의 owner_withdraw_all 수신자와 동일
   // 주소) 이 주소는 시뮬레이션 전반에서 고정값이다.
   const OWNER_ADDRESS = "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266";
