@@ -768,6 +768,7 @@ hardhat 시뮬레이션의 별도 작업 흐름이다(`analysis/scripts/` →
 `analysis/analysis/logs/` → `analysis/analysis/pipeline.js` →
 `analysis/analysis/dashboard.html`). 상세는 `CLAUDE.md`의 "저장소 구조
 (2026-09-28 기준)" 절 참고.
+**(2026-10-01 정정)** `analysis/package.json`·`analysis/scripts/`는 `archive/2026-10_nested-hardhat/`로 옮겨졌다. 중첩 pipeline은 `node analysis/analysis/pipeline.js`로 실행한다.
 
 **N=272 실데이터(XBlock, `evaluate_comparison.js`)에는 이 조건을 실행할
 입력 자체가 없다** — MoneyLaundering 라벨이 없고, `fetch_and_convert.js`의

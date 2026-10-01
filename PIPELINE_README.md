@@ -56,7 +56,7 @@ npm run rugpull      # → analysis/logs/rugpull_log.csv
 npm run laundering   # → analysis/logs/laundering_log.csv
 npm run pumpdump     # → analysis/logs/pumpdump_log.csv
 npm run honeypot     # → analysis/logs/honeypot_sim_log.csv (fixture honeypot_log.csv는 덮어쓰지 않음)
-npm run evasion      # → analysis/logs/evasion_patched_log.csv
+npm run evasion      # → analysis/logs/ponzipatched_log.csv
 ```
 
 > 시뮬레이션 없이 파이프라인을 실행하면 Step 2·3이 "CSV 없음" 경고를 출력하고, 정적 분석 결과만 반영된 보고서를 생성합니다.
@@ -318,7 +318,7 @@ pbl/
 │   │   ├── ponzi_log.csv
 │   │   ├── honeypot_log.csv     ← 허니팟 fixture (8열·13행, 메인 pipeline 입력)
 │   │   ├── honeypot_sim_log.csv ← npm run honeypot 출력 (git 무시)
-│   │   ├── evasion_patched_log.csv ← (NEW)
+│   │   ├── ponzipatched_log.csv ← npm run evasion 출력 (PonziLabPatched)
 │   │   └── *.csv
 │   ├── reports/                 ← 파이프라인 출력 (자동 생성)
 │   │   ├── PonziLab_report.json
@@ -413,7 +413,7 @@ npm run honeypot
 
 ```bash
 npm run evasion
-# → analysis/logs/evasion_patched_log.csv
+# → analysis/logs/ponzipatched_log.csv
 # 패치 3 검증: 0.05 ETH 입금 시도 → deposit_blocked_below_minimum
 # 패치 1 검증: 타임락 전 인출 시도 → owner_withdraw_blocked_timelock
 # 정상 입금 10건
@@ -421,6 +421,8 @@ npm run evasion
 
 npm run analyze -- --contract PonziLabPatched
 ```
+
+중첩(③) 흐름이 쓰는 `evasion_patched_log.csv`는 `analysis/analysis/logs/`에만 있습니다.
 
 ---
 
