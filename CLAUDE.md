@@ -60,6 +60,14 @@
 - `dashboard.html`: **`analysis/dashboard.html`**. Panel 5 예방 탭의 "코드 패턴" 블록은
   `honeypot_code_pattern_subclasses`가 undefined면 "코드 패턴 분류 이전 버전(재실행 필요)",
   `[]`면 "해당 코드 패턴 없음", 항목이 있으면 카드(label·id·codePattern·근거)로 표시한다.
+- `response_reasoner.js`: **`evaluation/response_reasoner/response_reasoner.js`** — 버전 간 불일치 케이스
+  요약기(설계서 v0.3 `response_reasoner.js`의 MVP). 두 소스 트리(`--old`, `--new`)에서 각각
+  `analysis/dynamic_analyzer.js`의 `analyzeDynamic`과 `analysis/analysis/fraud_ontology.js`를 import해
+  N=272 평가와 같은 방식으로 주소별 예측·`triggered_rules`를 다시 계산하고 차이를 요약한다.
+  `evaluate_comparison.js`는 import하지 않고(`main()`이 `results/`를 덮어씀) 필요한 로직을 복사했으므로,
+  원본을 고치면 복사 블록(주석에 원본 줄 번호)도 맞출 것. 기존 파일은 읽기만 하고 출력은 `--out`에만 쓴다
+  (`.git`이 있는 경로 아래면 거부). 사용법·종료 코드는 같은 폴더 `README.md`와 아래 "response_reasoner.js
+  범위 정의 조사" 절 참고.
 
 ### contracts
 
@@ -574,6 +582,18 @@ dynamic_analyzer.js` 변경 전 439-444번 줄)는 순수 집합 멤버십
   귀속 정보가 없어 이 부분만 신규 구현 필요. (B) `known_outliers.csv`
   스타일 이상치 트리아지 초안 자동화 — 범위가 좁아 2순위.
   Phase 2(설계)는 다음 세션으로 이월.
+- **(2026-10-07) MVP 후보 A 구현**: `evaluation/response_reasoner/response_reasoner.js`(사용법은 같은 폴더
+  `README.md`). 수동 7단계 중 ①수집·②규칙 귀속·③규칙별 집계만 다루고 ④수정안 이후는 하지 않는다.
+  실행: `node evaluation/response_reasoner/response_reasoner.js --old <tree> --new <tree> --out <dir>
+  [--old-pred <csv>] [--new-pred <csv>] [--old-label/--new-label <이름>] [--exclude <주소,…>] [--scope shared|all]`.
+  `<tree>`는 저장소 루트 구조의 사본(예: `~/pbl_backup/repro/<커밋>/src`, HEAD 사본), `<dir>`는 저장소 밖의
+  빈 디렉터리. 출력은 `old.jsonl`·`new.jsonl`·`changed.csv`·`disagreement_delta.csv`·`summary.md`(시각·절대경로
+  없음, 같은 인자면 byte-identical). 불일치 건수는 (가) exact만(리포트 표 2, `evaluate_comparison.js:460-467`)과
+  (나) exact OR super(`disagreement_cases.csv`, `:472`)를 따로 낸다. **종료 코드: 0 변경 없음 / 1 변경 있음 —
+  정보성이며 실패가 아니다(회귀 검증 설계안 `regress.sh`의 1=실패와 의미가 다름) / 2 실행 오류 / 3 자체검사
+  실패**(다시 계산한 예측이 `--old-pred`/`--new-pred` CSV와 다름 — 복사한 로직 드리프트 신호). 검증 기록은
+  `~/pbl_backup/response_mvp/`, `~/pbl_backup/response_move/` (v3 20a3d5c→HEAD에서 `paper_v4/changed_addresses.md`의
+  3개 주소 재현, `reasoning_raw.json`과 triggered_rules 272/272 일치).
 
 ## 네트워크 시각화 Phase 1 — v2_clean272 참조 금지 (2026-09-09)
 
