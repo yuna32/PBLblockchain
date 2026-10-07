@@ -1,1 +1,1 @@
-window.AVAILABLE_REPORTS = ["PonziLab","NormalStaking","FlashLoanPattern","PumpDump","MoneyLaundering","RugPull","Honeypot","PonziLabPatched"];
+window.AVAILABLE_REPORTS = ["PonziLab","NormalStaking","PumpDump","MoneyLaundering","RugPull","Honeypot","PonziLabPatched"];

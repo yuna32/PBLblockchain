@@ -18,7 +18,6 @@ const CONTRACT_MAP = {
   MoneyLaundering: { type: "laundering",  csv: "laundering_log.csv"   },
   PumpDump:        { type: "pumpdump",    csv: "pumpdump_log.csv"     },
   Honeypot:        { type: "honeypot",    csv: "honeypot_log.csv"     },
-  FlashLoanPattern:{ type: "flashloan",   csv: "flashloan_log.csv"    }
 };
 
 // ANSI 컬러

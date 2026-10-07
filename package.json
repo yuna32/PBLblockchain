@@ -9,7 +9,6 @@
     "rugpull": "hardhat run scripts/simulate_rugpull.js",
     "laundering": "hardhat run scripts/simulate_laundering.js",
     "pumpdump": "hardhat run scripts/simulate_pumpdump.js",
-    "flashloan": "hardhat run scripts/simulate_flashloan.js",
     "honeypot": "hardhat run scripts/simulate_honeypot.js",
     "evasion": "hardhat run scripts/simulate_evasion_patched.js",
     "analyze": "node analysis/pipeline.js",
