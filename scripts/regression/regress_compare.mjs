@@ -28,6 +28,10 @@ const N272_TAGS = {
 };
 const REASONERS = { main: 'analysis/prevention_reasoner.js', nested: 'analysis/analysis/prevention_reasoner.js' };
 const SMOKE_SCRIPT = 'evaluation/response_reasoner/response_reasoner.js';
+// 발동 규칙 층: 스모크가 만든 <run>/out/smoke/new.jsonl 의 address·triggered_rules 만 쓴다
+// (근거: ~/pbl_backup/response_rules_baseline_design/PROPOSAL.md)
+const RULES_TARGET = 'rules/triggered_rules.csv';
+const RULES_DETAIL_MAX = 50;
 
 // ── 공통 ──────────────────────────────────────────────────────────────────────
 function parseArgs(argv) {
@@ -71,7 +75,25 @@ function normalizeText(s, rel, treePath) {
   return t.replace(/\n+$/, '') + '\n';
 }
 
-function writeNorm(runDir, treePath) {
+// 주소별 wide CSV: address + 규칙 id(사전순 합집합) 열, 셀 "weight/weight_max/fraction", 미발동은 빈 셀.
+// 숫자는 String(number) = JSON 표기 그대로. 스모크가 PASS일 때만 만든다(그 밖에는 new.jsonl을 신뢰하지 않음).
+function buildRulesCsv(jsonlPath) {
+  if (!fs.existsSync(jsonlPath)) throw new RegressError(`스모크 PASS인데 new.jsonl 없음: out/smoke/new.jsonl`);
+  const rows = stripCR(readText(jsonlPath)).split('\n').filter(Boolean).map((l, i) => {
+    const r = JSON.parse(l);
+    if (typeof r.address !== 'string' || !Array.isArray(r.triggered_rules)) throw new RegressError(`new.jsonl ${i + 1}행: address/triggered_rules 형식 오류`);
+    return r;
+  }).sort((x, y) => (x.address < y.address ? -1 : x.address > y.address ? 1 : 0));
+  const ids = [...new Set(rows.flatMap(r => r.triggered_rules.map(t => t.id)))].sort();
+  const lines = [['address', ...ids].join(',')];
+  for (const r of rows) {
+    const m = new Map(r.triggered_rules.map(t => [t.id, `${t.weight}/${t.weight_max}/${t.fraction}`]));
+    lines.push([r.address, ...ids.map(id => m.get(id) ?? '')].join(','));
+  }
+  return lines.join('\n') + '\n';
+}
+
+function writeNorm(runDir, treePath, smoke) {
   const raw = path.join(runDir, 'out', 'raw');
   const norm = path.join(runDir, 'out', 'norm');
   fs.rmSync(norm, { recursive: true, force: true });
@@ -92,6 +114,11 @@ function writeNorm(runDir, treePath) {
     if (!fs.existsSync(p)) throw new RegressError(`N=272 출력 없음: out/raw/n272/${f}`);
     fs.mkdirSync(path.join(norm, 'n272'), { recursive: true });
     fs.writeFileSync(path.join(norm, 'n272', f), normalizeText(readText(p), f, treePath));
+  }
+  if (smoke.status === 'PASS') {
+    fs.mkdirSync(path.join(norm, 'rules'), { recursive: true });
+    fs.writeFileSync(path.join(norm, RULES_TARGET),
+      normalizeText(buildRulesCsv(path.join(runDir, 'out', 'smoke', 'new.jsonl')), RULES_TARGET, treePath));
   }
   return { norm, absent };
 }
@@ -140,7 +167,8 @@ function parseCsv(text) {
   }
   return { header, rows, order, dups };
 }
-function compareCsvText(baseText, curText) {
+// sparse: 한쪽에 열이 없고 다른 쪽 셀이 빈 값이면 같은 것으로 본다(rules CSV: 열 = 발동한 규칙 id)
+function compareCsvText(baseText, curText, { sparse = false } = {}) {
   const A = parseCsv(baseText), B = parseCsv(curText), items = [];
   if (A.header.join(',') !== B.header.join(',')) items.push({ path: '$header', from: A.header.join(','), to: B.header.join(',') });
   if (A.header[0] !== 'address' || B.header[0] !== 'address') throw new RegressError('CSV 첫 열이 address가 아님');
@@ -151,6 +179,7 @@ function compareCsvText(baseText, curText) {
     const ra = A.rows.get(k).row, rb = B.rows.get(k).row;
     for (const c of cols) {
       const va = c in ra ? ra[c] : ABSENT, vb = c in rb ? rb[c] : ABSENT;
+      if (sparse && ((va === ABSENT && vb === '') || (vb === ABSENT && va === ''))) continue;
       if (va !== vb) items.push({ key: k, column: c, from: va, to: vb });
     }
   }
@@ -190,7 +219,7 @@ function loadExpected(file) {
   let j;
   try { j = JSON.parse(stripCR(readText(file))); } catch (e) { throw new RegressError(`허용 목록 JSON 오류: ${e.message}`); }
   if (!Array.isArray(j.entries)) throw new RegressError('허용 목록에 entries 배열 없음');
-  const TARGET_RE = /^(prevention\/(main|nested)\/[A-Za-z0-9_*]+\.json|n272\/(ontology_predictions\.csv|disagreement_cases\.csv|comparison_report\.md|mcnemar_report\.md))$/;
+  const TARGET_RE = /^(prevention\/(main|nested)\/[A-Za-z0-9_*]+\.json|n272\/(ontology_predictions\.csv|disagreement_cases\.csv|comparison_report\.md|mcnemar_report\.md)|rules\/triggered_rules\.csv)$/;
   j.entries.forEach((e, idx) => {
     const where = `entries[${idx}]`;
     for (const f of ['target', 'from', 'to', 'commit', 'reason']) {
@@ -273,7 +302,8 @@ function runCompare(a, env) {
     throw new RegressError(`허용 목록의 baseline_id(${expected.baseline_id || '(빈 값)'})가 현재 기준선(${baseline?.id ?? '없음'})과 다름. 허용은 기준선 하나에 묶인다`);
   }
 
-  const { norm, absent } = writeNorm(runDir, treePath);
+  const smoke = smokeResult(env);
+  const { norm, absent } = writeNorm(runDir, treePath, smoke);
   const baseNorm = writeBaselineNorm(baseline, runDir);
 
   // 대상 목록
@@ -285,10 +315,18 @@ function runCompare(a, env) {
   const targets = [];
   for (const c of allContracts) for (const w of ['main', 'nested']) targets.push(`prevention/${w}/${c}.json`);
   for (const f of N272_FILES) targets.push(`n272/${f}`);
+  targets.push(RULES_TARGET);
 
   const results = {};
   for (const t of targets) {
     const bp = path.join(baseNorm, t), cp = path.join(norm, t);
+    if (t === RULES_TARGET && smoke.status !== 'PASS') {
+      // 스모크 연동 (결정 3): SKIP → SKIP, DIFF → new.jsonl 신뢰 불가로 DIFF(비교 안 함), MISSING → 기준선에 있으면 MISSING
+      if (smoke.status === 'SKIP') results[t] = { state: 'SKIP', items: [], note: `스모크 SKIP (${smoke.note})` };
+      else if (smoke.status === 'DIFF') results[t] = { state: 'DIFF', items: [], note: `스모크 실패(${smoke.note})로 new.jsonl을 신뢰할 수 없어 비교하지 않음` };
+      else if (fs.existsSync(bp)) results[t] = { state: 'MISSING', items: [], note: `스모크 ${smoke.status} (${smoke.note})` };
+      continue;
+    }
     const inB = fs.existsSync(bp), inC = fs.existsSync(cp);
     if (!inB && !inC) continue;
     if (!inB) { results[t] = { state: 'NEW', items: [] }; continue; }
@@ -300,7 +338,7 @@ function runCompare(a, env) {
     const bt = readText(bp), ct = readText(cp);
     let items, extra = {};
     if (t.endsWith('.json')) items = compareJsonText(bt, ct);
-    else if (t.endsWith('.csv')) { const r = compareCsvText(bt, ct); items = r.items; extra.rowsTouched = r.rowsTouched; }
+    else if (t.endsWith('.csv')) { const r = compareCsvText(bt, ct, { sparse: t === RULES_TARGET }); items = r.items; extra.rowsTouched = r.rowsTouched; }
     else items = compareLines(bt, ct);
     results[t] = { state: items.length ? 'CHANGED' : 'PASS', items, ...extra };
   }
@@ -320,7 +358,12 @@ function runCompare(a, env) {
   }
   const unused = expected.entries.map((e, i) => ({ i, e })).filter(({ i }) => used[i].size === 0);
 
-  const smoke = smokeResult(env);
+  // 표시용 라벨 (결정 6): 같은 address의 ontology_predictions.csv 셀 차이가 있으면 [예측 동반], 없으면 [규칙만]
+  const predKeys = new Set((results['n272/ontology_predictions.csv']?.items || []).filter(i => i.key !== undefined).map(i => i.key));
+  for (const it of results[RULES_TARGET]?.items || []) {
+    if (it.key !== undefined) it.label = predKeys.has(it.key) ? '[예측 동반]' : '[규칙만]';
+  }
+
   const statusLabel = (r) => !r ? '-' : r.state === 'ALLOWED' ? `ALLOWED (${r.appliedEntries})` : r.state;
   const failing = Object.values(results).some(r => ['DIFF', 'NEW', 'MISSING'].includes(r.state))
     || unused.length > 0 || ['DIFF', 'MISSING'].includes(smoke.status);
@@ -358,6 +401,7 @@ function runCompare(a, env) {
   if (unused.length > 0) throw new RegressError(`허용 목록 미사용 항목 ${unused.length}개가 남아 있어 갱신 거부`);
   if (run.source_mode === 'working-tree' && run.dirty) throw new RegressError('source_mode=working-tree 이면서 dirty — 갱신 거부');
   if (run.source_mode === 'tree') throw new RegressError('source_mode=tree(외부 사본 트리)는 기준선으로 삼지 않음 — 갱신 거부');
+  if (smoke.status !== 'PASS') throw new RegressError(`스모크 ${smoke.status}${smoke.note ? ` (${smoke.note})` : ''} — 발동 규칙을 기준선에 넣을 수 없어 갱신 거부`);
   const normFiles = listFiles(norm);
   fs.writeFileSync(path.join(runDir, 'preview.json'), JSON.stringify({
     preview_run_id: run.run_id, reason: a.reason, previous_baseline_id: baseline?.id ?? null,
@@ -398,9 +442,33 @@ function buildSummary({ run, baseline, results, allContracts, unused, expected, 
   L.push('', `- 스모크는 사본 트리의 \`${SMOKE_SCRIPT}\`를 --old=--new=사본 트리(+ 이번 실행의 ontology_predictions.csv로 자체검사)로 실행한다. 통과 조건은 exit 0과 "예측 변경 0개"다.`,
     '- 여기서 exit 0을 통과로 보는 것은 스모크 용도일 뿐이다. response_reasoner를 단독으로 쓸 때 exit 1은 "변경 있음"을 뜻하는 정보성 결과이며 실패가 아니다.');
 
-  const diffs = Object.entries(results).flatMap(([t, r]) => (r.items || []).filter(i => !i.allowed).map(i => ({ t, i })));
+  // 발동 규칙 절 (결정 6·7): 상세는 앞쪽 RULES_DETAIL_MAX셀, 총 셀·주소 수는 항상 표시
+  const rr = results[RULES_TARGET];
+  L.push('', `## 발동 규칙 (${RULES_TARGET})`, '');
+  L.push('| 상태 | 변경 주소 | [예측 동반] | [규칙만] | 셀 (허용/미허용) | 비고 |', '|---|---|---|---|---|---|');
+  if (!rr) {
+    L.push('| - | | | | | 기준선과 이번 실행 모두 없음 |');
+  } else {
+    const cells = rr.items.filter(i => i.key !== undefined);
+    const addrs = new Set(cells.map(i => i.key));
+    const withPred = new Set(cells.filter(i => i.label === '[예측 동반]').map(i => i.key));
+    const al = rr.items.filter(i => i.allowed).length;
+    L.push(`| ${statusLabel(rr)} | ${addrs.size} | ${withPred.size} | ${addrs.size - withPred.size} | ${rr.items.length} (${al}/${rr.items.length - al}) | ${rr.note || ''} |`);
+    if (rr.items.length) {
+      L.push('', `총 ${rr.items.length}셀(주소 ${addrs.size}개${rr.items.length > cells.length ? `, 헤더 등 ${rr.items.length - cells.length}건 포함` : ''}). 상세는 앞쪽 ${RULES_DETAIL_MAX}셀까지 보인다(허용·종료 코드 판정은 전체 셀 기준).`, '');
+      for (const i of rr.items.slice(0, RULES_DETAIL_MAX)) {
+        const loc = i.key !== undefined ? `[${i.key}] ${i.column}` : i.path;
+        L.push(`- ${loc}: ${show(i.from)} → ${show(i.to)}${i.label ? `   ${i.label}` : ''}${i.allowed ? '   (허용)' : ''}`);
+      }
+      if (rr.items.length > RULES_DETAIL_MAX) L.push(`- … 외 ${rr.items.length - RULES_DETAIL_MAX}셀 (result.json 참고)`);
+    }
+    L.push('', '- 셀 값은 `weight/weight_max/fraction`(빈 값 = 미발동). 라벨은 표시용이며 판정에 영향이 없다. 규칙이 같고 예측만 바뀐 주소는 위 N=272 비교가 잡는다.');
+  }
+
+  const diffs = Object.entries(results).filter(([t]) => t !== RULES_TARGET)
+    .flatMap(([t, r]) => (r.items || []).filter(i => !i.allowed).map(i => ({ t, i })));
   const nm = Object.entries(results).filter(([, r]) => ['NEW', 'MISSING'].includes(r.state));
-  L.push('', '## 차이 상세 (미허용만)', '');
+  L.push('', `## 차이 상세 (미허용만, 발동 규칙 셀은 위 절)`, '');
   if (!diffs.length && !nm.length) L.push('(없음)');
   const shown = diffs.slice(0, 200);
   for (const { t, i } of shown) {

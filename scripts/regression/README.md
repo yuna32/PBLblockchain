@@ -41,6 +41,14 @@ bash scripts/regression/regress.sh --update-baseline --reason "<같은 사유>" 
    (이번 실행의 `ontology_predictions.csv`로 자체검사 포함). 통과 조건은 exit 0과 "예측 변경 0개".
    이 exit 0 통과는 스모크 용도일 뿐이며, response_reasoner 단독 사용 시 exit 1은 "변경 있음"을 뜻하는 정보성 결과다.
    스크립트가 없는 과거 커밋(`--rev`)은 SKIP, 그 밖에 스크립트가 없으면 MISSING.
+4. 발동 규칙 `rules/triggered_rules.csv`: 스모크가 만든 `<run>/out/smoke/new.jsonl`에서 `address`와
+   `triggered_rules[{id, weight, weight_max, fraction}]`만 뽑은 주소별 wide CSV(행 키 address, 열 = 발동한 규칙 id 사전순,
+   셀 `weight/weight_max/fraction`, 미발동은 빈 셀). 문자열 정확 일치로 셀 단위 비교한다(float 허용 오차 없음).
+   한쪽에 열이 없고 다른 쪽 셀이 비어 있으면 같은 것으로 본다(새 규칙 열은 실제로 발동한 셀만 `<absent>` → 값으로 나온다).
+   - 스모크 SKIP → rules SKIP. 스모크 DIFF(자체검사 실패 포함) → new.jsonl을 신뢰할 수 없어 비교하지 않고 rules DIFF(실패).
+     스모크 MISSING → 기준선에 rules가 있으면 MISSING.
+   - summary "발동 규칙" 절: 같은 address의 `ontology_predictions.csv` 셀 차이가 있으면 `[예측 동반]`, 없으면 `[규칙만]`(표시용, 판정과 무관).
+     상세는 앞쪽 50셀까지 보이고 총 셀·주소 수는 항상 적는다. 허용·종료 코드 판정은 전체 셀 기준.
 
 정규화: CR 제거, 파일 끝 개행 하나로 통일, md의 `> 생성:` 줄 제외, 사본 트리 절대경로 → `<TREE>`.
 N=272 변화에는 `[논문표1]`(ontology_predictions.csv, comparison_report.md), `[논문 McNemar]`(disagreement_cases.csv, mcnemar_report.md) 태그를 붙인다.
@@ -66,6 +74,8 @@ summary 상태값: `PASS` / `ALLOWED (n)` / `DIFF` / `NEW` / `MISSING` / `SKIP`.
     { "target": "n272/ontology_predictions.csv", "key": "0x…", "column": "dynamic_exact_pred", "from": "0", "to": "1",
       "commit": "<커밋>", "reason": "<사유>" },
     { "target": "n272/comparison_report.md", "path": "line", "from": "<이전 줄>", "to": "<새 줄>",
+      "commit": "<커밋>", "reason": "<사유>" },
+    { "target": "rules/triggered_rules.csv", "key": "0x…", "column": "CONCENTRATION_DRAIN", "from": "23/35/0.67", "to": "24/35/0.67",
       "commit": "<커밋>", "reason": "<사유>" }
   ]
 }
@@ -77,11 +87,16 @@ summary 상태값: `PASS` / `ALLOWED (n)` / `DIFF` / `NEW` / `MISSING` / `SKIP`.
 - 매치되지 않은 항목은 실패(코드 1). `entries`가 비어 있지 않은데 `baseline_id`가 현재 기준선과 다르면 코드 2.
 - 기준선을 갱신해도 허용 목록은 자동으로 비우지 않는다. 사람이 비운다.
 
+**운영 원칙 (발동 규칙):** 임계값·가중치 조정처럼 의도된 대규모 규칙 변경은 수십~수백 셀이 함께 바뀌므로
+`expected_changes.json` 항목으로 적지 않는다. 변경을 커밋한 뒤 `--update-baseline` 미리보기로 diff 전체를 확인하고
+`--confirm`으로 기준선을 갱신해 처리한다. 허용 목록은 몇 개 셀의 국소적 변화에만 쓴다.
+
 ## 기준선 갱신 규칙
 
 1. `--update-baseline --reason`으로 비교를 실행하고, 기준선과의 diff 전체를 출력하며 `<run>/update_preview.diff`에 저장한다.
 2. `--confirm <run id>`로만 실제 갱신한다. 사유는 미리보기와 같아야 하고, 미리보기 이후 CURRENT나 정규화 출력이 바뀌었으면 거부한다.
-3. `--working-tree`이면서 dirty, `--tree`, 허용 목록 미사용 항목이 남은 경우는 거부(코드 2).
+3. `--working-tree`이면서 dirty, `--tree`, 허용 목록 미사용 항목이 남은 경우, 스모크가 PASS가 아닌 경우(SKIP·DIFF·MISSING —
+   발동 규칙을 기준선에 넣을 수 없음)는 거부(코드 2).
 4. 새 기준선은 `baselines/<미리보기 run id>/`에 추가하고 `CURRENT`만 바꾼다. 이전 기준선 디렉터리는 남는다.
 5. `SHA256SUMS`는 CR 제거 후 내용의 해시다(작업트리 CRLF 체크아웃에도 견딤). 매 실행마다 검증하고 불일치면 코드 2.
 
