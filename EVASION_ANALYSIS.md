@@ -394,6 +394,7 @@ BALANCE_DROP 임계값이 달라 시나리오 B가 패치 전에도 이미 HIGH_
   "출금액의 90% 이상이 원 예치자 본인에게 귀속"·"오너 전용 액션 없음" 조건을
   추가로 통합해 해결했다. 패치 후 flashloan_log는 MEDIUM_RISK/30→31로
   등급 변화 없이 유지됨을 확인.
+  (주: FlashLoanPattern은 2026-10에 `archive/2026-10_flashloan/`으로 이동했다. `flashloan_log.csv`는 동결 fixture로 남아 있다.)
 - 회귀 결과: 기존 7개 컨트랙트(최상위 데이터셋 기준 PonziLab/RugPull/
   MoneyLaundering/PumpDump/Honeypot/NormalStaking/FlashLoan) 전부 유지 또는
   개선(PumpDump MEDIUM→HIGH, 중첩 버전과 동일한 근본원인), 3개 회피 시나리오

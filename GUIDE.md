@@ -12,16 +12,14 @@ pbl/
 │   ├── NormalStaking.sol     ← 정상 스테이킹 (기존)
 │   ├── RugPull.sol           ← 러그풀 (신규)
 │   ├── MoneyLaundering.sol   ← 자금세탁 (신규)
-│   ├── PumpDump.sol          ← 펌프앤덤프 (신규)
-│   └── FlashLoanPattern.sol  ← 플래시론 패턴 (신규)
+│   └── PumpDump.sol          ← 펌프앤덤프 (신규)
 │
 ├── scripts/
 │   ├── simulate_ponzi.js     ← 폰지 시뮬레이션 (기존)
 │   ├── simulate_normal.js    ← 정상 시뮬레이션 (기존)
 │   ├── simulate_rugpull.js   ← 러그풀 시뮬레이션 (신규)
 │   ├── simulate_laundering.js← 자금세탁 시뮬레이션 (신규)
-│   ├── simulate_pumpdump.js  ← 펌프앤덤프 시뮬레이션 (신규)
-│   └── simulate_flashloan.js ← 플래시론 시뮬레이션 (신규)
+│   └── simulate_pumpdump.js  ← 펌프앤덤프 시뮬레이션 (신규)
 │
 ├── analysis/
 │   ├── logs/                 ← 시뮬레이션 결과 CSV 저장 위치
@@ -30,7 +28,7 @@ pbl/
 │   │   ├── rugpull_log.csv       ← 시뮬레이션 실행 후 생성
 │   │   ├── laundering_log.csv    ← 시뮬레이션 실행 후 생성
 │   │   ├── pumpdump_log.csv      ← 시뮬레이션 실행 후 생성
-│   │   └── flashloan_log.csv     ← 시뮬레이션 실행 후 생성
+│   │   └── flashloan_log.csv     ← 동결 fixture (생성기는 archive/2026-10_flashloan/)
 │   ├── dashboard.html        ← 대시보드 (브라우저에서 바로 열기)
 │   └── visualize.py          ← Python 시각화 스크립트
 │
@@ -106,9 +104,6 @@ npx hardhat run scripts/simulate_laundering.js
 
 # 3. 펌프앤덤프 — 내부자 pump → 후발자 유입 → 내부자 dump → 후발자 손실
 npx hardhat run scripts/simulate_pumpdump.js
-
-# 4. 플래시론 패턴 — 대량 입금 후 즉시 전액 인출 반복
-npx hardhat run scripts/simulate_flashloan.js
 ```
 
 ### 시뮬레이션 출력 확인
@@ -186,7 +181,7 @@ python3 analysis/visualize.py
 | `rugpull_analysis.png` | 러그풀 개별 분석 |
 | `laundering_analysis.png` | 자금세탁 개별 분석 |
 | `pumpdump_analysis.png` | 펌프앤덤프 개별 분석 |
-| `flashloan_analysis.png` | 플래시론 패턴 개별 분석 |
+| `flashloan_analysis.png` | 플래시론 패턴 개별 분석 (동결 로그 기준) |
 
 > **주의**: 시뮬레이션이 실행되지 않은 CSV는 자동으로 건너뜁니다.  
 > 존재하는 CSV만 로드하여 그래프를 생성합니다.
@@ -216,6 +211,7 @@ python3 analysis/visualize.py
 - **핵심 함수**: `addInsider()` / `deposit()` / `insiderWithdraw()` / `withdraw()`
 
 ### 5. 플래시론 패턴 (FlashLoanPattern)
+> 2026-10-07: 이 컨트랙트는 `archive/2026-10_flashloan/`으로 옮겨 분석 대상에서 뺐다. 로그(`analysis/logs/flashloan_log.csv`)만 동결 fixture로 남아 있다.
 - **패턴**: 대량 입금 후 즉시 전액 인출을 여러 블록에서 반복, 잔고가 절대 누적되지 않음
 - **탐지 지표**: max_single_tx == total_in 관계가 매 라운드 성립, cumulative_balance 0 수렴
 - **핵심 함수**: `deposit()` / `withdrawAll()`
@@ -304,7 +300,6 @@ npx hardhat compile
 npx hardhat run scripts/simulate_rugpull.js    → analysis/logs/rugpull_log.csv
 npx hardhat run scripts/simulate_laundering.js → analysis/logs/laundering_log.csv
 npx hardhat run scripts/simulate_pumpdump.js   → analysis/logs/pumpdump_log.csv
-npx hardhat run scripts/simulate_flashloan.js  → analysis/logs/flashloan_log.csv
   ↓                                                       ↓
 python3 analysis/visualize.py              analysis/dashboard.html 열기
   ↓                                                       ↓

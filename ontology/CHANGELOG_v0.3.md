@@ -143,6 +143,9 @@ NormalStaking, FlashLoanPattern)가 `evasion_detected` 등 필드가 아예
 실제 evasion_detected:true 사례를, RugPull/NormalStaking은 정상적으로
 계산된 evasion_detected:false 사례를 보여주게 되어 Panel 5의 두 상태
 모두 실데이터로 시연 가능해졌다.
+(2026-10-07 주: FlashLoanPattern 리포트는 `archive/2026-10_flashloan/`으로 옮겼다. 현재 `analysis/reports/`에서
+evasion_detected:true 사례는 `PonziLab_report.json`(PonziScheme_MaxTxEvasion)·`PumpDump_report.json`
+(PumpDump_MaxTxEvasion), false 사례는 RugPull·NormalStaking 등이라 Panel 5 시연은 그대로 가능하다.)
 
 ### 회귀 검증 (헤드리스 브라우저)
 

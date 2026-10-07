@@ -11,7 +11,7 @@
 |---|---|---|
 | 실행 위치 | 저장소 루트 | 저장소 루트 |
 | hardhat 프로젝트 | `package.json`, `hardhat.config.js` | 없음 — ②와 공유 (중첩 hardhat 묶음은 `archive/2026-10_nested-hardhat/`) |
-| contracts | `contracts/` (9개) | `contracts/` (②와 공유) |
+| contracts | `contracts/` (8개, 파이프라인 등록 7개 — EvasiveContract는 미등록) | `contracts/` (②와 공유) |
 | 시뮬레이션 | `scripts/simulate_*.js` (honeypot, evasion_patched 포함) | 없음 — ②와 공유 |
 | 로그 | `analysis/logs/` | `analysis/analysis/logs/` (기존 로그 보존용. 새 시뮬레이션은 여기에 쓰지 않음) |
 | 파이프라인 | `analysis/pipeline.js` (`npm run analyze`) | `analysis/analysis/pipeline.js` (npm script 없음 — `node analysis/analysis/pipeline.js --contract <이름>`) |
@@ -63,9 +63,13 @@
 
 ### contracts
 
-- 저장소 루트 `contracts/` 한 곳에 9개: EvasiveContract, FlashLoanPattern, Honeypot, MoneyLaundering,
+- 저장소 루트 `contracts/` 한 곳에 8개(파이프라인 등록 7개, EvasiveContract는 미등록): EvasiveContract, Honeypot, MoneyLaundering,
   NormalStaking, PonziLab, PonziLabPatched, PumpDump, RugPull. 메인·중첩 pipeline과 reasoner,
   `ontology/load_instances.py`가 모두 여기서 읽는다.
+- FlashLoanPattern(5개 사기 유형 밖의 실험용)은 2026-10-07에 소스·리포트·`scripts/simulate_flashloan.js`를
+  `archive/2026-10_flashloan/`으로 옮기고 등록(메인 `CONTRACT_MAP`, `package.json`의 `flashloan`, `index.js` 2개)을
+  지웠다. `analysis/logs/flashloan_log.csv`는 `analysis/compare_evasion.js:31`이 읽는 동결 fixture로 남겼다
+  (해당 폴더 README 참고).
 - Honeypot·PonziLabPatched는 2026-10-01에 `analysis/contracts/`에서 `git mv`로 옮겼다. 남은 공유
   5개 사본은 루트와 git blob이 같아 아카이브했다.
 - 그 결과 메인 리포트에서 Honeypot은 전체 등급 A→C(예방 HIGH로 상한 적용), PonziLabPatched는
@@ -96,7 +100,7 @@
 - `ontology/run_reasoner.py`: 실행하면 `fraud_reasoned.owl`을 조용히 덮어쓴다(`:254`). 인스턴스 목록이 6개로
   고정되어(`:167`) `honeypot_selective`가 빠져 있어, 공식 4단계 뒤에 돌리면 그 인스턴스의 causal_edges가
   사라진다. 아카이브 여부 미정.
-- 루트 `GUIDE.md`: 컨트랙트 6개 시절 트리와 `npx` 명령 기준 — 9개 구조와 node 직접 실행 방식으로 갱신.
+- 루트 `GUIDE.md`: 컨트랙트 6개 시절 트리와 `npx` 명령 기준 — `contracts/` 8개(파이프라인 등록 7개) 구조와 node 직접 실행 방식으로 갱신.
 - (확인 후보, 미해결) PonziLabPatched 리포트의 static 점수 0→100: 정적 분석기가 이 소스를 처음 분석한
   결과다. 패치 내용이 반영된 값인지, 정적 분석기의 한계인지는 아직 확인하지 않았다.
 - 해결됨(2026-10-01 후속): `analysis/node_modules` 저장소 밖 이동·`analysis/.gitignore`·`analysis/GUIDE.md`
@@ -159,7 +163,7 @@
   FlashLoanPattern·EvasiveContract, `analysis/contracts/`에만 Honeypot·PonziLabPatched)뿐이다.
   **(2026-09-28 정정)** 이전 서술 "RugPull/MoneyLaundering/PumpDump.sol 내용이 다르다"는
   CRLF 차이를 내용 차이로 잘못 읽은 것이었다. 즉 "깨진" 게 아니라 "구버전 5개 컨트랙트만 커버하는 별도 스냅샷"이다.
-  **(2026-10-01 정정)** 이제 루트 `contracts/`에 9개가 모두 있고 메인·중첩 reasoner가 같은 곳을 읽는다(상단 "저장소 구조" 절).
+  **(2026-10-01 정정)** 이제 루트 `contracts/`에 9개가 모두 있고(2026-10-07 FlashLoanPattern을 archive로 옮겨 8개, 파이프라인 등록 7개) 메인·중첩 reasoner가 같은 곳을 읽는다(상단 "저장소 구조" 절).
   `analysis/dynamic_analyzer.js`(최상위)는 `fraud_ontology.js`에 의존하지 않는
   자기완결형 축약 버전이며, `evaluation/ponzi_comparison/evaluate_comparison.js`가
   바로 이 최상위 버전을 사용한다(중첩 버전이 아님 — import 경로 `'../../analysis/dynamic_analyzer.js'`
@@ -259,7 +263,7 @@ Phase 3에서 확인된 3가지 구조적 부재(라벨셋 없음/주소 데이�
   7개 권고를 얹되, 이 파일에 이미 있던 `detectInflowStop()`의 `isNormalUnstake`
   가드를 `computeIsOrganicUnstake()`로 추출·확장해 재사용(신규 게이트를 또
   만들지 않음). 회귀 테스트 중 `flashloan_log`(자기순환 패턴)에서 기존 가드의
-  경계값 버그(`maxW < minW*2.5` strict 비교)를 발견해 `<=`로 수정.
+  경계값 버그(`maxW < minW*2.5` strict 비교)를 발견해 `<=`로 수정. (`flashloan_log.csv`는 2026-10-07부터 동결 fixture, 컨트랙트는 `archive/2026-10_flashloan/`)
   `hintFraudType`/`detectEvasionSubclass`/`reasoning_steps` 등 이 파일 고유
   로직은 그대로 유지.
 - **체크포인트 커밋 `d50568b`** (패치 전 상태 보존) → **패치 커밋 `21203cb`**

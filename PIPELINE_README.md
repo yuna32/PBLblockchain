@@ -273,6 +273,7 @@ combined_risk = 정적 위험도 × 0.30
 | FlashLoanPattern| 30    | 30    | 높음  | B / C   |
 
 > 실제 점수는 시뮬레이션 결과(CSV 데이터)에 따라 달라질 수 있습니다.
+> FlashLoanPattern은 2026-10에 `archive/2026-10_flashloan/`으로 이동했다. 로그(`analysis/logs/flashloan_log.csv`)는 동결 fixture다.
 
 ---
 
