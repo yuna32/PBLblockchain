@@ -1,0 +1,16 @@
+{
+  "contract": "NormalStaking",
+  "fraud_type_suspected": null,
+  "checklist": [],
+  "risk_score": 0,
+  "risk_level": "LOW",
+  "risk_label": "정상 구조",
+  "unmet_conditions": [],
+  "deployment_recommendation": "사기 패턴 미검출. 배포 가능.",
+  "honeypot_code_pattern_subclasses": [],
+  "ontology_reasoning_chain": [
+    "소스 로드: NormalStaking.sol (102줄)",
+    "유형별 패턴 점수: {\"PonziScheme\":0,\"RugPull\":0,\"MoneyLaundering\":0,\"HoneypotTrap\":0,\"PumpDump\":0}",
+    "모든 사기 유형 패턴 미검출 → 정상 구조로 판단"
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "contract": "RugPull",
+  "fraud_type_suspected": "RugPull",
+  "checklist": [
+    {
+      "id": "SINGLE_DRAIN_FUNCTION",
+      "label": "단발 전액 인출 함수",
+      "detected": true,
+      "riskWeight": 3,
+      "evidence": "rugPull found at line 24",
+      "consequence": "명시적 러그풀 함수 존재",
+      "fix": "함수 제거, 참여자별 개별 출금 구조로 전환"
+    },
+    {
+      "id": "NO_PARTICIPANT_REFUND",
+      "label": "참여자 환불 불가 구조",
+      "detected": true,
+      "riskWeight": 2,
+      "evidence": "보호 패턴 [refund, emergencyExit] 미검출",
+      "consequence": "참여자가 자금을 회수할 수 없는 구조",
+      "fix": "emergencyExit() 함수 추가"
+    }
+  ],
+  "risk_score": 5,
+  "risk_level": "CRITICAL",
+  "risk_label": "배포 불가",
+  "unmet_conditions": [
+    "SINGLE_DRAIN_FUNCTION",
+    "NO_PARTICIPANT_REFUND"
+  ],
+  "deployment_recommendation": "배포 전 필수 수정 항목 2개 존재. 수정 없이 배포 불가.",
+  "honeypot_code_pattern_subclasses": [],
+  "ontology_reasoning_chain": [
+    "소스 로드: RugPull.sol (75줄)",
+    "유형별 패턴 점수: {\"PonziScheme\":2,\"RugPull\":3,\"MoneyLaundering\":3,\"HoneypotTrap\":0,\"PumpDump\":0}",
+    "동점 해소: 정적 분석 힌트(undefined) → RugPull",
+    "RugPull 예방 체크리스트 시작",
+    "SINGLE_DRAIN_FUNCTION: rugPull found at line 24 → 검출 (위험 +3)",
+    "NO_PARTICIPANT_REFUND: 보호 패턴 [refund, emergencyExit] 미검출 → 검출 (위험 +2)",
+    "총 위험 점수: 5",
+    "위험 등급: CRITICAL — 배포 불가",
+    "결론: 배포 전 2개 항목 수정 필요"
+  ]
+}

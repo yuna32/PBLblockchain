@@ -1,0 +1,39 @@
+{
+  "baseline_id": "20261007T043629Z_9951e10",
+  "source_rev": "9951e100d5288b670030e6894151d3770fd3544e",
+  "source_rev_short": "9951e10",
+  "source_mode": "archive",
+  "dirty": true,
+  "dirty_note": "archive 모드: 소스가 커밋이므로 dirty는 참고용 기록",
+  "git_diff_stat": "",
+  "node": "v18.19.1",
+  "env": {
+    "EXCLUDE_ADDRESSES": ""
+  },
+  "contracts": [
+    "EvasiveContract",
+    "Honeypot",
+    "MoneyLaundering",
+    "NormalStaking",
+    "PonziLab",
+    "PonziLabPatched",
+    "PumpDump",
+    "RugPull"
+  ],
+  "reasoners": [
+    "analysis/prevention_reasoner.js",
+    "analysis/analysis/prevention_reasoner.js"
+  ],
+  "smoke": {
+    "script": "evaluation/response_reasoner/response_reasoner.js",
+    "status": "PASS",
+    "exit": 0,
+    "changed": 0,
+    "note": ""
+  },
+  "reason": "HEAD 9951e10 초기 기준선 (FlashLoanPattern archive 이동 후, response_reasoner 스모크 포함)",
+  "previous_baseline_id": null,
+  "preview_run_id": "20261007T043629Z_9951e10",
+  "created_by": "regress.sh --update-baseline --reason <reason> --confirm 20261007T043629Z_9951e10",
+  "normalization": "CR 제거, 파일 끝 개행 하나, md \"> 생성:\" 줄 제외, 사본 트리 절대경로 → <TREE>"
+}
