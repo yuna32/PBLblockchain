@@ -4,3 +4,4 @@ analysis/logs/honeypot_sim_log.csv
 artifacts/
 cache/
 
+*Zone.Identifier
