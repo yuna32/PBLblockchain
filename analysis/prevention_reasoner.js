@@ -55,6 +55,29 @@ function evalAbsenceItem(item, src) {
   return { matched: true, evidence: `보호 패턴 [${guards.join(", ")}] 미검출` };
 }
 
+// triggers/implies 인과관계 예측 (설계서 4-3절, v0.2 신규)
+// BehaviorPattern의 정적 프록시가 소스에서 검출되면, 아직 실제 신호가
+// 관측되지 않았더라도 대응 AnomalySignal 발생을 예측해 reasoning_chain에
+// 부기한다. risk_score/risk_level/checklist/fraud_type_suspected 등 기존
+// 판정에는 전혀 관여하지 않는 순수 부가 추론이다 (OWL 레이어의
+// triggers/implies SWRL 규칙과 1:1 대응 — add_swrl_rules.py imp9~imp13).
+function predictCausalSignals(src) {
+  const predictions = [];
+  for (const relation of ["triggers", "implies"]) {
+    for (const rule of FraudOntology.causalRelations[relation]) {
+      if (new RegExp(rule.detectPattern).test(src)) {
+        predictions.push({
+          relation,
+          pattern: rule.pattern,
+          signal: rule.signal,
+          rationale: rule.rationale
+        });
+      }
+    }
+  }
+  return predictions;
+}
+
 function scoreChecklist(checklistItems, src) {
   let score = 0;
   for (const item of checklistItems) {
@@ -145,6 +168,12 @@ export async function runPrevention(contractName) {
   const lines = getLines(src);
   chain.push(`소스 로드: ${path.basename(solPath)} (${lines.length}줄)`);
 
+  // ── triggers/implies 인과관계 예측 (부가 추론, 판정에는 영향 없음) ─────────
+  const predicted_anomaly_signals = predictCausalSignals(src);
+  for (const p of predicted_anomaly_signals) {
+    chain.push(`[${p.relation}] ${p.pattern} 감지 → ${p.signal} 발생 예상 (${p.rationale})`);
+  }
+
   const typeScores = scoreAllFraudTypes(src);
   chain.push(`유형별 패턴 점수: ${JSON.stringify(typeScores)}`);
 
@@ -170,6 +199,7 @@ export async function runPrevention(contractName) {
       risk_label: "정상 구조",
       unmet_conditions: [],
       deployment_recommendation: "사기 패턴 미검출. 배포 가능.",
+      predicted_anomaly_signals,
       code_pattern_warnings,
       withdraw_block_warning,
       ontology_reasoning_chain: chain
@@ -269,6 +299,7 @@ export async function runPrevention(contractName) {
     risk_label,
     unmet_conditions:         unmet,
     deployment_recommendation,
+    predicted_anomaly_signals,
     code_pattern_warnings,
     withdraw_block_warning,
     ontology_reasoning_chain: chain
