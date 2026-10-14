@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { FraudOntology } from "./analysis/fraud_ontology.js";
+import { FraudOntology } from "./fraud_ontology.js";
 import { analyzeStatic }  from "./static_analyzer.js";
 import { detectHiddenStateUpdate, detectStrawManContract } from "./honeypot_code_patterns.js";
 

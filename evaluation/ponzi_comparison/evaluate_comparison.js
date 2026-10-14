@@ -43,7 +43,7 @@ try {
 }
 
 try {
-  const m = await import('../../analysis/analysis/fraud_ontology.js');
+  const m = await import('../../analysis/fraud_ontology.js');
   FraudOntology = m.FraudOntology;
   console.log('[OK] fraud_ontology.js 로드 완료');
 } catch (e) {

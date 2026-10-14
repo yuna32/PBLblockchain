@@ -4,7 +4,7 @@ import { fileURLToPath } from "url";
 import { analyzeStatic } from "./static_analyzer.js";
 import { analyzeDynamic } from "./dynamic_analyzer.js";
 import { scoreTrust }     from "./trust_scorer.js";
-import { FraudOntology }  from "./fraud_ontology.js";
+import { FraudOntology }  from "../fraud_ontology.js";
 import { runPrevention }  from "./prevention_reasoner.js";
 
 const __filename = fileURLToPath(import.meta.url);

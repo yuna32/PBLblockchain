@@ -333,12 +333,20 @@ const MODULES = {
   evaluate_comparison: ['evaluation', 'ponzi_comparison', 'evaluate_comparison.js'],
 };
 
+// 옮겨진 모듈의 실제 위치 후보(앞에서부터 처음 존재하는 경로로 해시). 라벨은 MODULES의 옛 경로를 그대로 쓴다.
+const MODULE_CANDIDATES = {
+  fraud_ontology: [['analysis', 'fraud_ontology.js'], ['analysis', 'analysis', 'fraud_ontology.js']],
+};
+
 // ── 트리 하나 계산 ──────────────────────────────────────────────────────────────
 async function loadTree(treeArg, tag) {
   const root = path.resolve(treeArg);
   if (!fs.existsSync(root) || !fs.statSync(root).isDirectory()) throw new UsageError(`--${tag} 트리 없음`);
   const hashes = {};
-  for (const [k, parts] of Object.entries(MODULES)) hashes[k] = sha256NoCR(path.join(root, ...parts));
+  for (const [k, parts] of Object.entries(MODULES)) {
+    const found = (MODULE_CANDIDATES[k] || []).find(c => fs.existsSync(path.join(root, ...c)));
+    hashes[k] = sha256NoCR(path.join(root, ...(found || parts)));
+  }
   const pc = path.join(root, 'evaluation', 'ponzi_comparison');
   return {
     tag, root, hashes, pc, logsDir: path.join(pc, 'data', 'logs'),

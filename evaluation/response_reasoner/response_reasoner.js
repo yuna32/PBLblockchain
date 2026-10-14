@@ -254,7 +254,10 @@ function dynamicPredict(analyzeDynamic, logsDir, tmpDir, tag, address) {
 async function loadTree(treeArg, tag, label) {
   const root = path.resolve(treeArg);
   const dynPath  = path.join(root, 'analysis', 'dynamic_analyzer.js');
-  const ontoPath = path.join(root, 'analysis', 'analysis', 'fraud_ontology.js');
+  // 새 위치(analysis/)를 먼저, 없으면 이동 전 트리의 옛 위치(analysis/analysis/)를 찾는다
+  const ontoPath = [path.join(root, 'analysis', 'fraud_ontology.js'),
+                    path.join(root, 'analysis', 'analysis', 'fraud_ontology.js')].find(p => fs.existsSync(p))
+                   ?? path.join(root, 'analysis', 'fraud_ontology.js');
   const evalPath = path.join(root, 'evaluation', 'ponzi_comparison', 'evaluate_comparison.js');
   const pc       = path.join(root, 'evaluation', 'ponzi_comparison');
   for (const f of [dynPath, ontoPath,

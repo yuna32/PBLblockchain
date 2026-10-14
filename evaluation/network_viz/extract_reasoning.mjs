@@ -39,7 +39,7 @@ const m1 = await import('../../analysis/dynamic_analyzer.js');
 analyzeDynamic = m1.analyzeDynamic;
 console.log('[OK] dynamic_analyzer.js 로드 완료');
 
-const m2 = await import('../../analysis/analysis/fraud_ontology.js');
+const m2 = await import('../../analysis/fraud_ontology.js');
 FraudOntology = m2.FraudOntology;
 console.log('[OK] fraud_ontology.js 로드 완료');
 
