@@ -1,14 +1,14 @@
-// HoneyPot 코드축 서브클래스 정적 탐지 (HiddenStateUpdate / StrawManContract).
+// 코드 패턴 경고 정적 탐지 (HiddenStateUpdate / StrawManContract).
 // analysis/analysis/prevention_reasoner.js 에서 로직 변경 없이 추출했다(2026-10).
 // 사용처: analysis/prevention_reasoner.js, analysis/analysis/prevention_reasoner.js(re-export),
 // evaluation/honeypot_comparison/*(중첩 reasoner 경유). ontology/load_instances.py 는 같은 로직의
 // Python 재구현이므로 여기를 고치면 그쪽도 함께 확인할 것.
 
-// ── HoneyPot 코드축 서브클래스 탐지 (Torres et al. 2019 HoneyBadger 상위 2기법) ──
-// evasionSubclasses(다른 4개 사기유형, 신뢰도 점수 기반 — dynamic_analyzer.js
-// detectEvasionSubclass 참고)와 달리 순수 불리언 매치다. fraud_type_suspected가
-// HoneypotTrap으로 확정된 컨트랙트에 한해 2차 분류로만 실행되며, risk_score/
-// risk_level/checklist 등 기존 판정에는 전혀 관여하지 않는 부가 추론이다.
+// ── 코드 패턴 경고 탐지 (Torres et al. 2019 HoneyBadger 상위 2기법) ──
+// evasionSubclasses(4개 사기유형, 신뢰도 점수 기반 — dynamic_analyzer.js
+// detectEvasionSubclass 참고)와 달리 순수 불리언 매치다. 2026-10 허니팟 사기 유형
+// 삭제 후에는 사기 유형과 무관하게 모든 컨트랙트에서 실행되며(code_pattern_warnings),
+// risk_score/risk_level/checklist 등 기존 판정에는 전혀 관여하지 않는 부가 추론이다.
 
 function findWriteLines(varName, lines, excludeLineNo) {
   const re = new RegExp(`\\b${varName}\\s*=(?!=)`);

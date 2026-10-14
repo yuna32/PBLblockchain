@@ -249,7 +249,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Segoe UI',system-ui,sans-
       <button class="tpill" data-type="laundering">자금세탁</button>
       <button class="tpill" data-type="pumpdump">펌프앤덤프</button>
       <button class="tpill" data-type="flashloan">플래시론</button>
-      <button class="tpill" data-type="honeypot">허니팟</button>
+      <button class="tpill" data-type="honeypot">출금 차단 (유형 미확정)</button>
       <button class="tpill" data-type="normal">정상 스테이킹</button>
     </div>
     <div class="rpt-loader" id="rpt-loader">
@@ -476,7 +476,7 @@ const FRAUD_META = {
   laundering: { label:'자금세탁',     color:'#f85149', risk:'high' },
   pumpdump:   { label:'펌프앤덤프',   color:'#d29922', risk:'med'  },
   flashloan:  { label:'플래시론',     color:'#d29922', risk:'med'  },
-  honeypot:   { label:'허니팟',       color:'#f85149', risk:'high' },
+  honeypot:   { label:'출금 차단 (유형 미확정)', color:'#f85149', risk:'high' },
   normal:     { label:'정상 스테이킹', color:'#3fb950', risk:'low' },
 };
 
@@ -486,7 +486,7 @@ const PATTERNS = {
   laundering: { verdict:'자금세탁 패턴 감지', desc:'<strong>다수 지갑의 소액 분산 입금</strong> 후 <strong>단일 지갑 대규모 집계 인출</strong>. 주소 분산을 통한 자금 출처 은닉(레이어링) 기법입니다.' },
   pumpdump:   { verdict:'펌프앤덤프 의심', desc:'<strong>내부자 대량 입금(pump)</strong> → 후발자 유입 → <strong>내부자 자신의 입금액 이상 인출(dump)</strong>. 후발자는 0 ETH 손실.' },
   flashloan:  { verdict:'플래시론 악용 의심', desc:'<strong>동일 블록 내 대규모 입금 + 즉시 전액 인출</strong> 반복. 담보 없이 일시적 유동성을 확보하는 플래시론 악용 패턴입니다.' },
-  honeypot:   { verdict:'허니팟 함정 감지', desc:'<strong>입금은 정상 작동하여 신뢰를 유도</strong>하지만 출금 함수 내부의 숨겨진 조건으로 <strong>모든 출금 시도가 실패</strong>합니다. 출금이 막힌 뒤에도 신규 입금이 이어지며 자금은 컨트랙트에 묶입니다.' },
+  honeypot:   { verdict:'유형 미확정, 출금 차단 경고', desc:'<strong>입금은 정상 작동</strong>하지만 출금 함수 내부의 숨겨진 조건으로 <strong>모든 출금 시도가 실패</strong>합니다. 사기 유형 조건과는 맞지 않아 유형을 정하지 않고, 정상으로도 판정하지 않습니다. 자금은 컨트랙트에 묶여 있습니다.' },
   normal:     { verdict:'정상 컨트랙트', desc:'입출금이 <strong>전체 참여자에게 고르게 분산</strong>되며 잔고가 완만하게 감소합니다. 블랙리스트 연관성이 없고 활동 이력이 안정적입니다.' },
 };
 
@@ -1246,8 +1246,8 @@ function renderEvidence(){
         </div>
       </details>`).join('');
     const chainSteps=(pv.ontology_reasoning_chain||[]).map(s=>`<li>${escHtml(s)}</li>`).join('');
-    // HoneyPot 코드축 서브클래스(HSU/SMC) — undefined(구버전 리포트)와 빈 배열(해당 없음)을 구분한다
-    const cps=pv.honeypot_code_pattern_subclasses;
+    // 코드 패턴 경고(HSU/SMC, 유형 무관) — undefined(구버전 리포트)와 빈 배열(해당 없음)을 구분한다
+    const cps=pv.code_pattern_warnings;
     const codePatternHtml=cps===undefined
       ?'<div class="ev-empty">이 리포트는 코드 패턴 분류 이전 버전으로 생성되어 정보가 없습니다(재실행 필요)</div>'
       :cps.length===0
@@ -1266,7 +1266,8 @@ function renderEvidence(){
         <span class="ev-sum-grade" style="color:${_RISK_COLORS[pv.risk_level]||'var(--mu)'}">${pv.risk_score}점 · ${pv.risk_level}(${escHtml(pv.risk_label)})</span>
         <span class="ev-sum-rec">${escHtml(pv.deployment_recommendation)}</span>
       </div>
-      <div class="ev-subhdr">코드 패턴 (HoneyPot 2차 분류)</div>
+      ${pv.classification==='unclassified_warning'?'<div class="ev-badge on">⚠ 유형 미확정, 출금 차단 경고</div>':''}
+      <div class="ev-subhdr">코드 패턴 경고 (유형 무관)</div>
       ${codePatternHtml}
       <details class="ev-chain">
         <summary>추론 로그 보기 (${(pv.ontology_reasoning_chain||[]).length}단계)</summary>

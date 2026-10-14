@@ -9,7 +9,7 @@ from owlready2 import *
 
 onto = get_ontology("ontology/fraud.owl").load()
 
-# ── HoneyPot 코드축 서브클래스 정적 탐지 (2026-09 신규) ─────────────────────────
+# ── 코드 패턴 경고 정적 탐지 (2026-09 신규, 2026-10 유형 연결 해제) ─────────────
 # analysis/analysis/prevention_reasoner.js의 detectHiddenStateUpdate/
 # detectStrawManContract와 동일 로직을 Python으로 독립 재구현 — JS/OWL 두 레이어가
 # 같은 .sol 원본에서 각자 재계산해 교차검산하도록 한다(balanceAtFailure 등
@@ -169,14 +169,14 @@ CSV_MAP = {
     "rugpull":             ("analysis/logs/rugpull_log.csv",              "RugPull"),
     "laundering":          ("analysis/logs/laundering_log.csv",           "MoneyLaundering"),
     "pumpdump":            ("analysis/logs/pumpdump_log.csv",             "PumpAndDump"),
-    "honeypot":            ("analysis/logs/honeypot_log.csv",             "HoneyPot"),
+    "honeypot":            ("analysis/logs/honeypot_log.csv",             "(출금 차단 경고 음성 대조)"),
     "normal":              ("analysis/logs/normal_log.csv",               "NormalContract"),
     # 2026-09, SelectiveTrap 오분류 수정 동반작업 — JS 쪽 회귀 테스트에 쓴 신규
     # 고정 fixture(analysis/logs/honeypot_selective_log.csv)와 동일한 인스턴스.
     # 기존 6개 중에는 SelectiveTrap 조건을 만족하는 사례가 없어(모두
     # withdrawSuccessRate=0인 UniversalTrap이거나 해당 패턴 자체가 없음) 신규
     # 규칙이 실제로 발동하는지 검증하려면 이 인스턴스가 필요하다.
-    "honeypot_selective":  ("analysis/logs/honeypot_selective_log.csv",   "HoneyPot_SelectiveTrap"),
+    "honeypot_selective":  ("analysis/logs/honeypot_selective_log.csv",   "(출금 차단 경고 음성 대조)"),
 }
 
 # dynamic_analyzer.js hintFraudType()의 OWNER_ADDRESS와 동일한 고정값(1안).
@@ -323,14 +323,7 @@ with onto:
             pat = onto.WithdrawAttemptFail(f"pat_wdfail_{name}")
             instance.hasPattern.append(pat)
 
-        # InflowContinues: deposits happen after the first withdrawal attempt
-        if len(all_withdrawals) > 0 and len(deposits) > 0:
-            first_wd_blk = int(all_withdrawals["block"].min())
-            if (deposits["block"].astype(int) > first_wd_blk).any():
-                pat = onto.InflowContinues(f"pat_inflowcont_{name}")
-                instance.hasPattern.append(pat)
-
-        # ── HoneyPot 코드축 서브클래스 (정적 소스코드, boolean, 2026-09 신규) ───
+        # ── 코드 패턴 경고 (정적 소스코드, boolean, 유형 무관) ──────────────────
         code_patterns_found = []
         sol_path = SOL_SOURCE_MAP.get(name)
         if sol_path and os.path.exists(sol_path):

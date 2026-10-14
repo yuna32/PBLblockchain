@@ -59,27 +59,16 @@ with onto:
     )
     imp3.name = "Rule_MoneyLaundering"
 
-    # ── Rule 4: HoneyPot ──────────────────────────────────────────────────────
-    # WithdrawAttemptFail + InflowContinues
-    # All withdrawals fail (amount=0) while new deposits still arrive
-    imp4 = Imp()
-    imp4.set_as_rule(
-        "FraudContract(?c), "
-        "hasPattern(?c, ?p1), WithdrawAttemptFail(?p1), "
-        "hasPattern(?c, ?p2), InflowContinues(?p2) "
-        "-> HoneyPot(?c)"
-    )
-    imp4.name = "Rule_HoneyPot"
-
     # ── Rule 5: PumpAndDump ────────────────────────────────────────────────────
     # InsiderExitSuccess + WithdrawAttemptFail (mixed outcomes) + balanceAtFailure≈0
     # Some withdrawals succeed (insiders), some return 0 (latecomers), AND the
     # failed-withdrawal balance is (near-)zero — i.e. funds were actually
     # exhausted, not merely gated by a privileged address. The third condition
     # is new (2026-09, SelectiveTrap 오분류 수정 동반작업): without it this rule
-    # also matched a HoneyPot_SelectiveTrap contract (owner-only success while
-    # balance stays >0), which is the OWL-side counterpart of the JS
-    # dynamic_analyzer.js hintFraudType() Priority 2/3 bug fixed on the JS side.
+    # also matched an owner-only-success contract (balance stays >0 at failure),
+    # which is the OWL-side counterpart of the JS dynamic_analyzer.js hintFraudType()
+    # PumpAndDump condition. (2026-10: the honeypot classification rule and its 3
+    # subclass rules were removed — withdraw blocking is a warning signal, not a type.)
     # ε는 미확정 — dynamic_analyzer.js의 PUMPDUMP_BALANCE_AT_FAILURE_EPSILON=0과
     # 동일하게 엄격한 0 비교(equal)만 적용, 임의로 0.01 등을 넣지 않음(TODO).
     imp5 = Imp()
@@ -91,45 +80,6 @@ with onto:
         "-> PumpAndDump(?c)"
     )
     imp5.name = "Rule_PumpAndDump"
-
-    # ── Rule 5b: HoneyPot_SelectiveTrap subclass ──────────────────────────────
-    # HoneyPot(오너/배포자만 성공, balanceAtFailure>0으로 이미 성립) 중에서
-    # withdrawSuccessRate>0(=누군가는 성공) ∧ nonPrivilegedSuccessRate≤0.05
-    # (=오너 제외 성공률이 거의 0)인 경우만 SelectiveTrap 서브클래스로 세분화.
-    # 기존 Rule_HoneyPot(위 Rule 4) 자체는 건드리지 않는다 — JS 쪽에서도
-    # nonPrivilegedSuccessRate≤0.05 ∧ balanceAtFailure>0 ∧ inflowContinues 조건
-    # 자체는 Rule_HoneyPot과 동등하게 유지하고 서브클래스만 별도 도출한 것과 동일한
-    # 구조. UniversalTrap(withdrawSuccessRate=0)은 Rule_HoneyPot과 사실상 동치라
-    # 별도 규칙을 추가하지 않았다(설계서 반영 시 참고).
-    imp5b = Imp()
-    imp5b.set_as_rule(
-        "HoneyPot(?c), "
-        "withdrawSuccessRate(?c, ?w), greaterThan(?w, 0.0), "
-        "nonPrivilegedSuccessRate(?c, ?n), lessThanOrEqual(?n, 0.05) "
-        "-> HoneyPot_SelectiveTrap(?c)"
-    )
-    imp5b.name = "Rule_HoneyPot_SelectiveTrap"
-
-    # ── Rule 5c/5d: HoneyPot 코드축 서브클래스 (2026-09, Torres et al. 2019
-    # HoneyBadger 8기법 중 빈도 상위 2종 — 실측 382/690·101/690건). 위
-    # HoneyPot_SelectiveTrap(행동 기반, hasPattern/hasSignal)과 별개 축 —
-    # hasCodePattern(정적 소스코드 패턴, boolean)으로만 판정하며 다른 HoneyPot
-    # 서브클래스 규칙과 완전히 격리된 순수 부가 추론이다.
-    imp5c = Imp()
-    imp5c.set_as_rule(
-        "HoneyPot(?c), "
-        "hasCodePattern(?c, ?p), HiddenStateUpdatePattern(?p) "
-        "-> HoneyPot_HiddenStateUpdate(?c)"
-    )
-    imp5c.name = "Rule_HoneyPot_HiddenStateUpdate"
-
-    imp5d = Imp()
-    imp5d.set_as_rule(
-        "HoneyPot(?c), "
-        "hasCodePattern(?c, ?p), StrawManContractPattern(?p) "
-        "-> HoneyPot_StrawManContract(?c)"
-    )
-    imp5d.name = "Rule_HoneyPot_StrawManContract"
 
     # ── Rule 6: RugPull_SlowDrain subclass ────────────────────────────────────
     # Evasion subclass: RugPull with InflowStop signal
@@ -263,14 +213,6 @@ except Exception as e:
                 return False
             return any(pat_cls in p.is_a for p in getattr(instance, "hasPattern", []))
 
-        # 2026-09, HoneyPot 코드축 서브클래스 — hasCodePattern(정적, boolean) 엣지 검사.
-        # hasPattern/hasSignal과 별도 축이라 별도 헬퍼로 분리한다.
-        def _has_codepattern_type(instance, pat_name):
-            pat_cls = onto[pat_name]
-            if pat_cls is None:
-                return False
-            return any(pat_cls in p.is_a for p in getattr(instance, "hasCodePattern", []))
-
         def _assert_type(instance, cls_name):
             cls = onto[cls_name]
             if cls is None:
@@ -293,8 +235,6 @@ except Exception as e:
                 return _has_signal_type(instance, arg)
             if check_type == "pattern":
                 return _has_pattern_type(instance, arg)
-            if check_type == "codepattern":
-                return _has_codepattern_type(instance, arg)
             # 2026-09, SelectiveTrap 오분류 수정 동반작업 — balanceAtFailure 등
             # DatatypeProperty 수치 비교(swrlb builtin에 대응). peakBalance/
             # finalBalance는 이전까지 어떤 규칙 body에도 쓰인 적이 없어(순수
@@ -345,15 +285,6 @@ except Exception as e:
                 "head": "MoneyLaundering",
             },
             {
-                "name": "Rule_HoneyPot",
-                "body": [
-                    ("type",    "FraudContract"),
-                    ("pattern", "WithdrawAttemptFail"),
-                    ("pattern", "InflowContinues"),
-                ],
-                "head": "HoneyPot",
-            },
-            {
                 "name": "Rule_PumpAndDump",
                 "body": [
                     ("type",    "FraudContract"),
@@ -362,31 +293,6 @@ except Exception as e:
                     ("data_eq", ("balanceAtFailure", 0.0)),
                 ],
                 "head": "PumpAndDump",
-            },
-            {
-                "name": "Rule_HoneyPot_SelectiveTrap",
-                "body": [
-                    ("type",    "HoneyPot"),
-                    ("data_gt", ("withdrawSuccessRate", 0.0)),
-                    ("data_le", ("nonPrivilegedSuccessRate", 0.05)),
-                ],
-                "head": "HoneyPot_SelectiveTrap",
-            },
-            {
-                "name": "Rule_HoneyPot_HiddenStateUpdate",
-                "body": [
-                    ("type",        "HoneyPot"),
-                    ("codepattern", "HiddenStateUpdatePattern"),
-                ],
-                "head": "HoneyPot_HiddenStateUpdate",
-            },
-            {
-                "name": "Rule_HoneyPot_StrawManContract",
-                "body": [
-                    ("type",        "HoneyPot"),
-                    ("codepattern", "StrawManContractPattern"),
-                ],
-                "head": "HoneyPot_StrawManContract",
             },
             {
                 "name": "Rule_RugPull_SlowDrain",
@@ -504,12 +410,11 @@ print(f"\nfraud_reasoned.owl saved  ({size:,} bytes)  [reasoner: {reasoner_used}
 
 # ── Print classification summary ──────────────────────────────────────────────
 FRAUD_CLASSES = {
-    "PonziScheme", "RugPull", "MoneyLaundering", "PumpAndDump", "HoneyPot",
+    "PonziScheme", "RugPull", "MoneyLaundering", "PumpAndDump",
     "RugPull_SlowDrain", "RugPull_MaxTxEvasion", "RugPull_BalanceDropEvasion",
     "PonziScheme_SlowDrain", "PonziScheme_MaxTxEvasion", "PonziScheme_BalanceDropEvasion",
     "MoneyLaundering_HopLaundering", "MoneyLaundering_SlowDrain",
     "PumpDump_MaxTxEvasion", "PumpDump_SlowDrain", "PumpDump_DistributedDump",
-    "HoneyPot_SelectiveTrap",
 }
 
 print("\n" + "=" * 60)

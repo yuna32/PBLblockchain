@@ -1,7 +1,7 @@
 /**
  * evaluate_honeybadger.js
  *
- * HoneyPot 코드축 서브클래스(HiddenStateUpdate / StrawManContract) 정밀도를
+ * 코드 패턴 경고(HiddenStateUpdate / StrawManContract, 구 허니팟 코드축 서브클래스) 정밀도를
  * christoftorres/HoneyBadger 저장소의 실제 데이터로 검증한다.
  *
  * 데이터: data/HoneyBadger/datasets/source_code/{hidden_state_update,straw_man_contract}/*.sol

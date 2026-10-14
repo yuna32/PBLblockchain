@@ -17,11 +17,11 @@ const _ONT_PUMP = (FraudOntology.fraudTypes.PumpAndDump || FraudOntology.fraudTy
 
 // Fraud type hint → ontology class name mapping
 const HINT_TO_CLASS = {
-  honeypot:            "HoneypotTrap",
   rug_pull:            "RugPull",
   ponzi_or_laundering: "PonziScheme",
   pump_dump:           "PumpAndDump",
   normal_staking:      null,
+  unclassified_warning: null,
   unknown:             null
 };
 
@@ -216,9 +216,9 @@ const RULES = [
   },
   {
     id: "ZERO_WITHDRAW_PATTERN",
-    // Ontology: HoneypotTrap.necessaryConditions includes ZeroWithdrawBlock
+    // Ontology: anomalySignals.ZeroWithdrawBlock (사기 유형이 아닌 출금 차단 경고 신호)
     // WITHDRAW_SUCCESS_RATE threshold = 0.0
-    description: "출금 시도가 모두 실패(amount=0)하고 오너만 최종 수령 (허니팟 의심)",
+    description: "출금 시도가 모두 실패(amount=0)하고 오너만 최종 수령 (출금 차단 의심)",
     detect: ({ totalIn, rows }) => {
       const hasWithdrawAttempts = rows.some(r => r.action === "withdraw_attempt");
       const hasMidRealWithdraw = rows.some(r =>
@@ -289,7 +289,6 @@ function hintFraudType(rows, triggered) {
   const ids = new Set(triggered.map(r => r.id));
   const actions = rows.map(r => r.action);
 
-  if (ids.has("ZERO_WITHDRAW_PATTERN")) return "honeypot";
   if (ids.has("OSCILLATING_BALANCE")) return "oscillating";
 
   // pump_dump 판별: 일부 출금은 성공(amount>0)하고 일부는 실패(amount=0)하는
@@ -306,7 +305,11 @@ function hintFraudType(rows, triggered) {
     const hasUserWithdraws = actions.some(a => a === "withdraw" || a === "unstake");
     return hasUserWithdraws ? "ponzi_or_laundering" : "rug_pull";
   }
-  if (actions.includes("stake") || actions.includes("unstake")) return "normal_staking";
+  // 사기 조건이 모두 불일치인데 출금 차단 신호(ZeroWithdrawBlock)가 있으면 Normal 대신 경고
+  // (유형 미확정, 출금 차단 경고). Normal은 AND NOT ZeroWithdrawBlock.
+  const zeroWithdrawBlock = ids.has("ZERO_WITHDRAW_PATTERN");
+  if (zeroWithdrawBlock) return "unclassified_warning";
+  if (!zeroWithdrawBlock && (actions.includes("stake") || actions.includes("unstake"))) return "normal_staking";
   return "unknown";
 }
 
@@ -320,7 +323,8 @@ export function analyzeDynamic(csvPath) {
       triggered_rules: [],
       dynamic_risk_score: 0,
       verdict: "UNKNOWN",
-      fraud_type_hint: "unknown"
+      fraud_type_hint: "unknown",
+      withdraw_block_warning: { detected: false, reason: "CSV 없음" }
     };
   }
 
@@ -377,6 +381,18 @@ export function analyzeDynamic(csvPath) {
   const dynamic_risk_score = Math.min(100, rawScore);
   const verdict = VERDICT_THRESHOLDS.find(t => dynamic_risk_score >= t.min).label;
   const fraud_type_hint = hintFraudType(rows, triggered);
+
+  // 출금 차단 경고(ZERO_WITHDRAW_PATTERN)는 분류 결과와 무관하게 항상 병기한다(b안).
+  // 이 분석기는 reasoning_steps를 내지 않으므로 "유형 확정 + 경고 병기" 문구는 reason에 담는다.
+  const zeroWithdrawBlock = triggered.some(r => r.id === "ZERO_WITHDRAW_PATTERN");
+  const withdraw_block_warning = {
+    detected: zeroWithdrawBlock,
+    reason: !zeroWithdrawBlock
+      ? "ZERO_WITHDRAW_PATTERN 미발동"
+      : fraud_type_hint === "unclassified_warning"
+        ? "ZERO_WITHDRAW_PATTERN 발동 (출금 시도 전원 실패), 사기 유형 조건 불일치 → 유형 미확정"
+        : `유형은 ${fraud_type_hint}으로 확정, 별도로 출금 차단 경고 병기 (ZERO_WITHDRAW_PATTERN: 출금 시도 전원 실패)`
+  };
 
   const fraudClass = HINT_TO_CLASS[fraud_type_hint] || null;
   const gui_emphasis = fraudClass
@@ -439,6 +455,7 @@ export function analyzeDynamic(csvPath) {
     dynamic_risk_score,
     verdict,
     fraud_type_hint,
+    withdraw_block_warning,
     gui_emphasis,
     evasion_subclass,
     evasion_detected,

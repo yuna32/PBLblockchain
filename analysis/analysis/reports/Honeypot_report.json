@@ -1,11 +1,12 @@
 {
   "contract": "Honeypot",
   "type": "honeypot",
-  "timestamp": "2026-10-01T13:36:36.131Z",
+  "timestamp": "2026-10-14T03:36:11.988Z",
   "overall_grade": "D",
   "prevention": {
     "contract": "Honeypot",
-    "fraud_type_suspected": "HoneypotTrap",
+    "fraud_type_suspected": null,
+    "classification": "unclassified_warning",
     "checklist": [
       {
         "id": "HIDDEN_WITHDRAW_BLOCK",
@@ -53,15 +54,16 @@
         "rationale": "코드 내 차단 변수 존재 → 출금 시도 실패 함의"
       }
     ],
-    "honeypot_code_pattern_subclasses": [],
+    "code_pattern_warnings": [],
     "ontology_reasoning_chain": [
       "소스 로드: Honeypot.sol (62줄)",
       "[triggers] SingleLargeOutflow 감지 → MaxTxAlert 발생 예상 (단일 대형 출금 → 최대 단일 TX 경보)",
       "[triggers] ParticipantMidExit 감지 → FlowSpike 발생 예상 (중간 출금 다발 → 순유출 급증)",
       "[implies] WithdrawAttemptFail 감지 → ZeroWithdrawBlock 발생 예상 (코드 내 차단 변수 존재 → 출금 시도 실패 함의)",
-      "유형별 패턴 점수: {\"PonziScheme\":2,\"RugPull\":0,\"MoneyLaundering\":0,\"HoneypotTrap\":3,\"PumpDump\":0}",
-      "사기 유형 결정: HoneypotTrap (점수 3)",
-      "HoneypotTrap 예방 체크리스트 시작",
+      "유형별 패턴 점수: {\"PonziScheme\":2,\"RugPull\":0,\"MoneyLaundering\":0,\"PumpDump\":0}",
+      "출금 차단 경고 패턴 점수: 3",
+      "유형 미확정, 출금 차단 경고: 경고 점수 3 > 사기 유형 최고점 2 → 유형 미확정 (unclassified_warning)",
+      "출금 차단 경고 체크리스트 시작",
       "HIDDEN_WITHDRAW_BLOCK: bool.*private.*false found at line 13 → 검출 (위험 +3)",
       "NO_PUBLIC_WITHDRAW_ACTIVATE: 보호 패턴 'enableWithdraw' 검출 (위험 해소됨) → 안전",
       "총 위험 점수: 3",
@@ -75,22 +77,14 @@
     "triggered_rules": [
       {
         "id": "HIDDEN_WITHDRAW_BLOCK",
-        "description": "출금 차단 숨김 조건 존재 (허니팟 의심) — private bool이 출금 require에 사용되고 public 활성화 함수 없음",
+        "description": "출금 차단 숨김 조건 존재 (출금 차단 의심) — private bool이 출금 require에 사용되고 public 활성화 함수 없음",
         "weight": 45
       }
     ],
     "static_risk_score": 45,
     "verdict": "HIGH_RISK",
-    "primary_fraud_class": "HoneypotTrap",
-    "gui_emphasis": {
-      "panel1": "입금 엣지만 존재 + 출금 엣지 없음 강조",
-      "panel2": "출금 비율 0 + 트랜잭션 투명성 최저",
-      "panel3": "total_in 지속 증가 + total_out 항상 0",
-      "panel4": [
-        "ZERO_WITHDRAW",
-        "INPUT_OPACITY"
-      ]
-    }
+    "primary_fraud_class": null,
+    "gui_emphasis": null
   },
   "dynamic": {
     "csv": "honeypot_log.csv",
@@ -141,7 +135,7 @@
       },
       {
         "id": "ZERO_WITHDRAW_PATTERN",
-        "description": "출금 시도가 모두 실패(amount=0)하고 오너만 최종 수령 (허니팟 의심)",
+        "description": "출금 시도가 모두 실패(amount=0)하고 오너만 최종 수령 (출금 차단 의심)",
         "weight": 40,
         "weight_max": 40,
         "fraction": 1
@@ -149,20 +143,19 @@
     ],
     "dynamic_risk_score": 100,
     "verdict": "HIGH_RISK",
-    "fraud_type_hint": "honeypot",
+    "fraud_type_hint": "rug_pull",
     "gui_emphasis": {
-      "panel1": "입금 엣지만 존재 + 출금 엣지 없음 강조",
-      "panel2": "출금 비율 0 + 트랜잭션 투명성 최저",
-      "panel3": "total_in 지속 증가 + total_out 항상 0",
+      "panel1": "owner 노드 빨간 테두리 + 컨트랙트→owner 대형 엣지",
+      "panel2": "블랙리스트 연관도 + 활동 기간 최저점",
+      "panel3": "잔고 정점→급락 블록 수직선 + 이후 잔고 0 구간 회색",
       "panel4": [
-        "ZERO_WITHDRAW",
-        "INPUT_OPACITY"
+        "MAX_TX_ALERT"
       ]
     },
-    "evasion_subclass": null,
-    "evasion_detected": false,
-    "evasion_consequence": null,
-    "counter_detection": null
+    "evasion_subclass": "MoneyLaundering_HopLaundering",
+    "evasion_detected": true,
+    "evasion_consequence": "자금 출처 역추적 난이도 상승",
+    "counter_detection": "입금→경유→인출 주소 체인 그래프 분석"
   },
   "trust": {
     "csv": "honeypot_log.csv",
@@ -574,32 +567,5 @@
       "detail": "오너 전용 인출 백도어 탐지 — 불투명 관리자 액션"
     }
   },
-  "ontology_mapping": {
-    "fraud_class": "HoneypotTrap",
-    "parent_class": "FraudPattern",
-    "label": "허니팟",
-    "necessary_conditions_met": [
-      "ZeroWithdrawBlock"
-    ],
-    "evasion_techniques_detected": [
-      "HiddenRequireCondition",
-      "SmurfingDeposit"
-    ],
-    "affected_roles": [
-      "Victim"
-    ],
-    "recommended_patches": [
-      "출금 함수에서 접근 제어 완전 제거 또는 공개",
-      "최소 입금액 하한선 0.1 ETH + KYC 연동"
-    ],
-    "gui_emphasis": {
-      "panel1": "입금 엣지만 존재 + 출금 엣지 없음 강조",
-      "panel2": "출금 비율 0 + 트랜잭션 투명성 최저",
-      "panel3": "total_in 지속 증가 + total_out 항상 0",
-      "panel4": [
-        "ZERO_WITHDRAW",
-        "INPUT_OPACITY"
-      ]
-    }
-  }
+  "ontology_mapping": null
 }

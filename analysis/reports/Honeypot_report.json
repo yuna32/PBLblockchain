@@ -1,14 +1,15 @@
 {
   "contract": "Honeypot",
   "type": "honeypot",
-  "timestamp": "2026-10-01T08:52:29.939Z",
+  "timestamp": "2026-10-14T03:36:11.871Z",
   "overall_grade": "C",
   "raw_grade": "A",
   "prevention_cap_applied": true,
   "prevention_cap_reason": "HIGH prevention score (3) → grade capped at C",
   "prevention": {
     "contract": "Honeypot",
-    "fraud_type_suspected": "HoneypotTrap",
+    "fraud_type_suspected": null,
+    "classification": "unclassified_warning",
     "checklist": [
       {
         "id": "HIDDEN_WITHDRAW_BLOCK",
@@ -36,12 +37,13 @@
       "HIDDEN_WITHDRAW_BLOCK"
     ],
     "deployment_recommendation": "배포 전 1개 항목 수정 후 재검토 필요.",
-    "honeypot_code_pattern_subclasses": [],
+    "code_pattern_warnings": [],
     "ontology_reasoning_chain": [
       "소스 로드: Honeypot.sol (62줄)",
-      "유형별 패턴 점수: {\"PonziScheme\":2,\"RugPull\":0,\"MoneyLaundering\":0,\"HoneypotTrap\":3,\"PumpDump\":0}",
-      "사기 유형 결정: HoneypotTrap (점수 3)",
-      "HoneypotTrap 예방 체크리스트 시작",
+      "유형별 패턴 점수: {\"PonziScheme\":2,\"RugPull\":0,\"MoneyLaundering\":0,\"PumpDump\":0}",
+      "출금 차단 경고 패턴 점수: 3",
+      "유형 미확정, 출금 차단 경고: 경고 점수 3 > 사기 유형 최고점 2 → 유형 미확정 (unclassified_warning)",
+      "출금 차단 경고 체크리스트 시작",
       "HIDDEN_WITHDRAW_BLOCK: bool.*private.*false found at line 13 → 검출 (위험 +3)",
       "NO_PUBLIC_WITHDRAW_ACTIVATE: 보호 패턴 'enableWithdraw' 검출 (위험 해소됨) → 안전",
       "총 위험 점수: 3",
@@ -70,7 +72,7 @@
     "triggered_rules": [],
     "dynamic_risk_score": 0,
     "verdict": "LOW_RISK",
-    "fraud_type_hint": "honeypot",
+    "fraud_type_hint": "unclassified_warning",
     "reasoning_steps": [
       "singleLargeOutflow: false (0.000 / peak 8.000 = 0%)",
       "distributedInflow: true (8 unique depositors)",
@@ -79,13 +81,11 @@
       "withdrawSuccessRate: 0.0% (0/5 succeeded)",
       "nonPrivilegedSuccessRate: 0.0% (owner 0xf39fd6e5... 제외 5건 중 성공)",
       "balanceAtFailure: 8.000 ETH (amount_eth=0 시점 잔고 최댓값, n=5)",
-      "→ honeypot (nonPrivilegedSuccessRate 0.0% <= 5%, balanceAtFailure 8.000 ETH > 0, inflow continues)",
-      "→ honeypot subclass: HoneyPot_UniversalTrap (withdrawSuccessRate=0, 전원 실패)"
+      "→ unclassified_warning: 유형 미확정, 출금 차단 경고 (ZeroWithdrawBlock: nonPrivilegedSuccessRate 0.0% <= 5%, balanceAtFailure 8.000 ETH > 0, 사기 유형 조건 불일치)"
     ],
     "withdraw_success_rate": 0,
     "non_privileged_success_rate": 0,
     "balance_at_failure_eth": 8,
-    "honeypot_subclass": "HoneyPot_UniversalTrap",
     "anomaly_signals": {
       "INFLOW_STOP": {
         "detected": false,

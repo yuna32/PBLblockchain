@@ -39,12 +39,13 @@ FRAUD_TYPE_MAP = {
     "rug_pull":            "RugPull",
     "ponzi_scheme":        "PonziScheme",
     "ponzi_or_laundering": "PonziScheme",
-    "honeypot":            "Honeypot",
+    # "unclassified_warning"(출금 차단 경고, 2026-10 허니팟 사기 유형 삭제)은 사기 유형이
+    # 아니므로 classifiedAs 허브를 만들지 않는다.
     # "flash_loan": "FlashLoan" 은 의도적으로 제외한다.
     # dynamic_analyzer.js 자체 FRAUD_TYPE_MAP에는 존재하지만(OSCILLATING_BALANCE
     # 규칙 → "잔고 0→복구→0 반복" 패턴 감지용 파이프라인 전용 카테고리),
     # 온톨로지_설계서_v0.2.docx 3-1절 FraudContract 계층(PonziScheme/RugPull/
-    # MoneyLaundering/PumpAndDump/HoneyPot 5종)에는 FlashLoan이 존재하지 않는다.
+    # MoneyLaundering/PumpAndDump, 당시 허니팟 포함 5종)에는 FlashLoan이 존재하지 않는다.
     # classifiedAs의 Range는 설계서 4-1절 기준 FraudContract로 한정되므로,
     # 이 유형(272건 중 11건)은 classifiedAs 허브를 만들지 않고 제외한다
     # (사용자 확인 완료, 2026-09-09). 해당 11개 컨트랙트 자체와 그 signal/
@@ -139,9 +140,8 @@ def main():
         hint = r.get("fraud_type_hint")
         if hint == "money_laundering":
             pattern_names.add("collectorIsDepositor")
-        if hint == "honeypot":
+        if hint == "unclassified_warning":
             pattern_names.add("withdrawAttemptFail")
-            pattern_names.add("inflowContinues")
         if hint == "pump_and_dump":
             pattern_names.add("insiderExitSuccess")
             pattern_names.add("insiderBulkDeposit")
@@ -154,7 +154,6 @@ def main():
             "participantMidExit":  "ParticipantMidExit",
             "collectorIsDepositor": "CollectorIsDepositor",
             "withdrawAttemptFail": "WithdrawAttemptFail",
-            "inflowContinues":     "InflowContinues",
             "insiderExitSuccess":  "InsiderExitSuccess",
             "insiderBulkDeposit":  "InsiderBulkDeposit",
         }

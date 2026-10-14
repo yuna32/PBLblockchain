@@ -12,7 +12,7 @@ onto = get_ontology("ontology/fraud_reasoned.owl").load()
 
 FRAUD_CLASSES = {
     "PonziScheme", "RugPull", "MoneyLaundering",
-    "PumpAndDump", "HoneyPot", "NormalContract",
+    "PumpAndDump", "NormalContract",
     "RugPull_SlowDrain", "RugPull_MaxTxEvasion",
     "RugPull_BalanceDropEvasion",
     "PonziScheme_SlowDrain", "PonziScheme_MaxTxEvasion",
@@ -21,8 +21,6 @@ FRAUD_CLASSES = {
     "MoneyLaundering_SlowDrain",
     "PumpDump_MaxTxEvasion", "PumpDump_SlowDrain",
     "PumpDump_DistributedDump",
-    "HoneyPot_SelectiveTrap",
-    "HoneyPot_HiddenStateUpdate", "HoneyPot_StrawManContract",
 }
 
 INSTANCE_NAMES = ["ponzi", "rugpull", "laundering", "pumpdump", "honeypot", "normal",

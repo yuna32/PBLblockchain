@@ -22,7 +22,7 @@
 
 <owl:ObjectProperty rdf:about="#hasCodePattern">
   <rdfs:domain rdf:resource="#FraudContract"/>
-  <rdfs:range rdf:resource="#HoneypotCodePattern"/>
+  <rdfs:range rdf:resource="#CodePattern"/>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">컨트랙트가 특정 코드축 함정 패턴(정적, boolean)을 가짐 — hasPattern/hasSignal(행동/신호 축)과 별도 축 (2026-09 신규)</rdfs:comment>
 </owl:ObjectProperty>
 
@@ -96,7 +96,7 @@
   <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
   <rdfs:domain rdf:resource="#FraudContract"/>
   <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
-  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">오너 주소를 제외한 성공 출금 비율 (0-1) — SelectiveTrap 핵심 지표</rdfs:comment>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">오너 주소를 제외한 성공 출금 비율 (0-1) — 출금 차단 경고 핵심 지표</rdfs:comment>
 </owl:DatatypeProperty>
 
 <owl:DatatypeProperty rdf:about="#balanceAtFailure">
@@ -113,17 +113,12 @@
 
 <owl:Class rdf:about="#NormalContract">
   <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
-  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">정상 컨트랙트</rdfs:comment>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">정상 컨트랙트: 어떤 사기 유형에도 해당하지 않고 출금 차단 신호(ZeroWithdrawBlock)도 없는 컨트랙트</rdfs:comment>
 </owl:Class>
 
 <owl:Class rdf:about="#FundMovementFraud">
   <rdfs:subClassOf rdf:resource="#FraudContract"/>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">자금 이동 기반 사기 (잔고 유출 공통)</rdfs:comment>
-</owl:Class>
-
-<owl:Class rdf:about="#FundFreezeFraud">
-  <rdfs:subClassOf rdf:resource="#FraudContract"/>
-  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">자금 동결 기반 사기 (출금 차단)</rdfs:comment>
 </owl:Class>
 
 <owl:Class rdf:about="#PonziScheme">
@@ -144,26 +139,6 @@
 <owl:Class rdf:about="#MoneyLaundering">
   <rdfs:subClassOf rdf:resource="#FundMovementFraud"/>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">자금세탁: 다수 입금 → 단일 주소 전액 출금</rdfs:comment>
-</owl:Class>
-
-<owl:Class rdf:about="#HoneyPot">
-  <rdfs:subClassOf rdf:resource="#FundFreezeFraud"/>
-  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">허니팟: 입금은 가능하나 출금이 항상 실패</rdfs:comment>
-</owl:Class>
-
-<owl:Class rdf:about="#HoneyPot_SelectiveTrap">
-  <rdfs:subClassOf rdf:resource="#HoneyPot"/>
-  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">선택적 허니팟: 오너/배포자 주소만 인출 성공, 나머지 전원 실패</rdfs:comment>
-</owl:Class>
-
-<owl:Class rdf:about="#HoneyPot_HiddenStateUpdate">
-  <rdfs:subClassOf rdf:resource="#HoneyPot"/>
-  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">숨겨진 상태값 비교형: 해시/시크릿 비교 가드에 쓰이는 상태변수의 write 지점이 2개 이상 (배포 후 재설정 가능)</rdfs:comment>
-</owl:Class>
-
-<owl:Class rdf:about="#HoneyPot_StrawManContract">
-  <rdfs:subClassOf rdf:resource="#HoneyPot"/>
-  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">위장 컨트랙트 호출형: 송금 문장 이후 생성자로 주입된 컨트랙트 상태변수에 대한 고수준 외부호출(또는 owner-settable 주소로의 인접 delegatecall)이 이어짐</rdfs:comment>
 </owl:Class>
 
 <owl:Class rdf:about="#PonziScheme_BalanceDropEvasion">
@@ -263,7 +238,7 @@
 
 <owl:Class rdf:about="#ZeroWithdrawBlock">
   <rdfs:subClassOf rdf:resource="#AnomalySignal"/>
-  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">출금 시도 있으나 성공 금액 0 지속</rdfs:comment>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">출금 시도 있으나 성공 금액 0 지속 — 사기 유형이 아닌 출금 차단 경고 신호</rdfs:comment>
 </owl:Class>
 
 <owl:Class rdf:about="#InputDataOpacity">
@@ -348,26 +323,21 @@
       <owl:someValuesFrom rdf:resource="#ZeroWithdrawBlock"/>
     </owl:Restriction>
   </rdfs:subClassOf>
-  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">인출 시도 실패 (금액=0): 허니팟 또는 후발자 손실</rdfs:comment>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">인출 시도 실패 (금액=0): 출금 차단 또는 후발자 손실</rdfs:comment>
 </owl:Class>
 
-<owl:Class rdf:about="#InflowContinues">
-  <rdfs:subClassOf rdf:resource="#BehaviorPattern"/>
-  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">첫 인출 시도 후에도 입금 계속</rdfs:comment>
-</owl:Class>
-
-<owl:Class rdf:about="#HoneypotCodePattern">
+<owl:Class rdf:about="#CodePattern">
   <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
-  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">허니팟 코드축 서브클래스 판정에 쓰이는 정적 코드 패턴 최상위 개념</rdfs:comment>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">코드 패턴 경고(유형 무관, boolean)에 쓰이는 정적 코드 패턴 최상위 개념</rdfs:comment>
 </owl:Class>
 
 <owl:Class rdf:about="#HiddenStateUpdatePattern">
-  <rdfs:subClassOf rdf:resource="#HoneypotCodePattern"/>
+  <rdfs:subClassOf rdf:resource="#CodePattern"/>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">해시/시크릿 비교(keccak256/sha3) 가드에 쓰이는 상태변수의 write 지점이 2개 이상 존재</rdfs:comment>
 </owl:Class>
 
 <owl:Class rdf:about="#StrawManContractPattern">
-  <rdfs:subClassOf rdf:resource="#HoneypotCodePattern"/>
+  <rdfs:subClassOf rdf:resource="#CodePattern"/>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">msg.sender 송금 문장 이후 생성자 파라미터로 주입된 컨트랙트 상태변수에 대한 고수준 외부호출이 이어짐 (delegatecall 변종 포함)</rdfs:comment>
 </owl:Class>
 

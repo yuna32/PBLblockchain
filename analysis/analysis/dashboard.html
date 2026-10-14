@@ -208,7 +208,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Segoe UI',system-ui,sans-
       <button class="tpill" data-type="rugpull">러그풀</button>
       <button class="tpill" data-type="laundering">자금세탁</button>
       <button class="tpill" data-type="pumpdump">펌프앤덤프</button>
-      <button class="tpill" data-type="honeypot">허니팟</button>
+      <button class="tpill" data-type="honeypot">출금 차단 (유형 미확정)</button>
       <button class="tpill" data-type="normal">정상 스테이킹</button>
     </div>
     <div class="rpt-loader" id="rpt-loader">
@@ -419,7 +419,7 @@ const FRAUD_META = {
   rugpull:    { label:'러그풀',        color:'#f85149', risk:'high' },
   laundering: { label:'자금세탁',     color:'#f85149', risk:'high' },
   pumpdump:   { label:'펌프앤덤프',   color:'#d29922', risk:'med'  },
-  honeypot:   { label:'허니팟',       color:'#f85149', risk:'high' },
+  honeypot:   { label:'출금 차단 (유형 미확정)', color:'#f85149', risk:'high' },
   normal:     { label:'정상 스테이킹', color:'#3fb950', risk:'low' },
 };
 
@@ -428,7 +428,7 @@ const PATTERNS = {
   rugpull:    { verdict:'러그풀 위험 감지', desc:'관리자 지갑이 <strong>컨트랙트 전체 잔고를 단번에 인출</strong>하는 백도어 함수가 확인되었습니다. 참여자가 충분히 모인 시점에 실행됩니다.' },
   laundering: { verdict:'자금세탁 패턴 감지', desc:'<strong>다수 지갑의 소액 분산 입금</strong> 후 <strong>단일 지갑 대규모 집계 인출</strong>. 주소 분산을 통한 자금 출처 은닉(레이어링) 기법입니다.' },
   pumpdump:   { verdict:'펌프앤덤프 의심', desc:'<strong>내부자 대량 입금(pump)</strong> → 후발자 유입 → <strong>내부자 자신의 입금액 이상 인출(dump)</strong>. 후발자는 0 ETH 손실.' },
-  honeypot:   { verdict:'허니팟 함정 감지', desc:'<strong>입금은 정상 작동하여 신뢰를 유도</strong>하지만 출금 함수 내부에 숨겨진 조건(private bool)으로 인해 <strong>모든 출금 시도가 항상 실패</strong>합니다. 오너만 백도어로 전액 수집합니다.' },
+  honeypot:   { verdict:'유형 미확정, 출금 차단 경고', desc:'<strong>입금은 정상 작동</strong>하지만 출금 함수 내부에 숨겨진 조건(private bool)으로 인해 <strong>모든 출금 시도가 항상 실패</strong>합니다. 출금 차단 자체는 사기 유형이 아니며, 오너의 전액 수집 등 사기 조건이 맞으면 해당 유형으로 판정합니다.' },
   normal:     { verdict:'정상 컨트랙트', desc:'입출금이 <strong>전체 참여자에게 고르게 분산</strong>되며 잔고가 완만하게 감소합니다. 블랙리스트 연관성이 없고 활동 이력이 안정적입니다.' },
 };
 

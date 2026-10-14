@@ -170,7 +170,7 @@ const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));   // dynamic_analyze
 // 각 식은 analysis/dynamic_analyzer.js의 해당 줄을 복사한 것이다 — 원본 변경 시 동기화 필요.
 // 자체검사((ii) 축약 판정식, (iii) OSC/BD/FS)가 원본과의 어긋남을 잡는다.
 function computeFeatures(rows) {
-  // [복사] dynamic_analyzer.js:652-672 누적 (peak, totalIn, totalOut, finalBal, depositorMap)
+  // [복사] dynamic_analyzer.js:612-632 누적 (peak, totalIn, totalOut, finalBal, depositorMap)
   let totalIn = 0, totalOut = 0, peak = 0;
   const depositorMap = new Map();
   for (const row of rows) {
@@ -228,9 +228,9 @@ function computeFeatures(rows) {
   const largestW = withdrawals.reduce((best, r) =>
     (parseFloat(r.amount_eth) || 0) > (parseFloat(best?.amount_eth) || 0) ? r : best, null);
   const ownerWithdrawAll = largestW ? !depositFromAddrs.has(largestW.to) : false;
-  // S3: [복사] dynamic_analyzer.js:286 someWithdrawalsFail의 조건 (금액 0 출금)
+  // S3: [복사] dynamic_analyzer.js:277 someWithdrawalsFail의 조건 (금액 0 출금)
   const zeroW = withdrawals.filter(r => (parseFloat(r.amount_eth) || 0) === 0).length;
-  // S4: [복사] dynamic_analyzer.js:458 stake/unstake
+  // S4: [복사] dynamic_analyzer.js:424 stake/unstake
   const stake = rows.some(r => r.action === 'stake' || r.action === 'unstake');
 
   return {
@@ -240,7 +240,7 @@ function computeFeatures(rows) {
   };
 }
 
-// 축약 판정식 (PROPOSAL 0절). dynamic_analyzer.js 우선순위 :360(flash_loan), :440(rug_pull), :448(ponzi_scheme)을
+// 축약 판정식 (PROPOSAL 0절). dynamic_analyzer.js 우선순위 :363(flash_loan), :396(rug_pull), :403(ponzi_scheme)을
 // N=272 구조 전제(S1-S4) 아래에서 줄인 것 — 원본 변경 시 동기화 필요. 자체검사 (ii)가 전 주소 일치를 확인한다.
 const P_OSC   = f => f.cycles >= 2;
 const P_RUG   = f => f.sp !== null && f.sp >= 0.70 && f.W > 0 && f.mid === 0;
@@ -260,7 +260,7 @@ function predicatesR(rec) {
 }
 const predicatesF = f => ({ OSC: P_OSC(f), RUG: P_RUG(f), PONZI: P_PONZI(f) });
 
-// BALANCE_DROP 실효 경계: round(40·clamp((drop−0.5)/0.5)) ≥ 1 ⇔ drop ≥ 0.50625 (dynamic_analyzer.js:128, :130, :686)
+// BALANCE_DROP 실효 경계: round(40·clamp((drop−0.5)/0.5)) ≥ 1 ⇔ drop ≥ 0.50625 (dynamic_analyzer.js:128, :130, :646)
 const DROP_EFFECTIVE = 0.50625;
 const EPS = 1e-12;   // |x−θ| ≤ 폭 비교의 부동소수점 여유
 const C3_FEATURES = ['cycles', 'drop', 'flow', 'sp'];
@@ -622,7 +622,7 @@ function buildHeader(c) {
   const sc = (s, k) => s ? `${s[k]}/${s.n}` : '생략';
   p(`| S1 | 출금이 원 예치자에게 간 주소 (isOrganicUnstake 게이트가 열릴 수 있음) | ${sc(so, 'S1')} | ${sc(sn, 'S1')} |`);
   p(`| S2 | 출금이 있는데 ownerWithdrawAll=거짓 (money_laundering 도달 가능) | ${sc(so, 'S2')} | ${sc(sn, 'S2')} |`);
-  p(`| S3 | 금액 0 출금 존재 (honeypot·pump_and_dump 도달 가능) | ${sc(so, 'S3')} | ${sc(sn, 'S3')} |`);
+  p(`| S3 | 금액 0 출금 존재 (unclassified_warning·pump_and_dump 도달 가능) | ${sc(so, 'S3')} | ${sc(sn, 'S3')} |`);
   p(`| S4 | stake/unstake action 존재 (normal_staking 도달 가능) | ${sc(so, 'S4')} | ${sc(sn, 'S4')} |`);
   const hintDist = rec => { const m = {}; for (const r of rec.values()) if (r.fraud_type_hint) m[r.fraud_type_hint] = (m[r.fraud_type_hint] || 0) + 1;
     return Object.keys(m).sort().map(k => `${k} ${m[k]}`).join(', '); };

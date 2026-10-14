@@ -55,18 +55,68 @@ function evalAbsenceItem(item, src) {
   return { matched: true, evidence: `보호 패턴 [${guards.join(", ")}] 미검출` };
 }
 
+function scoreChecklist(checklistItems, src) {
+  let score = 0;
+  for (const item of checklistItems) {
+    if (isAbsenceOnly(item.detectPattern)) continue;
+    const parts = item.detectPattern.split("|").filter(p => !p.startsWith("ABSENCE:"));
+    if (parts.some(p => new RegExp(p).test(src))) score += item.riskWeight;
+  }
+  return score;
+}
+
 function scoreAllFraudTypes(src) {
   const scores = {};
   for (const [typeName, rules] of Object.entries(FraudOntology.preventionRules)) {
-    let score = 0;
-    for (const item of rules.checklistItems) {
-      if (isAbsenceOnly(item.detectPattern)) continue;
-      const parts = item.detectPattern.split("|").filter(p => !p.startsWith("ABSENCE:"));
-      if (parts.some(p => new RegExp(p).test(src))) score += item.riskWeight;
-    }
-    scores[typeName] = score;
+    scores[typeName] = scoreChecklist(rules.checklistItems, src);
   }
   return scores;
+}
+
+// 코드 패턴 경고 (HSU/SMC, boolean). 사기 유형과 무관하게 항상 검사하며 판정에는 영향 없음.
+function detectCodePatternWarnings(src, lines, chain) {
+  const codePatterns = FraudOntology.withdrawBlockWarning.codePatterns;
+  const warnings = [];
+
+  const hsu = detectHiddenStateUpdate(lines);
+  chain.push(`[코드패턴] HiddenStateUpdate: ${hsu.evidence} → ${hsu.matched ? "매치" : "불일치"}`);
+  if (hsu.matched) {
+    warnings.push({
+      id: codePatterns.HiddenStateUpdate.id,
+      label: codePatterns.HiddenStateUpdate.label,
+      codePattern: "HiddenStateUpdatePattern",
+      evidence: hsu.evidence
+    });
+  }
+
+  const smc = detectStrawManContract(src, lines);
+  chain.push(`[코드패턴] StrawManContract: ${smc.evidence} → ${smc.matched ? "매치" : "불일치"}`);
+  if (smc.matched) {
+    warnings.push({
+      id: codePatterns.StrawManContract.id,
+      label: codePatterns.StrawManContract.label,
+      codePattern: "StrawManContractPattern",
+      evidence: smc.evidence
+    });
+  }
+  return warnings;
+}
+
+// 출금 차단 경고 플래그 (b안): 유형 판정과 별개로 항상 출력하며 판정·점수에는 영향 없음.
+// 평가 방식은 체크리스트와 같다(존재 패턴 → 하나라도 검출되면 부재 패턴도 검사).
+function detectWithdrawBlockWarning(src, lines) {
+  const items = FraudOntology.withdrawBlockWarning.checklistItems;
+  const hits = new Set();
+  for (const item of items) {
+    if (!isAbsenceOnly(item.detectPattern) && evalPresenceItem(item, src, lines).matched) hits.add(item.id);
+  }
+  if (hits.size > 0) {
+    for (const item of items) {
+      if (isAbsenceOnly(item.detectPattern) && evalAbsenceItem(item, src).matched) hits.add(item.id);
+    }
+  }
+  const matched_items = items.map(i => i.id).filter(id => hits.has(id));
+  return { detected: matched_items.length > 0, matched_items };
 }
 
 export async function runPrevention(contractName) {
@@ -85,7 +135,8 @@ export async function runPrevention(contractName) {
       risk_label: "파일 없음",
       unmet_conditions: [],
       deployment_recommendation: "파일을 찾을 수 없음",
-      honeypot_code_pattern_subclasses: [],
+      code_pattern_warnings: [],
+      withdraw_block_warning: { detected: false, matched_items: [] },
       ontology_reasoning_chain: [`오류: 소스 파일 없음 → ${solPath}`]
     };
   }
@@ -99,8 +150,17 @@ export async function runPrevention(contractName) {
 
   const maxScore = Math.max(...Object.values(typeScores));
 
-  if (maxScore === 0) {
+  // 출금 차단 경고 점수: 유형 점수와 같은 방식으로 매겨 최고점 경쟁에 참여시킨다.
+  // 모든 유형 점수보다 높을 때만 경고 경로(유형 미확정), 동점이면 사기 유형이 우선.
+  const warning      = FraudOntology.withdrawBlockWarning;
+  const warningScore = scoreChecklist(warning.checklistItems, src);
+  const isWarning    = warningScore > 0 && warningScore > maxScore;
+  if (warningScore > 0) chain.push(`출금 차단 경고 패턴 점수: ${warningScore}`);
+  const withdraw_block_warning = detectWithdrawBlockWarning(src, lines);
+
+  if (maxScore === 0 && !isWarning) {
     chain.push("모든 사기 유형 패턴 미검출 → 정상 구조로 판단");
+    const code_pattern_warnings = detectCodePatternWarnings(src, lines, chain);
     return {
       contract: contractName,
       fraud_type_suspected: null,
@@ -110,30 +170,40 @@ export async function runPrevention(contractName) {
       risk_label: "정상 구조",
       unmet_conditions: [],
       deployment_recommendation: "사기 패턴 미검출. 배포 가능.",
-      honeypot_code_pattern_subclasses: [],
+      code_pattern_warnings,
+      withdraw_block_warning,
       ontology_reasoning_chain: chain
     };
   }
 
-  const topTypes = Object.entries(typeScores).filter(([, s]) => s === maxScore).map(([t]) => t);
-  let fraudType = topTypes[0];
-
-  if (topTypes.length > 1) {
-    const staticResult = analyzeStatic(solPath);
-    const STATIC_MAP   = {
-      PonziScheme: "PonziScheme", RugPull: "RugPull",
-      MoneyLaundering: "MoneyLaundering", HoneypotTrap: "HoneypotTrap",
-      PumpAndDump: "PumpDump"
-    };
-    const hint = STATIC_MAP[staticResult.primary_fraud_class];
-    if (hint && topTypes.includes(hint)) fraudType = hint;
-    chain.push(`동점 해소: 정적 분석 힌트(${staticResult.primary_fraud_class}) → ${fraudType}`);
+  let fraudType = null;
+  let rules;
+  if (isWarning) {
+    rules = warning;
+    chain.push(`${warning.label}: 경고 점수 ${warningScore} > 사기 유형 최고점 ${maxScore} → ` +
+      `유형 미확정 (${warning.classification})`);
+    chain.push("출금 차단 경고 체크리스트 시작");
   } else {
-    chain.push(`사기 유형 결정: ${fraudType} (점수 ${maxScore})`);
-  }
+    const topTypes = Object.entries(typeScores).filter(([, s]) => s === maxScore).map(([t]) => t);
+    fraudType = topTypes[0];
 
-  const rules = FraudOntology.preventionRules[fraudType];
-  chain.push(`${fraudType} 예방 체크리스트 시작`);
+    if (topTypes.length > 1) {
+      const staticResult = analyzeStatic(solPath);
+      const STATIC_MAP   = {
+        PonziScheme: "PonziScheme", RugPull: "RugPull",
+        MoneyLaundering: "MoneyLaundering",
+        PumpAndDump: "PumpDump"
+      };
+      const hint = STATIC_MAP[staticResult.primary_fraud_class];
+      if (hint && topTypes.includes(hint)) fraudType = hint;
+      chain.push(`동점 해소: 정적 분석 힌트(${staticResult.primary_fraud_class}) → ${fraudType}`);
+    } else {
+      chain.push(`사기 유형 결정: ${fraudType} (점수 ${maxScore})`);
+    }
+
+    rules = FraudOntology.preventionRules[fraudType];
+    chain.push(`${fraudType} 예방 체크리스트 시작`);
+  }
 
   const checklist   = [];
   let   totalScore  = 0;
@@ -187,44 +257,20 @@ export async function runPrevention(contractName) {
     chain.push(`결론: 배포 전 ${detectedCount}개 항목 수정 필요`);
   }
 
-  // ── HoneyPot 코드축 서브클래스 2차 분류 (boolean, 기존 판정에 영향 없는 부가 추론) ──
-  const honeypot_code_pattern_subclasses = [];
-  if (fraudType === "HoneypotTrap") {
-    const codePatterns = FraudOntology.fraudTypes.HoneypotTrap.codePatternSubclasses || {};
-
-    const hsu = detectHiddenStateUpdate(lines);
-    chain.push(`[코드패턴] HiddenStateUpdate: ${hsu.evidence} → ${hsu.matched ? "매치" : "불일치"}`);
-    if (hsu.matched) {
-      honeypot_code_pattern_subclasses.push({
-        id: codePatterns.HiddenStateUpdate.id,
-        label: codePatterns.HiddenStateUpdate.label,
-        codePattern: "HiddenStateUpdatePattern",
-        evidence: hsu.evidence
-      });
-    }
-
-    const smc = detectStrawManContract(src, lines);
-    chain.push(`[코드패턴] StrawManContract: ${smc.evidence} → ${smc.matched ? "매치" : "불일치"}`);
-    if (smc.matched) {
-      honeypot_code_pattern_subclasses.push({
-        id: codePatterns.StrawManContract.id,
-        label: codePatterns.StrawManContract.label,
-        codePattern: "StrawManContractPattern",
-        evidence: smc.evidence
-      });
-    }
-  }
+  const code_pattern_warnings = detectCodePatternWarnings(src, lines, chain);
 
   return {
     contract: contractName,
     fraud_type_suspected:     fraudType,
+    ...(isWarning ? { classification: warning.classification } : {}),
     checklist,
     risk_score:               totalScore,
     risk_level,
     risk_label,
     unmet_conditions:         unmet,
     deployment_recommendation,
-    honeypot_code_pattern_subclasses,
+    code_pattern_warnings,
+    withdraw_block_warning,
     ontology_reasoning_chain: chain
   };
 }

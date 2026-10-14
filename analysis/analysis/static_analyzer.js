@@ -6,9 +6,6 @@ import { FraudOntology } from "./fraud_ontology.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Thresholds sourced from FraudOntology where applicable
-const _HP = FraudOntology.fraudTypes.HoneypotTrap.detectionThresholds;
-
 const RULES = [
   {
     id: "UNCONSTRAINED_OWNER_DRAIN",
@@ -54,14 +51,14 @@ const RULES = [
   },
   {
     id: "HIDDEN_WITHDRAW_BLOCK",
-    // Ontology: HoneypotTrap.usesEvasion includes HiddenRequireCondition
-    description: "출금 차단 숨김 조건 존재 (허니팟 의심) — private bool이 출금 require에 사용되고 public 활성화 함수 없음",
+    // Ontology: withdrawBlockWarning (사기 유형이 아닌 출금 차단 경고 — fraudClasses 없음)
+    description: "출금 차단 숨김 조건 존재 (출금 차단 의심) — private bool이 출금 require에 사용되고 public 활성화 함수 없음",
     detect: (src) =>
       /bool\s+private\s+_\w+\s*=\s*false/.test(src) &&
       /require\s*\(\s*_\w+/.test(src) &&
       /function\s+\w*[Ww]ithdraw/.test(src),
     weight: 45,
-    fraudClasses: ["HoneypotTrap"],
+    fraudClasses: [],
     evasion: "HiddenRequireCondition"
   }
 ];

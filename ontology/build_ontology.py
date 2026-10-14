@@ -12,14 +12,14 @@ with onto:
     class FraudContract(Thing):
         comment = ["블록체인 사기 컨트랙트 최상위 개념"]
 
+    # 2026-10: 허니팟 사기 유형(과 그 상위 자금 동결 사기·하위 서브클래스, 출금 시도 후 입금
+    # 지속 패턴)을 삭제했다. 출금 차단은 사기 유형이 아니라 ZeroWithdrawBlock 경고 신호로만 남는다.
     class NormalContract(Thing):
-        comment = ["정상 컨트랙트"]
+        comment = ["정상 컨트랙트: 어떤 사기 유형에도 해당하지 않고 "
+                   "출금 차단 신호(ZeroWithdrawBlock)도 없는 컨트랙트"]
 
     class FundMovementFraud(FraudContract):
         comment = ["자금 이동 기반 사기 (잔고 유출 공통)"]
-
-    class FundFreezeFraud(FraudContract):
-        comment = ["자금 동결 기반 사기 (출금 차단)"]
 
     # ── Fraud type classes (from fraudTypes in fraud_ontology.js) ──────────────
     class PonziScheme(FundMovementFraud):
@@ -33,32 +33,6 @@ with onto:
 
     class MoneyLaundering(FundMovementFraud):
         comment = ["자금세탁: 다수 입금 → 단일 주소 전액 출금"]
-
-    class HoneyPot(FundFreezeFraud):
-        comment = ["허니팟: 입금은 가능하나 출금이 항상 실패"]
-
-    # HoneyPot 서브클래스 (2026-09, SelectiveTrap 오분류 수정 동반작업).
-    # JS 레이어(dynamic_analyzer.js hintFraudType)의 2단계 추론과 짝을 맞춘다.
-    # UniversalTrap(withdrawSuccessRate=0, 전원 실패)은 기존 Rule_HoneyPot과
-    # 사실상 동치라 별도 규칙을 추가하지 않았고(JS 쪽도 subclass 필드로만 노출),
-    # SelectiveTrap만 신규 SWRL 규칙으로 도출한다 — add_swrl_rules.py 참고.
-    class HoneyPot_SelectiveTrap(HoneyPot):
-        comment = ["선택적 허니팟: 오너/배포자 주소만 인출 성공, 나머지 전원 실패"]
-
-    # HoneyPot 코드축 서브클래스 (2026-09, Torres et al. 2019 HoneyBadger 8기법 중
-    # 빈도 상위 2종 — 실측 382/690·101/690건, 합산 커버리지 약 70%). 위
-    # HoneyPot_SelectiveTrap(행동 기반, dynamic_analyzer.js CSV 로그)과 달리 컨트랙트
-    # 소스코드 자체에 내장된 함정 기법 분류다. hasCodePattern 경유로만 도출되며
-    # (아래 hasCodePattern ObjectProperty 참고), 판정은 fraud_ontology.js의
-    # codePatternSubclasses와 마찬가지로 신뢰도 점수가 아닌 순수 boolean이다.
-    class HoneyPot_HiddenStateUpdate(HoneyPot):
-        comment = ["숨겨진 상태값 비교형: 해시/시크릿 비교 가드에 쓰이는 상태변수의 "
-                   "write 지점이 2개 이상 (배포 후 재설정 가능)"]
-
-    class HoneyPot_StrawManContract(HoneyPot):
-        comment = ["위장 컨트랙트 호출형: 송금 문장 이후 생성자로 주입된 컨트랙트 "
-                   "상태변수에 대한 고수준 외부호출(또는 owner-settable 주소로의 "
-                   "인접 delegatecall)이 이어짐"]
 
     # ── Evasion subclasses (from evasionSubclasses in fraud_ontology.js) ───────
     class PonziScheme_BalanceDropEvasion(PonziScheme):
@@ -120,7 +94,7 @@ with onto:
         comment = ["상위 3개 지갑이 총 출금의 80%+"]
 
     class ZeroWithdrawBlock(AnomalySignal):
-        comment = ["출금 시도 있으나 성공 금액 0 지속"]
+        comment = ["출금 시도 있으나 성공 금액 0 지속 — 사기 유형이 아닌 출금 차단 경고 신호"]
 
     class InputDataOpacity(AnomalySignal):
         comment = ["입력 데이터 불투명 (owner_collect 등)"]
@@ -154,22 +128,19 @@ with onto:
         comment = ["일부 인출 성공 (양수 금액)"]
 
     class WithdrawAttemptFail(BehaviorPattern):
-        comment = ["인출 시도 실패 (금액=0): 허니팟 또는 후발자 손실"]
+        comment = ["인출 시도 실패 (금액=0): 출금 차단 또는 후발자 손실"]
 
-    class InflowContinues(BehaviorPattern):
-        comment = ["첫 인출 시도 후에도 입금 계속"]
-
-    # ── HoneyPot 코드축 패턴 클래스 (2026-09 신규, hasCodePattern range) ───────
+    # ── 코드 패턴 경고 클래스 (2026-09 신규, hasCodePattern range) ─────────────
     # BehaviorPattern(행동/트랜잭션 로그 기반)과 별도 축 — 정적 소스코드 분석
-    # 결과만 담는다. fraud_ontology.js의 codePatternSubclasses와 대응.
-    class HoneypotCodePattern(Thing):
-        comment = ["허니팟 코드축 서브클래스 판정에 쓰이는 정적 코드 패턴 최상위 개념"]
+    # 결과만 담는다. fraud_ontology.js의 withdrawBlockWarning.codePatterns와 대응.
+    class CodePattern(Thing):
+        comment = ["코드 패턴 경고(유형 무관, boolean)에 쓰이는 정적 코드 패턴 최상위 개념"]
 
-    class HiddenStateUpdatePattern(HoneypotCodePattern):
+    class HiddenStateUpdatePattern(CodePattern):
         comment = ["해시/시크릿 비교(keccak256/sha3) 가드에 쓰이는 상태변수의 "
                    "write 지점이 2개 이상 존재"]
 
-    class StrawManContractPattern(HoneypotCodePattern):
+    class StrawManContractPattern(CodePattern):
         comment = ["msg.sender 송금 문장 이후 생성자 파라미터로 주입된 컨트랙트 "
                    "상태변수에 대한 고수준 외부호출이 이어짐 (delegatecall 변종 포함)"]
 
@@ -205,7 +176,7 @@ with onto:
 
     class hasCodePattern(ObjectProperty):
         domain = [FraudContract]
-        range  = [HoneypotCodePattern]
+        range  = [CodePattern]
         comment = ["컨트랙트가 특정 코드축 함정 패턴(정적, boolean)을 가짐 — "
                    "hasPattern/hasSignal(행동/신호 축)과 별도 축 (2026-09 신규)"]
 
@@ -258,7 +229,7 @@ with onto:
         range  = [float]
         comment = ["시뮬레이션 종료 시 잔고 (ETH)"]
 
-    # JS 레이어(dynamic_analyzer.js hintFraudType)의 SelectiveTrap 판정 데이터
+    # JS 레이어(dynamic_analyzer.js hintFraudType)의 출금 차단 경고·PumpAndDump 판정 데이터
     # 속성 3종을 그대로 미러링한다(2026-09). 계산은 여전히 JS/load_instances.py의
     # 파이썬 쪽에서 CSV로부터 수행하고, OWL은 그 결과값만 DatatypeProperty로
     # 보유한다 — OWL이 직접 계산하는 것이 아님.
@@ -270,7 +241,7 @@ with onto:
     class nonPrivilegedSuccessRate(DataProperty, FunctionalProperty):
         domain = [FraudContract]
         range  = [float]
-        comment = ["오너 주소를 제외한 성공 출금 비율 (0-1) — SelectiveTrap 핵심 지표"]
+        comment = ["오너 주소를 제외한 성공 출금 비율 (0-1) — 출금 차단 경고 핵심 지표"]
 
     class balanceAtFailure(DataProperty, FunctionalProperty):
         domain = [FraudContract]

@@ -29,7 +29,7 @@ const TYPE_TO_ONTOLOGY_CLASS = {
   rugpull:      "RugPull",
   laundering:   "MoneyLaundering",
   pumpdump:     "PumpAndDump",
-  honeypot:     "HoneypotTrap",
+  honeypot:     null,   // 허니팟은 사기 유형이 아님 (출금 차단 경고 확인용 음성 대조 fixture)
   ponzi_patched:"PonziScheme",
   normal:       null
 };

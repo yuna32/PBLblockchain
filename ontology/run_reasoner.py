@@ -88,15 +88,6 @@ SWRL_RULES = [
         "head": "MoneyLaundering",
     },
     {
-        "name": "Rule_HoneyPot",
-        "body": [
-            ("type",    "FraudContract"),
-            ("pattern", "WithdrawAttemptFail"),
-            ("pattern", "InflowContinues"),
-        ],
-        "head": "HoneyPot",
-    },
-    {
         "name": "Rule_PumpAndDump",
         "body": [
             ("type",    "FraudContract"),

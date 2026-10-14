@@ -134,17 +134,14 @@
     "balance_at_failure": 0.0
   },
   "contract_honeypot": {
-    "inferred_types": [
-      "HoneyPot"
-    ],
+    "inferred_types": [],
     "reasoner_classified": true,
     "signals": [
       "sig_zerowithdraw_honeypot"
     ],
     "patterns": [
       "pat_distrib_honeypot",
-      "pat_wdfail_honeypot",
-      "pat_inflowcont_honeypot"
+      "pat_wdfail_honeypot"
     ],
     "code_patterns": [],
     "causal_edges": [
@@ -168,8 +165,7 @@
       "pat_collector_normal",
       "pat_midexit_normal",
       "pat_distrib_normal",
-      "pat_insiderexit_normal",
-      "pat_inflowcont_normal"
+      "pat_insiderexit_normal"
     ],
     "code_patterns": [],
     "causal_edges": [
@@ -186,10 +182,7 @@
     "balance_at_failure": 0.0
   },
   "contract_honeypot_selective": {
-    "inferred_types": [
-      "HoneyPot",
-      "HoneyPot_SelectiveTrap"
-    ],
+    "inferred_types": [],
     "reasoner_classified": true,
     "signals": [
       "sig_zerowithdraw_honeypot_selective",
@@ -200,8 +193,7 @@
       "pat_midexit_honeypot_selective",
       "pat_distrib_honeypot_selective",
       "pat_insiderexit_honeypot_selective",
-      "pat_wdfail_honeypot_selective",
-      "pat_inflowcont_honeypot_selective"
+      "pat_wdfail_honeypot_selective"
     ],
     "code_patterns": [],
     "causal_edges": [
