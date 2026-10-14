@@ -12,10 +12,10 @@ response_reasoner의 버전 간 비교 결과에서 변경·불일치 주소마�
 
 | 경로 | 내용 |
 |---|---|
-| `response_candidates.mjs` | 본체 (node 직접 실행, ESM). 저장소로 옮길 때는 같은 내용으로 `.js` 이름을 쓴다(루트 `package.json`의 `"type": "module"`) |
+| `response_candidates.js` | 본체 (node 직접 실행, ESM). 저장소로 옮길 때는 같은 내용으로 `.js` 이름을 쓴다(루트 `package.json`의 `"type": "module"`) |
 | `README_candidates.md` | 이 문서 |
 
-- 이 폴더에는 `package.json`을 두지 않는다. 그래서 저장소 밖에서는 `.mjs` 확장자로 ESM을 쓴다.
+- 이 폴더에는 `package.json`을 두지 않는다. 저장소에서는 `.js`(루트 `package.json`의 `"type": "module"`)로 실행하고, 저장소 밖 보관본은 `.mjs` 이름이다.
 - 검증 스크립트와 결과(`verify/`)는 저장소 밖에서만 관리한다.
 
 ## 사용법
@@ -25,7 +25,7 @@ response_reasoner의 버전 간 비교 결과에서 변경·불일치 주소마�
 node response_reasoner.js --old <old 트리> --new <new 트리> [--old-pred … --new-pred …] --out <run 디렉터리>
 
 # 2) 그 run과 같은 두 트리로 후보 리포트를 만든다
-node response_candidates.mjs --run <run 디렉터리> --old <old 트리> --new <new 트리> --out <출력 디렉터리> [--near 0.05] [--level F|R]
+node response_candidates.js --run <run 디렉터리> --old <old 트리> --new <new 트리> --out <출력 디렉터리> [--near 0.05] [--level F|R]
 ```
 
 | 인자 | 뜻 |

@@ -68,6 +68,16 @@
   원본을 고치면 복사 블록(주석에 원본 줄 번호)도 맞출 것. 기존 파일은 읽기만 하고 출력은 `--out`에만 쓴다
   (`.git`이 있는 경로 아래면 거부). 사용법·종료 코드는 같은 폴더 `README.md`와 아래 "response_reasoner.js
   범위 정의 조사" 절 참고.
+- `response_candidates.js`: **`evaluation/response_reasoner/response_candidates.js`** — 변경 주소 원인 후보
+  리포트(수동 7단계 ④의 반자동화). response_reasoner의 `--out`(`changed.csv`, `disagreement_delta.csv`,
+  `old/new.jsonl`)과 같은 두 트리를 받아 `analyzeDynamic`을 다시 호출하고 주소별 후보(C1 변경 위치, C2 판정
+  경로 전환, C3 경계 근접, C4 데이터 품질 동반 관찰, C0-NONE)를 근거 수치와 함께 낸다. 실행:
+  `node evaluation/response_reasoner/response_candidates.js --run <response_reasoner 출력> --old <tree> --new <tree>
+  --out <dir> [--near 0.05] [--level F|R]`. **후보는 원인 단정이 아니다** — 규칙·코드 변경을 제안·적용하지 않고
+  승인 단계를 대신하지 않는다. **종료 코드: 0 정상(후보 유무 무관) / 2 실행 오류 / 3 자체검사 실패**(출력은 쓰되
+  해당 트리를 수준 R로 강등: C2 부분, C3 생략). N=272 동적 예측은 verdict·점수가 아니라 `fraud_type_hint`로만
+  정해진다(`evaluate_comparison.js:181-184, 204-205`) — 그래서 점수 컷오프는 후보가 아니라 참고 수치다. C3 폭
+  기본 0.05는 근거 없는 잠정값이다. 상세는 같은 폴더 `README_candidates.md`.
 
 ### contracts
 
