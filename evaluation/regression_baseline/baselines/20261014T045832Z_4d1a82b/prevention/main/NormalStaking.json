@@ -1,0 +1,22 @@
+{
+  "contract": "NormalStaking",
+  "fraud_type_suspected": null,
+  "checklist": [],
+  "risk_score": 0,
+  "risk_level": "LOW",
+  "risk_label": "정상 구조",
+  "unmet_conditions": [],
+  "deployment_recommendation": "사기 패턴 미검출. 배포 가능.",
+  "code_pattern_warnings": [],
+  "withdraw_block_warning": {
+    "detected": false,
+    "matched_items": []
+  },
+  "ontology_reasoning_chain": [
+    "소스 로드: NormalStaking.sol (102줄)",
+    "유형별 패턴 점수: {\"PonziScheme\":0,\"RugPull\":0,\"MoneyLaundering\":0,\"PumpDump\":0}",
+    "모든 사기 유형 패턴 미검출 → 정상 구조로 판단",
+    "[코드패턴] HiddenStateUpdate: 해시/시크릿 비교 가드 미검출 → 불일치",
+    "[코드패턴] StrawManContract: 송금문(line 89)과 생성자 주입 변수 없음, 고수준 외부호출/delegatecall 변종 미검출 → 불일치"
+  ]
+}

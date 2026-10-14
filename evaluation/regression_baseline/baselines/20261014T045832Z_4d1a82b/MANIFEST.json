@@ -1,0 +1,39 @@
+{
+  "baseline_id": "20261014T045832Z_4d1a82b",
+  "source_rev": "4d1a82b3b5e9ce7bc1b39e078ac26d4f104391a4",
+  "source_rev_short": "4d1a82b",
+  "source_mode": "archive",
+  "dirty": false,
+  "dirty_note": "archive 모드: 소스가 커밋이므로 dirty는 참고용 기록",
+  "git_diff_stat": "",
+  "node": "v18.19.1",
+  "env": {
+    "EXCLUDE_ADDRESSES": ""
+  },
+  "contracts": [
+    "EvasiveContract",
+    "Honeypot",
+    "MoneyLaundering",
+    "NormalStaking",
+    "PonziLab",
+    "PonziLabPatched",
+    "PumpDump",
+    "RugPull"
+  ],
+  "reasoners": [
+    "analysis/prevention_reasoner.js",
+    "analysis/analysis/prevention_reasoner.js"
+  ],
+  "smoke": {
+    "script": "evaluation/response_reasoner/response_reasoner.js",
+    "status": "PASS",
+    "exit": 0,
+    "changed": 0,
+    "note": ""
+  },
+  "reason": "허니팟 유형 삭제 및 withdraw_block_warning 병기",
+  "previous_baseline_id": "20261007T050525Z_c015140",
+  "preview_run_id": "20261014T045832Z_4d1a82b",
+  "created_by": "regress.sh --update-baseline --reason <reason> --confirm 20261014T045832Z_4d1a82b",
+  "normalization": "CR 제거, 파일 끝 개행 하나, md \"> 생성:\" 줄 제외, 사본 트리 절대경로 → <TREE>"
+}
