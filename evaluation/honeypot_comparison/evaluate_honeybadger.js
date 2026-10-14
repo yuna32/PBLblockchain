@@ -19,7 +19,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { detectHiddenStateUpdate, detectStrawManContract } from '../../analysis/analysis/prevention_reasoner.js';
+import { detectHiddenStateUpdate, detectStrawManContract } from '../../analysis/honeypot_code_patterns.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_ROOT = path.join(__dirname, 'data', 'HoneyBadger');
