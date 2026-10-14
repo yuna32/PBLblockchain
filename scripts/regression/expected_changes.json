@@ -1,4 +1,13 @@
 {
-  "baseline_id": "",
-  "entries": []
+  "baseline_id": "20261014T045832Z_4d1a82b",
+  "entries": [
+    {
+      "target": "prevention/main/RugPull.json",
+      "path": "$.ontology_reasoning_chain[2]",
+      "from": "동점 해소: 정적 분석 힌트(undefined) → RugPull",
+      "to": "동점 해소: 정적 분석 힌트(RugPull) → RugPull",
+      "commit": "S3-a",
+      "reason": "메인 static_analyzer에 fraudClasses·primary_fraud_class를 이식해 메인 reasoner 동점 해소가 정적 힌트를 읽게 됨(통합 방안 B S3-a). 판정 필드 불변"
+    }
+  ]
 }

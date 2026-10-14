@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { FraudOntology } from "./fraud_ontology.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,31 +13,36 @@ const RULES = [
     detect: (src) =>
       /function\s+\w*[Ww]ithdraw[Aa]ll\b|function\s+rugPull/.test(src) &&
       /onlyOwner/.test(src),
-    weight: 50
+    weight: 50,
+    fraudClasses: ["RugPull", "PonziScheme"]
   },
   {
     id: "PYRAMID_STRUCTURE",
     description: "신규 입금으로 기존 수익 지급 구조 (rewardRate + 별도 보상 풀 없음)",
     detect: (src) => /rewardRate\s*=/.test(src) && !/rewardPool/.test(src),
-    weight: 40
+    weight: 40,
+    fraudClasses: ["PonziScheme"]
   },
   {
     id: "INSIDER_PRIVILEGE",
     description: "내부자 전용 특권 인출 기능 (펌프앤덤프 위험)",
     detect: (src) => /isInsider|insiderWithdraw|addInsider/.test(src),
-    weight: 35
+    weight: 35,
+    fraudClasses: ["PumpAndDump"]
   },
   {
     id: "RAPID_EXIT_MECHANISM",
     description: "즉시 전액 인출 함수 — 파라미터 없음 (플래시론/이탈 패턴)",
     detect: (src) => /function\s+withdrawAll\s*\(\s*\)/.test(src),
-    weight: 30
+    weight: 30,
+    fraudClasses: ["RugPull"]
   },
   {
     id: "REWARD_PROMISE",
     description: "고정 수익률 약속 변수 (과도한 수익 보장 의심)",
     detect: (src) => /rewardRate|annualRate|interestRate/.test(src),
-    weight: 15
+    weight: 15,
+    fraudClasses: ["PonziScheme"]
   }
 ];
 
@@ -71,11 +77,20 @@ export function analyzeStatic(solPath) {
   const static_risk_score = Math.min(100, rawScore);
   const verdict = VERDICT_THRESHOLDS.find(t => static_risk_score >= t.min).label;
 
+  // Determine primary fraud class from triggered rules
+  const hitClasses = [...new Set(triggered.flatMap(r => RULES.find(rl => rl.id === r.id)?.fraudClasses || []))];
+  const primaryFraudClass = hitClasses[0] || null;
+  const gui_emphasis = primaryFraudClass
+    ? (FraudOntology.fraudTypes[primaryFraudClass]?.guiEmphasis || null)
+    : null;
+
   return {
     file: path.basename(solPath),
     triggered_rules: triggered,
     static_risk_score,
-    verdict
+    verdict,
+    primary_fraud_class: primaryFraudClass,
+    gui_emphasis
   };
 }
 
