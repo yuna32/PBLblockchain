@@ -28,7 +28,7 @@ const TYPE_TO_ONTOLOGY_CLASS = {
   ponzi:        "PonziScheme",
   rugpull:      "RugPull",
   laundering:   "MoneyLaundering",
-  pumpdump:     "PumpAndDump",
+  pumpdump:     "PumpDump",
   honeypot:     null,   // 허니팟은 사기 유형이 아님 (출금 차단 경고 확인용 음성 대조 fixture)
   ponzi_patched:"PonziScheme",
   normal:       null
@@ -51,15 +51,12 @@ function buildOntologyMapping(type, staticResult, dynamicResult) {
     evasionDetected.push("HiddenRequireCondition");
   if (dynamicIds.includes("CONCENTRATION_DRAIN"))
     evasionDetected.push("SmurfingDeposit");
-  if (dynamicIds.includes("ZERO_WITHDRAW_PATTERN") && !evasionDetected.includes("HiddenRequireCondition"))
-    evasionDetected.push("HiddenRequireCondition");
 
   // Check which necessary conditions were met
   const conditionRuleMap = {
     BalanceDrop:       "BALANCE_DROP",
     FlowSpike:         "FLOW_SPIKE",
-    ConcentrationDrain:"CONCENTRATION_DRAIN",
-    ZeroWithdrawBlock: "ZERO_WITHDRAW_PATTERN"
+    ConcentrationDrain:"CONCENTRATION_DRAIN"
   };
   const necessaryMet = ft.necessaryConditions.filter(c => {
     const rId = conditionRuleMap[c];
@@ -220,8 +217,6 @@ async function run() {
     if (dynamicResult.evasion_detected) {
       console.log(`  ${C.gray}── 회피 탐지 ──${C.reset}`);
       printKeyVal("회피 서브클래스", dynamicResult.evasion_subclass, C.yellow);
-      printKeyVal("회피 결과      ", dynamicResult.evasion_consequence, C.yellow);
-      printKeyVal("대응 탐지      ", dynamicResult.counter_detection, C.cyan);
     }
   }
 
