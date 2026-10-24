@@ -48,8 +48,6 @@ function buildOntologyMapping(type, staticResult, dynamicResult) {
   const evasionDetected = [];
   if (staticIds.includes("UNCONSTRAINED_OWNER_DRAIN") || staticIds.includes("RAPID_EXIT_MECHANISM"))
     evasionDetected.push("OwnerWithdrawAll");
-  if (staticIds.includes("HIDDEN_WITHDRAW_BLOCK"))
-    evasionDetected.push("HiddenRequireCondition");
   if (dynamicIds.includes("CONCENTRATION_DRAIN"))
     evasionDetected.push("SmurfingDeposit");
 
