@@ -1,0 +1,27 @@
+{
+  "canonical_version": "jcs-rfc8785/pbl-demo-v1",
+  "scenario": "ponzi",
+  "contract": "PonziLab",
+  "source": "live",
+  "report_sha256": "ea71ae0cb366c7fae71749c584ab574f4f816aa64c6da6504b33b4ad222dd63a",
+  "report_hash_excluded": [
+    "timestamp",
+    "dynamic.csv",
+    "trust.csv",
+    "static.file"
+  ],
+  "input": {
+    "csv": {
+      "file": "ponzi_log.csv",
+      "sha256": "0e839d9dbd4028cd99c995102f24c27b6f460914dc5a6b97e8fc0e70fbc3882c",
+      "normalization": "CR 제거, 빈 줄 제거, timestamp 열 제외, LF로 연결 (마지막 줄바꿈 없음)"
+    },
+    "sol": {
+      "file": "PonziLab.sol",
+      "sha256": "eafa138b45dfcfeb71471bbbc9be20a016c3ab755c0b5dd87e24a52d21a30f0e",
+      "normalization": "CRLF→LF"
+    },
+    "seed": "pbl-demo"
+  },
+  "created_at": "2026-10-24T14:18:54.808Z"
+}
