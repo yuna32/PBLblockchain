@@ -5,6 +5,7 @@ import { analyzeStatic }  from "./static_analyzer.js";
 import { analyzeDynamic } from "./dynamic_analyzer.js";
 import { scoreTrust }     from "./trust_scorer.js";
 import { runPrevention }  from "./prevention_reasoner.js";
+import { computeRawGrade, applyPreventionCap } from "./grade.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -46,34 +47,6 @@ function trustColor(score) {
 
 function gradeColor(grade) {
   return { A: C.green, B: C.cyan, C: C.yellow, D: "\x1b[33m", F: C.red }[grade] || C.gray;
-}
-
-function computeRawGrade(staticResult, dynamicResult, trustResult) {
-  const combined = Math.round(
-    staticResult.static_risk_score   * 0.30 +
-    dynamicResult.dynamic_risk_score * 0.40 +
-    (100 - trustResult.overall_trust_score) * 0.30
-  );
-  if (combined <= 19) return "A";
-  if (combined <= 39) return "B";
-  if (combined <= 59) return "C";
-  if (combined <= 79) return "D";
-  return "F";
-}
-
-function applyPreventionCap(rawGrade, preventionLevel) {
-  const GRADE_ORDER = ["A", "B", "C", "D", "E", "F"];
-  const CAPS = { CRITICAL: "D", HIGH: "C" };
-  const cap = CAPS[preventionLevel];
-  if (!cap) return rawGrade;
-  const rawIdx = GRADE_ORDER.indexOf(rawGrade);
-  const capIdx = GRADE_ORDER.indexOf(cap);
-  return rawIdx >= capIdx ? rawGrade : cap;
-}
-
-function computeGrade(staticResult, dynamicResult, trustResult, preventionResult) {
-  const rawGrade = computeRawGrade(staticResult, dynamicResult, trustResult);
-  return applyPreventionCap(rawGrade, preventionResult?.risk_level);
 }
 
 function printBanner(contractName, type) {

@@ -6,6 +6,7 @@ import { analyzeDynamic } from "./dynamic_analyzer.js";
 import { scoreTrust }     from "./trust_scorer.js";
 import { FraudOntology }  from "../fraud_ontology.js";
 import { runPrevention }  from "./prevention_reasoner.js";
+import { computeGrade }   from "../grade.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -106,19 +107,6 @@ function trustColor(score) {
 
 function gradeColor(grade) {
   return { A: C.green, B: C.cyan, C: C.yellow, D: "\x1b[33m", F: C.red }[grade] || C.gray;
-}
-
-function computeGrade(staticResult, dynamicResult, trustResult) {
-  const combined = Math.round(
-    staticResult.static_risk_score  * 0.30 +
-    dynamicResult.dynamic_risk_score * 0.40 +
-    (100 - trustResult.overall_trust_score) * 0.30
-  );
-  if (combined <= 19) return "A";
-  if (combined <= 39) return "B";
-  if (combined <= 59) return "C";
-  if (combined <= 79) return "D";
-  return "F";
 }
 
 function printBanner(contractName, type) {
@@ -239,7 +227,7 @@ async function run() {
   }
 
   // ── 종합 판정 ──
-  const grade = computeGrade(staticResult, dynamicResult, trustResult);
+  const grade = computeGrade(staticResult, dynamicResult, trustResult, preventionResult);
   const gc = gradeColor(grade);
   const GRADE_LABEL = { A: "SAFE", B: "LOW_RISK", C: "MODERATE", D: "HIGH_RISK", F: "CRITICAL" };
   const GRADE_MSG = {
