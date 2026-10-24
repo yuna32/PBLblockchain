@@ -91,7 +91,11 @@ async function main() {
   console.log(`  ⚠ 피해: ${wallets.length}명 전원 자금 손실`);
 
   // CSV 저장
-  const logDir = path.join(__dirname, "../analysis/logs");
+  // DEMO_LOG_DIR: 시연용 로그 디렉터리. 없으면 analysis/logs.
+  const logDir = process.env.DEMO_LOG_DIR
+    ? path.resolve(process.env.DEMO_LOG_DIR)
+    : path.join(__dirname, "../analysis/logs");
+  const logLabel = process.env.DEMO_LOG_DIR ? logDir : "analysis/logs";
   if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
 
   const csv = [
@@ -100,7 +104,7 @@ async function main() {
   ].join("\n");
 
   fs.writeFileSync(path.join(logDir, "rugpull_log.csv"), csv);
-  console.log(`\n✅ 로그 저장 완료: analysis/logs/rugpull_log.csv`);
+  console.log(`\n✅ 로그 저장 완료: ${logLabel}/rugpull_log.csv`);
   console.log(`   총 ${log.length}개 트랜잭션 기록`);
 }
 

@@ -2,6 +2,9 @@
   "name": "pbl",
   "version": "1.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=22.10"
+  },
   "scripts": {
     "compile": "hardhat compile",
     "ponzi": "hardhat run scripts/simulate_ponzi.js",

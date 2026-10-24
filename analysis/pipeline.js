@@ -64,6 +64,52 @@ function printKeyVal(key, val, color = "") {
   console.log(`  ${C.gray}${key}:${C.reset} ${color}${val}${C.reset}`);
 }
 
+// 분석 계산만 한다. 콘솔 출력·파일 쓰기·process.exit는 하지 않는다(CLI는 run, 시연 서버는 demo/run.js가 호출).
+// options.logDir: CSV를 읽을 디렉터리 (기본 analysis/logs), options.csvPath: CSV 경로 직접 지정 (logDir보다 우선).
+// 반환: report(파일로 쓰는 리포트 객체)와 콘솔 출력에 쓰는 값.
+export async function buildReport(contractName, options = {}) {
+  if (!CONTRACT_MAP[contractName]) {
+    throw new Error(`알 수 없는 컨트랙트: ${contractName} (가능한 값: ${Object.keys(CONTRACT_MAP).join(", ")})`);
+  }
+
+  const { type, csv } = CONTRACT_MAP[contractName];
+  const solPath = path.join(PROJECT_ROOT, "contracts", `${contractName}.sol`);
+  const logDir  = options.logDir ?? path.join(PROJECT_ROOT, "analysis", "logs");
+  const csvPath = options.csvPath ?? path.join(logDir, csv);
+
+  const preventionResult = await runPrevention(contractName);
+  const staticResult     = analyzeStatic(solPath);
+  const dynamicResult    = analyzeDynamic(csvPath);
+  const trustResult      = scoreTrust(csvPath);
+
+  const rawGrade   = computeRawGrade(staticResult, dynamicResult, trustResult);
+  const grade      = applyPreventionCap(rawGrade, preventionResult.risk_level);
+  const capApplied = rawGrade !== grade;
+  const capReason  = capApplied
+    ? `${preventionResult.risk_level} prevention score (${preventionResult.risk_score}) → grade capped at ${grade}`
+    : null;
+
+  const report = {
+    contract:                contractName,
+    type,
+    timestamp:               new Date().toISOString(),
+    overall_grade:           grade,
+    raw_grade:               rawGrade,
+    prevention_cap_applied:  capApplied,
+    prevention_cap_reason:   capReason,
+    prevention:              preventionResult,
+    static:                  staticResult,
+    dynamic:                 dynamicResult,
+    trust:                   trustResult
+  };
+
+  return {
+    report, type, solPath, csvPath,
+    preventionResult, staticResult, dynamicResult, trustResult,
+    rawGrade, grade, capApplied, capReason
+  };
+}
+
 async function run() {
   const args = process.argv.slice(2);
   const contractIdx = args.indexOf("--contract");
@@ -75,15 +121,18 @@ async function run() {
     process.exit(1);
   }
 
-  const { type, csv } = CONTRACT_MAP[contractName];
-  const solPath = path.join(PROJECT_ROOT, "contracts", `${contractName}.sol`);
-  const csvPath = path.join(PROJECT_ROOT, "analysis", "logs", csv);
+  // DEMO_LOG_DIR / DEMO_REPORT_DIR: 시연용 경로 분리. 없으면 analysis/logs, analysis/reports.
+  const logDir = process.env.DEMO_LOG_DIR ? path.resolve(process.env.DEMO_LOG_DIR) : undefined;
+  const {
+    report, type,
+    preventionResult, staticResult, dynamicResult, trustResult,
+    rawGrade, grade, capApplied, capReason
+  } = await buildReport(contractName, { logDir });
 
   printBanner(contractName, type);
 
   // ── Step 0: 예방 분석 ──
   printSection("Step 0 / 4  예방 분석 (온톨로지 기반 체크리스트)");
-  const preventionResult = await runPrevention(contractName);
   if (preventionResult.risk_level === "FILE_NOT_FOUND") {
     console.log(`  ${C.yellow}⚠ 소스 파일 없음: ${preventionResult.error}${C.reset}`);
   } else {
@@ -98,7 +147,6 @@ async function run() {
 
   // ── Step 1: 정적 분석 ──
   printSection("Step 1 / 4  정적 분석 (Solidity 소스 코드)");
-  const staticResult = analyzeStatic(solPath);
   printKeyVal("대상 파일", staticResult.file);
   printKeyVal("정적 위험도", `${staticResult.static_risk_score}/100  [${staticResult.verdict}]`,
     riskColor(staticResult.static_risk_score));
@@ -113,7 +161,6 @@ async function run() {
 
   // ── Step 2: 동적 분석 ──
   printSection("Step 2 / 4  동적 분석 (시뮬레이션 로그)");
-  const dynamicResult = analyzeDynamic(csvPath);
   if (dynamicResult.error) {
     console.log(`  ${C.yellow}⚠ ${dynamicResult.error}${C.reset}`);
   } else {
@@ -136,7 +183,6 @@ async function run() {
 
   // ── Step 3: 신뢰 점수 ──
   printSection("Step 3 / 4  지갑 신뢰 점수");
-  const trustResult = scoreTrust(csvPath);
   if (trustResult.error) {
     console.log(`  ${C.yellow}⚠ ${trustResult.error}${C.reset}`);
   } else {
@@ -153,13 +199,6 @@ async function run() {
   }
 
   // ── 종합 판정 ──
-  const rawGrade   = computeRawGrade(staticResult, dynamicResult, trustResult);
-  const grade      = applyPreventionCap(rawGrade, preventionResult.risk_level);
-  const capApplied = rawGrade !== grade;
-  const capReason  = capApplied
-    ? `${preventionResult.risk_level} prevention score (${preventionResult.risk_score}) → grade capped at ${grade}`
-    : null;
-
   const gc = gradeColor(grade);
   const GRADE_LABEL = { A: "SAFE", B: "LOW_RISK", C: "MODERATE", D: "HIGH_RISK", F: "CRITICAL" };
   const GRADE_MSG = {
@@ -182,26 +221,15 @@ async function run() {
   console.log(`${"═".repeat(52)}`);
 
   // ── 보고서 저장 ──
-  const reportsDir = path.join(PROJECT_ROOT, "analysis", "reports");
+  const reportsDir = process.env.DEMO_REPORT_DIR
+    ? path.resolve(process.env.DEMO_REPORT_DIR)
+    : path.join(PROJECT_ROOT, "analysis", "reports");
+  const reportsLabel = process.env.DEMO_REPORT_DIR ? reportsDir : "analysis/reports";
   fs.mkdirSync(reportsDir, { recursive: true });
-
-  const report = {
-    contract:                contractName,
-    type,
-    timestamp:               new Date().toISOString(),
-    overall_grade:           grade,
-    raw_grade:               rawGrade,
-    prevention_cap_applied:  capApplied,
-    prevention_cap_reason:   capReason,
-    prevention:              preventionResult,
-    static:                  staticResult,
-    dynamic:                 dynamicResult,
-    trust:                   trustResult
-  };
 
   const reportPath = path.join(reportsDir, `${contractName}_report.json`);
   fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
-  console.log(`\n  ${C.green}✅ 보고서 저장:${C.reset} analysis/reports/${contractName}_report.json`);
+  console.log(`\n  ${C.green}✅ 보고서 저장:${C.reset} ${reportsLabel}/${contractName}_report.json`);
 
   // ── reports/index.js 업데이트 (보고서 목록) ──
   const indexPath = path.join(reportsDir, "index.js");
@@ -212,7 +240,7 @@ async function run() {
   }
   if (!existing.includes(contractName)) existing.push(contractName);
   fs.writeFileSync(indexPath, `window.AVAILABLE_REPORTS = ${JSON.stringify(existing)};\n`);
-  console.log(`  ${C.green}✅ 보고서 목록:${C.reset}  analysis/reports/index.js  (${existing.join(", ")})`);
+  console.log(`  ${C.green}✅ 보고서 목록:${C.reset}  ${reportsLabel}/index.js  (${existing.join(", ")})`);
 
   // ── 대시보드 열기 안내 ──
   console.log(`\n  ${C.bold}대시보드에서 확인:${C.reset}`);
@@ -223,4 +251,16 @@ async function run() {
   console.log(`  ${C.gray}3.${C.reset} Report Bar 드롭다운에서 ${C.bold}${contractName}${C.reset} 선택 후 ${C.bold}불러오기${C.reset} 클릭\n`);
 }
 
-run().catch(err => { console.error(err); process.exit(1); });
+// CLI: 직접 실행했을 때만 run(). import만 하면 아무것도 실행하지 않는다.
+function isDirectRun() {
+  if (!process.argv[1]) return false;
+  try {
+    return fs.realpathSync(path.resolve(process.argv[1])) === fs.realpathSync(__filename);
+  } catch {
+    return false;
+  }
+}
+
+if (isDirectRun()) {
+  run().catch(err => { console.error(err); process.exit(1); });
+}
