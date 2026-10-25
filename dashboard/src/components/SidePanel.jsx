@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Check, CircleDashed, LoaderCircle, Minus, Play, X } from "lucide-react";
 import { useApp } from "../state/AppContext.jsx";
 import { useAttest } from "../state/AttestContext.jsx";
+import { STATIC_MODE } from "../mode.js";
 import { stageSteps } from "../lib/flow.js";
 import { OnchainMark } from "./Onchain.jsx";
 import { fmtTime, shortHash } from "../lib/format.js";
@@ -33,7 +34,7 @@ export function ScenarioPanel() {
     <div className="panel">
       <div className="panel-head">
         <h2 className="panel-title">시나리오</h2>
-        <span className="panel-sub">시뮬레이션할 거래 유형을 고르세요</span>
+        <span className="panel-sub">{STATIC_MODE ? "시나리오를 고르면 저장된 결과를 보여 줍니다" : "시뮬레이션할 거래 유형을 고르세요"}</span>
       </div>
       {health.state === "down" && !scenarios.length ? (
         <StatusView kind="down" title="서버에 연결할 수 없습니다" detail="npm run demo:server" />
@@ -61,6 +62,13 @@ export function ScenarioPanel() {
           })}
         </ul>
       )}
+      {STATIC_MODE ? (
+        <div className="panel-foot">
+          <p className="muted small static-note">
+            정적 데모: 시나리오별로 미리 계산해 둔 결과를 보여 줍니다. 분석 실행은 로컬 서버 모드에서 사용 가능합니다.
+          </p>
+        </div>
+      ) : (
       <div className="panel-foot">
         <label className="switch">
           <input type="checkbox" checked={useFixture} onChange={e => setUseFixture(e.target.checked)} />
@@ -74,6 +82,7 @@ export function ScenarioPanel() {
         </button>
         <JobProgress job={job} />
       </div>
+      )}
     </div>
   );
 }

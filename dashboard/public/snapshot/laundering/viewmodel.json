@@ -1,0 +1,180 @@
+{
+  "codeAssessment": {
+    "fraudTypeSuspected": "MoneyLaundering",
+    "mainRules": [
+      {
+        "description": "오너가 전액을 외부로 인출할 수 있는 함수 (러그풀/폰지 핵심 위험)",
+        "id": "UNCONSTRAINED_OWNER_DRAIN",
+        "weight": 50
+      }
+    ],
+    "preventionRiskLabel": "배포 불가 — 세탁 구조 명확",
+    "preventionRiskLevel": "CRITICAL",
+    "preventionRiskScore": 8,
+    "staticRiskScore": 50,
+    "staticVerdict": "HIGH_RISK"
+  },
+  "combination": {
+    "basis": [
+      "예방 분석 위험 수준이 매우 높음(CRITICAL)으로, 코드 위험 높음 기준(높음 또는 매우 높음)에 해당합니다.",
+      "운영자 전액 인출 지갑(drainer) 1개, 최저 지갑 등급 D로 지갑 위험 높음 기준에 해당합니다."
+    ],
+    "codeRisk": "high",
+    "criteriaNote": "시연용 임시 기준",
+    "label": "복합 고위험",
+    "quadrant": "high-high",
+    "walletRisk": "high"
+  },
+  "contract": "MoneyLaundering",
+  "disclaimer": "본 결과는 시뮬레이션 거래 로그와 컨트랙트 소스 코드에 대한 휴리스틱 분석 결과이며, 실제 사기 여부를 확정하지 않는다. 판정 규칙과 임계값은 연구 단계의 잠정값이라 오탐과 미탐이 있을 수 있다. 본 결과는 투자 판단의 근거가 될 수 없으며, 이를 근거로 한 결정의 책임은 이용자에게 있다.",
+  "headline": {
+    "reasons": [
+      {
+        "detail": "블록 43에서 처음으로 자금이 빠져나갔습니다.",
+        "label": "첫 출금 블록 43",
+        "page": "trade"
+      },
+      {
+        "detail": "평균 지갑 등급은 B이고, 운영자 전액 인출 지갑(drainer) 1개, 과도 수익 지갑(extractor) 0개가 있습니다.",
+        "label": "최저 지갑 등급 D",
+        "page": "trust"
+      },
+      {
+        "detail": "배포 전 예방 분석에서 위험 항목 3개가 검출되었습니다.",
+        "label": "코드 위험 수준 매우 높음",
+        "page": "report"
+      }
+    ],
+    "text": "여러 지갑의 소액 입금을 한 지갑으로 모으는 자금세탁 패턴이 감지되었습니다.",
+    "tone": "danger"
+  },
+  "patterns": {
+    "dynamicRiskScore": 100,
+    "dynamicVerdict": "HIGH_RISK",
+    "evasion": {
+      "confidence": 0,
+      "detected": false,
+      "subclass": null
+    },
+    "fraudClassified": true,
+    "fraudTypeHint": "money_laundering",
+    "fraudTypeLabel": "자금세탁",
+    "inflowStop": {
+      "detected": false,
+      "lastDepositBlock": 39,
+      "stopRatio": 0.1
+    },
+    "reasoningSteps": [
+      "singleLargeOutflow: true (3.780 / peak 3.780 = 100%)",
+      "distributedInflow: true (19 unique depositors)",
+      "ownerWithdrawAll: false (recipient 0x70997970... found in depositor list)",
+      "participantMidExit: false (0 mid-exit withdrawals)",
+      "withdrawSuccessRate: 100.0% (1/1 succeeded)",
+      "nonPrivilegedSuccessRate: 100.0% (owner 0xf39fd6e5... 제외 1건 중 성공)",
+      "balanceAtFailure: 0.000 ETH (amount_eth=0 시점 잔고 최댓값, n=0)",
+      "→ money_laundering (large outflow + 19 distributed depositors + collector is a known depositor)"
+    ],
+    "signals": [
+      {
+        "description": "출금 발생 후 잔고 급락 — 하락폭에 비례한 연속 점수 (러그풀/폰지 탈출)",
+        "fraction": 1,
+        "id": "BALANCE_DROP",
+        "weight": 40,
+        "weightMax": 40
+      },
+      {
+        "description": "누적 출금이 총 입금의 50% 이상 (분산 인출 포함, 일거에 자금 흡수)",
+        "fraction": 1,
+        "id": "FLOW_SPIKE",
+        "weight": 30,
+        "weightMax": 30
+      },
+      {
+        "description": "출금 수령 집중도(HHI) — 소수 지갑에 집중될수록 높은 연속 점수",
+        "fraction": 1,
+        "id": "CONCENTRATION_DRAIN",
+        "weight": 35,
+        "weightMax": 35
+      },
+      {
+        "description": "입금 대비 130% 이상 수령한 지갑 존재 (부당 수익 탈취)",
+        "fraction": 1,
+        "id": "PROFIT_EXTRACTION",
+        "weight": 35,
+        "weightMax": 35
+      },
+      {
+        "description": "입금 종료 후 장기 대기 뒤 인출 또는 급격한 인출 속도 (시간 패턴 이상)",
+        "fraction": 1,
+        "id": "TEMPORAL_PATTERN",
+        "weight": 20,
+        "weightMax": 20
+      },
+      {
+        "description": "action 종류와 무관하게 15블록 이내 잔고 50%+ 급락 탐지",
+        "fraction": 1,
+        "id": "BALANCE_TIMESERIES_DRAIN",
+        "weight": 20,
+        "weightMax": 20
+      }
+    ]
+  },
+  "phase": {
+    "events": [
+      {
+        "block": 39,
+        "label": "마지막 입금",
+        "type": "inflow_stop"
+      },
+      {
+        "block": 43,
+        "label": "첫 출금",
+        "type": "first_withdraw"
+      },
+      {
+        "block": 43,
+        "label": "첫 owner 전액 인출",
+        "type": "owner_withdraw_all"
+      }
+    ],
+    "onset": {
+      "block": 43,
+      "label": "첫 출금",
+      "type": "first_withdraw"
+    }
+  },
+  "reportHash": "ed9442e63c0de5224afc5f04b9d3bc73c318ece02c7c33a32b6c0c5368236c81",
+  "scenario": "laundering",
+  "source": "fixture",
+  "walletAssessment": {
+    "drainerCount": 1,
+    "extractorCount": 0,
+    "extractorDefinition": "is_drainer가 아니면서 profit_ratio > 1.3인 지갑 (입금액 대비 1.3배 초과 수령)",
+    "lowestDiffersFromOverall": true,
+    "lowestWallet": {
+      "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "grade": "D",
+      "trustScore": 30
+    },
+    "trustGrade": "B",
+    "trustScore": 57,
+    "walletCount": 19
+  },
+  "warnings": [
+    {
+      "detail": "비오너 출금 1건 중 성공률 100.0% > 5%, 실패 시점 잔고 0.000 ETH",
+      "detected": false,
+      "source": "dynamic.withdraw_block_warning"
+    },
+    {
+      "detail": [],
+      "detected": false,
+      "source": "prevention.withdraw_block_warning"
+    },
+    {
+      "detail": [],
+      "detected": false,
+      "source": "prevention.code_pattern_warnings"
+    }
+  ]
+}

@@ -11,14 +11,22 @@ export function OnchainBadge({ phase, verifyEntry, backend = "local" }) {
     <span className="onchain-badge">
       <Badge tone={b.tone}>{b.label}</Badge>
       {b.extra && <Badge tone="neutral">{b.extra}</Badge>}
-      {v && <span className={`small text-${v.tone}`}>검증 {v.label}{v.tamperDemo ? " (변조 시연)" : ""}</span>}
+      {v && <span className={`small text-${v.tone}`}>{v.text}{v.tamperDemo ? " (변조 시연)" : ""}</span>}
     </span>
   );
 }
 
-// mark: recorded | prerecorded
+// mark: recorded | prerecorded | attested(정적 모드, 상태 A)
 export function OnchainMark({ mark, backend = "local" }) {
   if (!mark) return null;
+  if (mark === "attested") {
+    return (
+      <span className="onchain-mark" title="이 시나리오의 리포트가 Sepolia에 기록되어 있습니다">
+        <Link2 {...ICON} size={12} />
+        {PHASE_LABELS.attested}
+      </span>
+    );
+  }
   const chain = CHAIN_SHORT_NAMES[backend] ?? backend;
   const title = mark === "prerecorded"
     ? (backend === "local" ? "서버가 시작할 때 이 시나리오의 사전 생성본 리포트를 로컬 체인에 기록했습니다" : `이 시나리오의 사전 생성본 리포트가 ${chain}에 미리 기록되어 있습니다`)

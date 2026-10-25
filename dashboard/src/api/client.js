@@ -1,13 +1,10 @@
 // 시연 API 클라이언트. 개발 서버는 /api를 시연 API(npm run demo:server)로 프록시한다.
+// 정적 모드(VITE_STATIC=1)에서는 같은 모양의 어댑터(api/static.js)가 snapshot/ JSON을 읽는다.
+import { ApiError } from "./errors.js";
+import { createStaticApi } from "./static.js";
+import { STATIC_MODE } from "../mode.js";
 
-export class ApiError extends Error {
-  constructor(message, { status = null, code = null, network = false } = {}) {
-    super(message);
-    this.status = status;
-    this.code = code;
-    this.network = network;
-  }
-}
+export { ApiError };
 
 async function request(path, options) {
   let res;
@@ -38,7 +35,7 @@ const postJson = (path, body) => request(path, {
   body: JSON.stringify(body ?? {})
 });
 
-export const api = {
+export const serverApi = {
   health:     () => request("/health"),
   scenarios:  () => request("/scenarios"),
   glossary:   () => request("/glossary"),
@@ -63,3 +60,5 @@ export const api = {
     backend, ...(uid ? { uid } : {}), ...(tamper ? { tamper } : {})
   })
 };
+
+export const api = STATIC_MODE ? createStaticApi() : serverApi;

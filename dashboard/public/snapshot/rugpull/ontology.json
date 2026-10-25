@@ -1,0 +1,456 @@
+{
+  "highlight": {
+    "evasionPath": [
+      [
+        "evidence:UNCONSTRAINED_OWNER_DRAIN",
+        "technique:OwnerWithdrawAll",
+        "class:RugPull"
+      ]
+    ],
+    "path": [
+      [
+        "evidence:BALANCE_DROP",
+        "condition:BalanceDrop",
+        "class:RugPull"
+      ],
+      [
+        "evidence:singleLargeOutflow",
+        "condition:MaxTxAlert",
+        "class:RugPull"
+      ],
+      [
+        "evidence:participantNoMidExit",
+        "condition:NoMidWithdrawals",
+        "class:RugPull"
+      ]
+    ]
+  },
+  "links": [
+    {
+      "active": true,
+      "kind": "subClassOf",
+      "label": "하위 클래스",
+      "source": "class:RugPull",
+      "target": "parent:FraudPattern"
+    },
+    {
+      "active": true,
+      "kind": "requires",
+      "label": "필요 조건",
+      "source": "class:RugPull",
+      "target": "condition:BalanceDrop"
+    },
+    {
+      "active": true,
+      "kind": "supportedBy",
+      "label": "근거",
+      "source": "evidence:BALANCE_DROP",
+      "target": "condition:BalanceDrop"
+    },
+    {
+      "active": true,
+      "kind": "requires",
+      "label": "필요 조건",
+      "source": "class:RugPull",
+      "target": "condition:MaxTxAlert"
+    },
+    {
+      "active": true,
+      "kind": "supportedBy",
+      "label": "근거",
+      "source": "evidence:singleLargeOutflow",
+      "target": "condition:MaxTxAlert"
+    },
+    {
+      "active": true,
+      "kind": "requires",
+      "label": "충분 조건",
+      "source": "class:RugPull",
+      "target": "condition:NoMidWithdrawals"
+    },
+    {
+      "active": true,
+      "kind": "supportedBy",
+      "label": "근거",
+      "source": "evidence:participantNoMidExit",
+      "target": "condition:NoMidWithdrawals"
+    },
+    {
+      "active": false,
+      "kind": "exhibits",
+      "label": "회피 하위 유형",
+      "source": "class:RugPull",
+      "target": "evasion:RugPull_BalanceDropEvasion"
+    },
+    {
+      "active": false,
+      "kind": "exhibits",
+      "label": "회피 하위 유형",
+      "source": "class:RugPull",
+      "target": "evasion:RugPull_MaxTxEvasion"
+    },
+    {
+      "active": false,
+      "kind": "exhibits",
+      "label": "회피 하위 유형",
+      "source": "class:RugPull",
+      "target": "evasion:RugPull_SlowDrain"
+    },
+    {
+      "active": true,
+      "kind": "exhibits",
+      "label": "사용 기법",
+      "source": "class:RugPull",
+      "target": "technique:OwnerWithdrawAll"
+    },
+    {
+      "active": true,
+      "kind": "supportedBy",
+      "label": "근거",
+      "source": "evidence:UNCONSTRAINED_OWNER_DRAIN",
+      "target": "technique:OwnerWithdrawAll"
+    },
+    {
+      "active": true,
+      "kind": "mitigatedBy",
+      "label": "권고 조치",
+      "source": "technique:OwnerWithdrawAll",
+      "target": "patch:OwnerWithdrawAll"
+    },
+    {
+      "active": true,
+      "kind": "affects",
+      "label": "피해 역할",
+      "source": "class:RugPull",
+      "target": "role:LateParticipant"
+    },
+    {
+      "active": true,
+      "kind": "affects",
+      "label": "피해 역할",
+      "source": "class:RugPull",
+      "target": "role:Victim"
+    },
+    {
+      "active": true,
+      "kind": "affects",
+      "label": "수혜 역할",
+      "source": "class:RugPull",
+      "target": "role:Insider"
+    },
+    {
+      "active": true,
+      "kind": "mitigatedBy",
+      "label": "권고 조치",
+      "source": "class:RugPull",
+      "target": "patch:SINGLE_DRAIN_FUNCTION"
+    },
+    {
+      "active": true,
+      "kind": "mitigatedBy",
+      "label": "권고 조치",
+      "source": "class:RugPull",
+      "target": "patch:NO_PARTICIPANT_REFUND"
+    }
+  ],
+  "meta": {
+    "conditions": [
+      {
+        "approx": false,
+        "classes": [
+          "PonziScheme",
+          "RugPull"
+        ],
+        "condition": "BalanceDrop",
+        "label": "잔고 급락 신호",
+        "note": "동적 규칙 BALANCE_DROP 발동 여부.",
+        "status": "met"
+      },
+      {
+        "approx": false,
+        "classes": [
+          "PonziScheme"
+        ],
+        "condition": "FlowSpike",
+        "label": "순유출 급증 신호",
+        "note": "동적 규칙 FLOW_SPIKE 발동 여부.",
+        "status": "met"
+      },
+      {
+        "approx": true,
+        "classes": [
+          "PonziScheme",
+          "RugPull",
+          "MoneyLaundering"
+        ],
+        "condition": "MaxTxAlert",
+        "label": "최대 단일 거래 신호",
+        "note": "근사: 근거 기준은 최대 단일 출금이 최고 잔고의 70% 이상이고, 온톨로지 공식은 직전 잔고의 90% 이상이다.",
+        "status": "met"
+      },
+      {
+        "approx": false,
+        "classes": [
+          "PonziScheme"
+        ],
+        "condition": "MidWithdrawalsExist",
+        "label": "중도 출금 있음",
+        "note": "dynamic.reasoning_steps의 participantMidExit가 true.",
+        "status": "unmet"
+      },
+      {
+        "approx": false,
+        "classes": [
+          "RugPull"
+        ],
+        "condition": "NoMidWithdrawals",
+        "label": "중도 출금 없음",
+        "note": "dynamic.reasoning_steps의 participantMidExit가 false.",
+        "status": "met"
+      },
+      {
+        "approx": true,
+        "classes": [
+          "MoneyLaundering"
+        ],
+        "condition": "UniqueParticipants",
+        "label": "다수 입금자",
+        "note": "근사: 근거 기준은 고유 입금자 5명 이상이고, 온톨로지 임계값은 비율 0.3(UNIQUE_PARTICIPANTS)이다.",
+        "status": "met"
+      },
+      {
+        "approx": false,
+        "classes": [
+          "MoneyLaundering"
+        ],
+        "condition": "SingleDrain",
+        "label": "단일 대량 인출",
+        "note": "dynamic.reasoning_steps의 singleLargeOutflow가 true (최대 단일 출금이 최고 잔고의 70% 이상).",
+        "status": "met"
+      },
+      {
+        "approx": false,
+        "classes": [
+          "PumpDump"
+        ],
+        "condition": "InsiderPrivilege",
+        "label": "내부자 특권 조건",
+        "note": "정적 규칙 INSIDER_PRIVILEGE 발동 여부.",
+        "status": "unmet"
+      },
+      {
+        "approx": true,
+        "classes": [
+          "PumpDump"
+        ],
+        "condition": "AsymmetricWithdrawal",
+        "label": "비대칭 출금",
+        "note": "근사: 입금액의 130%를 넘게 받은 지갑이 있으면 충족으로 본다. 그 지갑이 내부자인지는 보지 않는다.",
+        "status": "unmet"
+      },
+      {
+        "approx": true,
+        "classes": [
+          "PumpDump"
+        ],
+        "condition": "LateParticipantLoss",
+        "label": "후발 참여자 손실",
+        "note": "근사: 출금 성공률(dynamic.withdraw_success_rate)이 100% 미만이면 충족으로 본다. 실패한 지갑이 후발 참여자인지는 보지 않는다.",
+        "status": "unmet"
+      }
+    ],
+    "fraudTypeHint": "rug_pull",
+    "mappingNote": "시연용 매핑, 온톨로지 정의 아님. 회피 기법 활성 판정도 시연용 매핑이며, 해당 유형의 usesEvasion 목록에 있는 기법만 표시한다. OwnerWithdrawAll은 중첩 pipeline(analysis/analysis/pipeline.js)과 같이 정적 UNCONSTRAINED_OWNER_DRAIN으로, SmurfingDeposit은 분산 입금 신호(reasoning_steps.distributedInflow)로 판정한다. 중첩 pipeline의 CONCENTRATION_DRAIN 규칙은 의미가 달라 따르지 않음",
+    "owlInferred": [
+      "RugPull"
+    ],
+    "owlMismatch": null,
+    "owlNote": "저장소의 예전 로그 기준 결과로 현재 fixture와 값이 다를 수 있음",
+    "scenarioFraudClass": "RugPull",
+    "source": {
+      "conditionMapping": "시연용 매핑, 온톨로지 정의 아님",
+      "ontology": "analysis/fraud_ontology.js",
+      "report": "RugPull",
+      "techniqueMapping": "회피 기법 활성 판정도 시연용 매핑이며, 해당 유형의 usesEvasion 목록에 있는 기법만 표시한다. OwnerWithdrawAll은 중첩 pipeline(analysis/analysis/pipeline.js)과 같이 정적 UNCONSTRAINED_OWNER_DRAIN으로, SmurfingDeposit은 분산 입금 신호(reasoning_steps.distributedInflow)로 판정한다. 중첩 pipeline의 CONCENTRATION_DRAIN 규칙은 의미가 달라 따르지 않음"
+    },
+    "techniques": [
+      {
+        "label": "관리자 전액 인출",
+        "note": "정적 규칙 UNCONSTRAINED_OWNER_DRAIN 발동 여부 (중첩 pipeline 규칙 준용).",
+        "status": "met",
+        "technique": "OwnerWithdrawAll"
+      },
+      {
+        "label": "스머핑 분산 입금",
+        "note": "분산 입금 신호 dynamic.reasoning_steps의 distributedInflow가 true (중첩 pipeline의 CONCENTRATION_DRAIN 규칙은 따르지 않음).",
+        "status": "met",
+        "technique": "SmurfingDeposit"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "active": true,
+      "desc": "블록체인 사기 패턴의 최상위 개념",
+      "group": "class",
+      "id": "parent:FraudPattern",
+      "kind": "parent",
+      "label": "사기 패턴"
+    },
+    {
+      "active": true,
+      "desc": "잔고 정점에서 단 1회 전액 인출",
+      "group": "class",
+      "id": "class:RugPull",
+      "kind": "class",
+      "label": "러그풀"
+    },
+    {
+      "active": true,
+      "approx": false,
+      "desc": "블록 잔고가 직전 잔고의 20% 아래로 떨어지는 신호다. 이 화면에서는 동적 규칙 BALANCE_DROP으로 확인한다. 온톨로지 공식: cumulative_balance[b] < cumulative_balance[b-1] * 0.2. 이 리포트: 충족.",
+      "group": "condition",
+      "id": "condition:BalanceDrop",
+      "kind": "condition",
+      "label": "잔고 급락 신호",
+      "status": "met"
+    },
+    {
+      "active": true,
+      "desc": "출금 뒤 잔고가 최고점 대비 얼마나 떨어졌는지를 점수로 매긴다. 50% 미만 하락은 0점, 전액 소진이면 만점이다. 동적 규칙 BALANCE_DROP 발동 여부. (시연용 매핑, 온톨로지 정의 아님)",
+      "group": "evidence",
+      "id": "evidence:BALANCE_DROP",
+      "kind": "evidence",
+      "label": "잔고 급락",
+      "status": "met"
+    },
+    {
+      "active": true,
+      "approx": true,
+      "desc": "단일 거래가 직전 잔고의 90% 이상인 신호다. 이 화면에서는 최대 단일 출금이 최고 잔고의 70% 이상인지로 근사한다. 온톨로지 공식: max_single_tx[b] >= cumulative_balance[b-1] * 0.9. 근사: 근거 기준은 최대 단일 출금이 최고 잔고의 70% 이상이고, 온톨로지 공식은 직전 잔고의 90% 이상이다. 이 리포트: 충족.",
+      "group": "condition",
+      "id": "condition:MaxTxAlert",
+      "kind": "condition",
+      "label": "최대 단일 거래 신호",
+      "status": "met"
+    },
+    {
+      "active": true,
+      "desc": "최대 단일 출금이 최고 잔고의 70% 이상이다 (동적 분석 판정 단계). 근사: 근거 기준은 최대 단일 출금이 최고 잔고의 70% 이상이고, 온톨로지 공식은 직전 잔고의 90% 이상이다. (시연용 매핑, 온톨로지 정의 아님)",
+      "group": "evidence",
+      "id": "evidence:singleLargeOutflow",
+      "kind": "evidence",
+      "label": "단일 대형 유출",
+      "status": "met"
+    },
+    {
+      "active": true,
+      "approx": false,
+      "desc": "참여자 출금 없이 마지막에 한 번에 자금이 빠져나갔다. 이 리포트: 충족.",
+      "group": "condition",
+      "id": "condition:NoMidWithdrawals",
+      "kind": "condition",
+      "label": "중도 출금 없음",
+      "status": "met"
+    },
+    {
+      "active": true,
+      "desc": "마지막 블록 전에 금액이 있는 참여자 출금이 없다 (동적 분석 판정 단계). dynamic.reasoning_steps의 participantMidExit가 false. (시연용 매핑, 온톨로지 정의 아님)",
+      "group": "evidence",
+      "id": "evidence:participantNoMidExit",
+      "kind": "evidence",
+      "label": "참여자 중도 출금 없음",
+      "status": "met"
+    },
+    {
+      "active": false,
+      "desc": "BALANCE_DROP 신호 미발생 → 기본 탐지기 우회 가능",
+      "group": "evasion_subclass",
+      "id": "evasion:RugPull_BalanceDropEvasion",
+      "kind": "evasion",
+      "label": "잔고 급락 회피형"
+    },
+    {
+      "active": false,
+      "desc": "MAX_TX_ALERT 신호 미발생 → 기본 탐지기 우회 가능",
+      "group": "evasion_subclass",
+      "id": "evasion:RugPull_MaxTxEvasion",
+      "kind": "evasion",
+      "label": "최대 거래 회피형"
+    },
+    {
+      "active": false,
+      "desc": "시계열 패턴 희석 → 급락 지점 탐지 어려움",
+      "group": "evasion_subclass",
+      "id": "evasion:RugPull_SlowDrain",
+      "kind": "evasion",
+      "label": "시간 분산 회피형"
+    },
+    {
+      "active": true,
+      "desc": "오너가 잔고 전액을 한 번에 인출하는 기법이다. 잔고 급락을 일으킨다. 정적 규칙 UNCONSTRAINED_OWNER_DRAIN 발동 여부 (중첩 pipeline 규칙 준용). 이 리포트: 충족.",
+      "group": "evasion_technique",
+      "id": "technique:OwnerWithdrawAll",
+      "kind": "evasion",
+      "label": "관리자 전액 인출",
+      "status": "met"
+    },
+    {
+      "active": true,
+      "desc": "오너만 호출할 수 있는 전액 인출 함수가 있다. 러그풀과 폰지 사기의 핵심 위험이다. 정적 규칙 UNCONSTRAINED_OWNER_DRAIN 발동 여부 (중첩 pipeline 규칙 준용). (회피 기법 활성 판정도 시연용 매핑이며, 해당 유형의 usesEvasion 목록에 있는 기법만 표시한다. OwnerWithdrawAll은 중첩 pipeline(analysis/analysis/pipeline.js)과 같이 정적 UNCONSTRAINED_OWNER_DRAIN으로, SmurfingDeposit은 분산 입금 신호(reasoning_steps.distributedInflow)로 판정한다. 중첩 pipeline의 CONCENTRATION_DRAIN 규칙은 의미가 달라 따르지 않음)",
+      "group": "evidence",
+      "id": "evidence:UNCONSTRAINED_OWNER_DRAIN",
+      "kind": "evidence",
+      "label": "무제한 오너 인출",
+      "status": "met"
+    },
+    {
+      "active": true,
+      "desc": "timelock 추가: ownerWithdrawAll에 10블록 지연",
+      "group": "evasion_patch",
+      "id": "patch:OwnerWithdrawAll",
+      "kind": "patch",
+      "label": "관리자 전액 인출 대응"
+    },
+    {
+      "active": true,
+      "desc": "나중에 들어와 손실을 떠안기 쉬운 참여자다.",
+      "group": "role",
+      "id": "role:LateParticipant",
+      "kind": "role",
+      "label": "후발 참여자"
+    },
+    {
+      "active": true,
+      "desc": "원금을 돌려받지 못한 참여자다.",
+      "group": "role",
+      "id": "role:Victim",
+      "kind": "role",
+      "label": "피해자"
+    },
+    {
+      "active": true,
+      "desc": "운영자나 내부자로, 사기 구조에서 이득을 보는 쪽이다.",
+      "group": "role",
+      "id": "role:Insider",
+      "kind": "role",
+      "label": "내부자"
+    },
+    {
+      "active": true,
+      "desc": "명시적 러그풀 함수 존재 권고: 함수 제거, 참여자별 개별 출금 구조로 전환",
+      "group": "prevention",
+      "id": "patch:SINGLE_DRAIN_FUNCTION",
+      "kind": "patch",
+      "label": "단발 전액 인출 함수"
+    },
+    {
+      "active": true,
+      "desc": "참여자가 자금을 회수할 수 없는 구조 권고: emergencyExit() 함수 추가",
+      "group": "prevention",
+      "id": "patch:NO_PARTICIPANT_REFUND",
+      "kind": "patch",
+      "label": "참여자 환불 불가 구조"
+    }
+  ]
+}

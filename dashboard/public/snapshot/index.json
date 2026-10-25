@@ -1,0 +1,669 @@
+{
+  "attestation": {
+    "chainId": 11155111,
+    "explorerBase": "https://sepolia.easscan.org"
+  },
+  "canonicalVersion": "jcs-rfc8785/pbl-demo-v1",
+  "generatedAt": "2026-10-24T14:18:57.910Z",
+  "glossary": {
+    "ASYMMETRIC_WITHDRAWAL": {
+      "category": "prevention_item",
+      "desc": "내부자 전액 인출 후 후발자 잔고 0 — 구조적 피해 설계",
+      "ko": "내부자/외부자 출금 비대칭"
+    },
+    "AsymmetricWithdrawal": {
+      "category": "condition",
+      "desc": "일부 지갑만 입금보다 훨씬 많이 받아 갔다.",
+      "ko": "비대칭 출금"
+    },
+    "BALANCE_DROP": {
+      "category": "dynamic_rule",
+      "desc": "출금 뒤 잔고가 최고점 대비 얼마나 떨어졌는지를 점수로 매긴다. 50% 미만 하락은 0점, 전액 소진이면 만점이다.",
+      "ko": "잔고 급락"
+    },
+    "BALANCE_TIMESERIES_DRAIN": {
+      "category": "dynamic_rule",
+      "desc": "거래 종류와 관계없이 15블록 안에서 잔고가 50% 이상 줄어든 구간이 있는 경우다.",
+      "ko": "단기 잔고 급락"
+    },
+    "BalanceDrop": {
+      "category": "signal",
+      "desc": "블록 잔고가 직전 잔고의 20% 아래로 떨어지는 신호다. 이 화면에서는 동적 규칙 BALANCE_DROP으로 확인한다.",
+      "ko": "잔고 급락 신호"
+    },
+    "Beneficiary": {
+      "category": "role",
+      "desc": "최종적으로 자금을 받아 가는 지갑이다.",
+      "ko": "수혜자"
+    },
+    "CONCENTRATION_DRAIN": {
+      "category": "dynamic_rule",
+      "desc": "출금액이 소수 지갑에 몰린 정도(허핀달-허쉬만 지수)를 점수로 매긴다.",
+      "ko": "출금 집중"
+    },
+    "CRITICAL": {
+      "category": "level",
+      "desc": "필수 수정 항목이 있어 수정 없이는 배포하면 안 된다.",
+      "ko": "매우 높음"
+    },
+    "ConcentrationDrain": {
+      "category": "signal",
+      "desc": "입금 주소 수가 출금 주소 수의 3배를 넘어 자금이 소수 주소로 모이는 신호다.",
+      "ko": "집계 인출 신호"
+    },
+    "Depositor": {
+      "category": "role",
+      "desc": "온톨로지에 정의 없음. fraud_ontology.js의 MoneyLaundering.affectedRoles에 이름만 있다.",
+      "ko": "입금자"
+    },
+    "FLOW_SPIKE": {
+      "category": "dynamic_rule",
+      "desc": "누적 출금이 총 입금의 50% 이상인 경우다. 여러 번 나눠 인출해도 합산해서 본다.",
+      "ko": "대량 유출"
+    },
+    "FlashRepayment": {
+      "category": "evasion_technique",
+      "desc": "같은 블록에서 대량 입금 후 바로 전액 상환하는 기법이다.",
+      "ko": "플래시 상환"
+    },
+    "FlowSpike": {
+      "category": "signal",
+      "desc": "한 블록의 순입출금 크기가 직전 잔고의 절반을 넘는 신호다. 이 화면에서는 동적 규칙 FLOW_SPIKE로 확인한다.",
+      "ko": "순유출 급증 신호"
+    },
+    "FraudPattern": {
+      "category": "class",
+      "desc": "블록체인 사기 유형의 최상위 개념이다.",
+      "ko": "사기 패턴"
+    },
+    "GradualDrainObfuscation": {
+      "category": "evasion_technique",
+      "desc": "큰 인출 전에 작은 인출을 여러 번 해 급락 신호를 흐리는 기법이다.",
+      "ko": "점진적 드레인 난독화"
+    },
+    "HIDDEN_WITHDRAW_BLOCK": {
+      "category": "prevention_item",
+      "desc": "인출이 비공개 조건으로 영구 차단될 수 있는 구조",
+      "ko": "숨겨진 인출 차단 조건"
+    },
+    "HIGH": {
+      "category": "level",
+      "desc": "배포 전에 위험 항목을 고친 뒤 다시 검토해야 한다.",
+      "ko": "높음"
+    },
+    "HIGH_RISK": {
+      "category": "verdict",
+      "desc": "정적 또는 동적 위험 점수가 높은 구간이다.",
+      "ko": "높은 위험"
+    },
+    "HiddenRequireCondition": {
+      "category": "evasion_technique",
+      "desc": "공개 함수로는 바꿀 수 없는 비공개 조건으로 출금을 막는 기법이다.",
+      "ko": "숨겨진 출금 차단 조건"
+    },
+    "HiddenStateUpdate": {
+      "category": "code_pattern",
+      "desc": "해시나 비밀값 비교로 출금 조건을 숨기는 코드 패턴이다.",
+      "ko": "숨은 상태 갱신"
+    },
+    "INFLOW_STOP": {
+      "category": "signal",
+      "desc": "마지막 입금 이후 전체 수명의 30% 이상 새 입금이 없고 잔고가 남아 있으면 감지된다. 정상 출금 패턴이면 억제된다.",
+      "ko": "유입 중단 신호"
+    },
+    "INSIDER_PRIVILEGE": {
+      "category": "static_rule",
+      "desc": "내부자 등록이나 내부자 전용 인출 기능이 있다. 펌프앤덤프 위험 신호다.",
+      "ko": "내부자 특권"
+    },
+    "INSIDER_REGISTRY": {
+      "category": "prevention_item",
+      "desc": "내부자만 수익 인출 가능 — 정보 비대칭 착취 구조",
+      "ko": "내부자 등록 및 특권 구조"
+    },
+    "InflowStop": {
+      "category": "signal",
+      "desc": "마지막 입금 이후 새 입금이 끊긴 상태다. 내부자 입금 구조에서 예상되는 신호다.",
+      "ko": "신규 유입 중단"
+    },
+    "InputDataOpacity": {
+      "category": "signal",
+      "desc": "오너 전액 인출이 있거나 금액 0인 출금 시도가 있어 거래 의도를 확인하기 어려운 신호다.",
+      "ko": "입력 데이터 불투명"
+    },
+    "Insider": {
+      "category": "role",
+      "desc": "운영자나 내부자로, 사기 구조에서 이득을 보는 쪽이다.",
+      "ko": "내부자"
+    },
+    "InsiderBulkDeposit": {
+      "category": "code_pattern",
+      "desc": "내부자 등록 구조가 있어 내부자가 먼저 대량 입금할 수 있다. 이후 신규 유입 중단을 함의한다.",
+      "ko": "내부자 대량 입금 구조"
+    },
+    "InsiderPrivilege": {
+      "category": "condition",
+      "desc": "코드에 내부자 전용 권한이 있다.",
+      "ko": "내부자 특권 조건"
+    },
+    "LATE_PARTICIPANT_ZERO_BALANCE": {
+      "category": "prevention_item",
+      "desc": "내부자 덤프 후 후발자 전액 손실 불가피",
+      "ko": "후발자 잔고 귀결 0 구조"
+    },
+    "LOW": {
+      "category": "level",
+      "desc": "배포 전 예방 분석에서 위험 항목이 거의 없다.",
+      "ko": "낮음"
+    },
+    "LOW_RISK": {
+      "category": "verdict",
+      "desc": "정적 또는 동적 위험 점수가 낮은 구간이다.",
+      "ko": "낮은 위험"
+    },
+    "LateParticipant": {
+      "category": "role",
+      "desc": "나중에 들어와 손실을 떠안기 쉬운 참여자다.",
+      "ko": "후발 참여자"
+    },
+    "LateParticipantLoss": {
+      "category": "condition",
+      "desc": "나중에 들어온 참여자의 출금이 실패해 원금을 잃었다.",
+      "ko": "후발 참여자 손실"
+    },
+    "MANY_TO_ONE_FLOW": {
+      "category": "prevention_item",
+      "desc": "자금세탁 구조의 핵심: 출처 분산 → 목적지 집중",
+      "ko": "다수→단일 자금 집중 구조"
+    },
+    "MAX_TX_ALERT": {
+      "category": "signal",
+      "desc": "한 번의 거래가 직전 잔고의 대부분을 차지하는 경우를 가리키는 온톨로지 신호다. 메인 동적 분석기에는 같은 이름의 규칙이 없다.",
+      "ko": "최대 단일 거래 경보"
+    },
+    "MEDIUM": {
+      "category": "level",
+      "desc": "위험 항목이 일부 있어 모니터링이 필요하다.",
+      "ko": "보통"
+    },
+    "MEDIUM_RISK": {
+      "category": "verdict",
+      "desc": "정적 또는 동적 위험 점수가 중간 구간이다.",
+      "ko": "중간 위험"
+    },
+    "MaxTxAlert": {
+      "category": "signal",
+      "desc": "단일 거래가 직전 잔고의 90% 이상인 신호다. 이 화면에서는 최대 단일 출금이 최고 잔고의 70% 이상인지로 근사한다.",
+      "ko": "최대 단일 거래 신호"
+    },
+    "MidWithdrawalsExist": {
+      "category": "condition",
+      "desc": "마지막 블록 이전에 참여자 출금이 성공한 적이 있다.",
+      "ko": "중도 출금 있음"
+    },
+    "Mixer": {
+      "category": "role",
+      "desc": "자금 출처를 섞어 추적을 어렵게 하는 지갑이다.",
+      "ko": "믹서"
+    },
+    "MoneyLaundering": {
+      "category": "class",
+      "desc": "여러 지갑의 입금을 한 주소로 모아 출처를 흐리는 패턴이다.",
+      "ko": "자금세탁"
+    },
+    "MoneyLaundering_BalanceDropEvasion": {
+      "category": "evasion_subclass",
+      "desc": "BALANCE_DROP 신호 미발생 → 기본 탐지기 우회 가능",
+      "ko": "잔고 급락 회피형"
+    },
+    "MoneyLaundering_HopLaundering": {
+      "category": "evasion_subclass",
+      "desc": "자금 출처 역추적 난이도 상승",
+      "ko": "중간 경유 지갑형"
+    },
+    "MoneyLaundering_MaxTxEvasion": {
+      "category": "evasion_subclass",
+      "desc": "MAX_TX_ALERT 신호 미발생 → 기본 탐지기 우회 가능",
+      "ko": "최대 거래 회피형"
+    },
+    "MoneyLaundering_SlowDrain": {
+      "category": "evasion_subclass",
+      "desc": "시계열 패턴 희석 → 급락 지점 탐지 어려움",
+      "ko": "시간 분산 회피형"
+    },
+    "NO_DEPOSIT_TRACKING": {
+      "category": "prevention_item",
+      "desc": "개별 입금액 기록 없음 → 자금 출처 역추적 불가",
+      "ko": "입금자별 추적 불가 구조"
+    },
+    "NO_MINIMUM_HOLD_PERIOD": {
+      "category": "prevention_item",
+      "desc": "입금 즉시 인출 가능 → 세탁 사이클 가속",
+      "ko": "최소 보유 기간 없음"
+    },
+    "NO_PARTICIPANT_REFUND": {
+      "category": "prevention_item",
+      "desc": "참여자가 자금을 회수할 수 없는 구조",
+      "ko": "참여자 환불 불가 구조"
+    },
+    "NO_PRICE_ORACLE": {
+      "category": "prevention_item",
+      "desc": "내부자가 임의 비율로 인출 가능 — 조작 기준 없음",
+      "ko": "가격/비율 오라클 부재"
+    },
+    "NO_PUBLIC_WITHDRAW_ACTIVATE": {
+      "category": "prevention_item",
+      "desc": "외부에서 인출을 활성화할 수 없는 구조",
+      "ko": "공개 인출 활성화 경로 없음"
+    },
+    "NO_TIMELOCK": {
+      "category": "prevention_item",
+      "desc": "즉각 인출 가능 → 러그풀 실행 용이",
+      "ko": "타임락 부재"
+    },
+    "NO_WITHDRAWAL_LIMIT": {
+      "category": "prevention_item",
+      "desc": "전액 단발 인출 가능",
+      "ko": "단일 출금 한도 없음"
+    },
+    "NoMidWithdrawals": {
+      "category": "condition",
+      "desc": "참여자 출금 없이 마지막에 한 번에 자금이 빠져나갔다.",
+      "ko": "중도 출금 없음"
+    },
+    "NormalContract": {
+      "category": "class",
+      "desc": "어떤 사기 유형에도 해당하지 않고 출금 차단 신호도 없는 컨트랙트다.",
+      "ko": "정상 컨트랙트"
+    },
+    "OSCILLATING_BALANCE": {
+      "category": "dynamic_rule",
+      "desc": "잔고가 0 근처로 떨어졌다가 회복되기를 반복하는 패턴이다. 플래시론 순환에서 나타난다.",
+      "ko": "잔고 반복 소진"
+    },
+    "OWNER_WITHDRAW_ALL": {
+      "category": "prevention_item",
+      "desc": "단일 함수로 전체 잔고 인출 가능 → 러그풀 구조 내재",
+      "ko": "무제한 오너 인출 함수"
+    },
+    "OwnerRecipientArbitrage": {
+      "category": "evasion_technique",
+      "desc": "온톨로지에 정의 없음. fraud_ontology.js의 MoneyLaundering.usesEvasion에 이름만 있고 라벨·탐지 방법·패치는 없다.",
+      "ko": "수령자 우회"
+    },
+    "OwnerWithdrawAll": {
+      "category": "evasion_technique",
+      "desc": "오너가 잔고 전액을 한 번에 인출하는 기법이다. 잔고 급락을 일으킨다.",
+      "ko": "관리자 전액 인출"
+    },
+    "PROFIT_EXTRACTION": {
+      "category": "dynamic_rule",
+      "desc": "입금액의 130%를 넘게 받아 간 지갑이 있는 경우다.",
+      "ko": "과도 수익 인출"
+    },
+    "PUMP_PHASE_NO_DISCLOSURE": {
+      "category": "prevention_item",
+      "desc": "펌프 단계 진입 여부를 외부에서 알 수 없음",
+      "ko": "유인 단계 미공시"
+    },
+    "PYRAMID_STRUCTURE": {
+      "category": "static_rule",
+      "desc": "보상률은 있지만 별도 보상 풀이 없어, 신규 입금으로 기존 수익을 지급하는 구조다.",
+      "ko": "피라미드 구조"
+    },
+    "ParticipantMidExit": {
+      "category": "code_pattern",
+      "desc": "출금 함수가 있어 참여자가 중간에 빠져나갈 수 있는 구조다. 순유출 급증으로 이어질 수 있다.",
+      "ko": "참여자 중도 출금 구조"
+    },
+    "PonziScheme": {
+      "category": "class",
+      "desc": "신규 입금으로 기존 참여자에게 수익을 지급하는 구조다.",
+      "ko": "폰지 사기"
+    },
+    "PonziScheme_BalanceDropEvasion": {
+      "category": "evasion_subclass",
+      "desc": "BALANCE_DROP 신호 미발생 → 기본 탐지기 우회 가능",
+      "ko": "잔고 급락 회피형"
+    },
+    "PonziScheme_MaxTxEvasion": {
+      "category": "evasion_subclass",
+      "desc": "MAX_TX_ALERT 신호 미발생 → 기본 탐지기 우회 가능",
+      "ko": "최대 거래 회피형"
+    },
+    "PonziScheme_SlowDrain": {
+      "category": "evasion_subclass",
+      "desc": "시계열 패턴 희석 → 급락 지점 탐지 어려움",
+      "ko": "시간 분산 회피형"
+    },
+    "PumpAndDump": {
+      "category": "class",
+      "desc": "PumpDump의 다른 표기다(온톨로지 클래스 목록과 OWL 결과가 이 이름을 쓴다).",
+      "ko": "펌프앤덤프"
+    },
+    "PumpDump": {
+      "category": "class",
+      "desc": "내부자가 먼저 들어와 자금을 부풀린 뒤 빼내 후발 참여자가 손실을 보는 사기다.",
+      "ko": "펌프앤덤프"
+    },
+    "PumpDump_BalanceDropEvasion": {
+      "category": "evasion_subclass",
+      "desc": "BALANCE_DROP 신호 미발생 → 기본 탐지기 우회 가능",
+      "ko": "잔고 급락 회피형"
+    },
+    "PumpDump_DistributedDump": {
+      "category": "evasion_subclass",
+      "desc": "내부자 식별 어려움 → 책임 추적 불가",
+      "ko": "분산 덤프형 (위장 외부자)"
+    },
+    "PumpDump_MaxTxEvasion": {
+      "category": "evasion_subclass",
+      "desc": "MAX_TX_ALERT 신호 미발생 → 기본 탐지기 우회 가능",
+      "ko": "최대 거래 회피형"
+    },
+    "PumpDump_SlowDrain": {
+      "category": "evasion_subclass",
+      "desc": "시계열 패턴 희석 → 급락 지점 탐지 어려움",
+      "ko": "시간 분산 회피형"
+    },
+    "RAPID_EXIT_MECHANISM": {
+      "category": "static_rule",
+      "desc": "매개변수 없이 잔고 전액을 인출하는 함수가 있다.",
+      "ko": "즉시 전액 인출"
+    },
+    "REWARD_FROM_DEPOSIT": {
+      "category": "prevention_item",
+      "desc": "폰지 구조 — 신규 자금이 기존 참여자 수익으로 사용됨",
+      "ko": "신규 입금이 기존 보상 재원"
+    },
+    "REWARD_PROMISE": {
+      "category": "static_rule",
+      "desc": "고정 수익률 변수가 있어 과도한 수익 보장이 의심된다. 정상 스테이킹에도 나타날 수 있다.",
+      "ko": "고정 수익 약속"
+    },
+    "RugPull": {
+      "category": "class",
+      "desc": "잔고가 정점일 때 운영자가 한 번에 전액을 인출하는 사기다.",
+      "ko": "러그풀"
+    },
+    "RugPull_BalanceDropEvasion": {
+      "category": "evasion_subclass",
+      "desc": "BALANCE_DROP 신호 미발생 → 기본 탐지기 우회 가능",
+      "ko": "잔고 급락 회피형"
+    },
+    "RugPull_MaxTxEvasion": {
+      "category": "evasion_subclass",
+      "desc": "MAX_TX_ALERT 신호 미발생 → 기본 탐지기 우회 가능",
+      "ko": "최대 거래 회피형"
+    },
+    "RugPull_SlowDrain": {
+      "category": "evasion_subclass",
+      "desc": "시계열 패턴 희석 → 급락 지점 탐지 어려움",
+      "ko": "시간 분산 회피형"
+    },
+    "SINGLE_BENEFICIARY": {
+      "category": "prevention_item",
+      "desc": "모든 자금이 단일 주소로만 흐를 수 있는 구조",
+      "ko": "단일 수혜자 구조"
+    },
+    "SINGLE_COLLECTOR_DRAIN": {
+      "category": "prevention_item",
+      "desc": "다수 지갑 입금 → 단일 주소 전액 인출 구조 (세탁 완성 경로)",
+      "ko": "단일 수집자 전액 인출"
+    },
+    "SINGLE_DRAIN_FUNCTION": {
+      "category": "prevention_item",
+      "desc": "명시적 러그풀 함수 존재",
+      "ko": "단발 전액 인출 함수"
+    },
+    "SingleDrain": {
+      "category": "condition",
+      "desc": "한 번의 출금이 잔고 대부분을 가져갔다.",
+      "ko": "단일 대량 인출"
+    },
+    "SingleLargeOutflow": {
+      "category": "code_pattern",
+      "desc": "오너에게 큰 금액을 한 번에 보내는 코드 구조다. 최대 단일 거래 신호로 이어질 수 있다.",
+      "ko": "단일 대형 출금 구조"
+    },
+    "SmurfingDeposit": {
+      "category": "evasion_technique",
+      "desc": "여러 주소에서 소액으로 나눠 입금해 탐지 기준을 피하는 기법이다.",
+      "ko": "스머핑 분산 입금"
+    },
+    "StrawManContract": {
+      "category": "code_pattern",
+      "desc": "생성자에서 주입한 외부 컨트랙트로 송금을 넘겨 실제 동작을 숨기는 코드 패턴이다.",
+      "ko": "허수아비 컨트랙트"
+    },
+    "TEMPORAL_PATTERN": {
+      "category": "dynamic_rule",
+      "desc": "입금이 끝난 뒤 오래 기다렸다가 인출하거나, 인출 속도가 급격한 경우다.",
+      "ko": "시간 패턴 이상"
+    },
+    "UNCONSTRAINED_OWNER_DRAIN": {
+      "category": "static_rule",
+      "desc": "오너만 호출할 수 있는 전액 인출 함수가 있다. 러그풀과 폰지 사기의 핵심 위험이다.",
+      "ko": "무제한 오너 인출"
+    },
+    "UniqueParticipants": {
+      "category": "condition",
+      "desc": "서로 다른 지갑 여러 개가 입금했다.",
+      "ko": "다수 입금자"
+    },
+    "Victim": {
+      "category": "role",
+      "desc": "원금을 돌려받지 못한 참여자다.",
+      "ko": "피해자"
+    },
+    "ZeroWithdrawBlock": {
+      "category": "signal",
+      "desc": "오너가 아닌 지갑의 출금 시도가 거의 모두 실패하고, 실패 시점에도 잔고가 남아 있는 신호다. 사기 유형이 아니라 경고로 다룬다.",
+      "ko": "출금 차단 신호"
+    },
+    "activity_age": {
+      "category": "trust_axis",
+      "desc": "활동한 블록 구간이 길수록 높다. 가중치 15%.",
+      "ko": "활동 기간"
+    },
+    "blacklist_assoc": {
+      "category": "trust_axis",
+      "desc": "오너 전액 인출을 받은 지갑이면 0점이다. 가중치 30%.",
+      "ko": "블랙리스트 연관도"
+    },
+    "canonical": {
+      "category": "term",
+      "desc": "키 정렬 등 RFC 8785 규칙으로 리포트를 한 가지 문자열로 만든 것이다. 생성 시각과 파일 이름은 뺀다.",
+      "ko": "정규 직렬화"
+    },
+    "code_pattern_warnings": {
+      "category": "term",
+      "desc": "출금 조건을 숨기는 코드 패턴(숨은 상태 갱신, 허수아비 컨트랙트)이 검출된 경우다.",
+      "ko": "코드 패턴 경고"
+    },
+    "distributedInflow": {
+      "category": "evidence",
+      "desc": "서로 다른 입금자가 5명 이상이다 (동적 분석 판정 단계).",
+      "ko": "분산 유입"
+    },
+    "drainer": {
+      "category": "term",
+      "desc": "owner_withdraw_all 거래로 자금을 받은 지갑이다(리포트 필드 is_drainer).",
+      "ko": "운영자 전액 인출 지갑 (drainer)"
+    },
+    "evasion_subclass": {
+      "category": "term",
+      "desc": "사기 유형이 기본 탐지 신호를 피하려고 쓰는 하위 형태다.",
+      "ko": "회피 서브클래스"
+    },
+    "extractor": {
+      "category": "term",
+      "desc": "drainer가 아니면서 입금액의 1.3배를 넘게 받아 간 지갑이다.",
+      "ko": "과도 수익 지갑 (extractor)"
+    },
+    "fixture": {
+      "category": "term",
+      "desc": "시뮬레이션이 실패했거나 사전 생성본 모드일 때 쓰는, 미리 만들어 둔 결과다.",
+      "ko": "사전 생성본"
+    },
+    "flash_loan": {
+      "category": "fraud_type_hint",
+      "desc": "동적 분석이 플래시론 악용으로 판정했다.",
+      "ko": "플래시론 악용"
+    },
+    "flow_pattern": {
+      "category": "trust_axis",
+      "desc": "입금 대비 수령 비율이 클수록 낮다. 가중치 25%.",
+      "ko": "자금 이동 패턴"
+    },
+    "live": {
+      "category": "term",
+      "desc": "이번 요청에서 시뮬레이션을 실제로 돌려 만든 결과다.",
+      "ko": "실시간 실행"
+    },
+    "lowest_wallet_grade": {
+      "category": "term",
+      "desc": "지갑별 신뢰 등급 중 가장 낮은 값이다. 평균 등급이 안전해 보여도 위험한 지갑이 숨어 있는지 보여 준다.",
+      "ko": "최저 지갑 등급"
+    },
+    "money_laundering": {
+      "category": "fraud_type_hint",
+      "desc": "동적 분석이 자금세탁으로 판정했다.",
+      "ko": "자금세탁"
+    },
+    "normal_staking": {
+      "category": "fraud_type_hint",
+      "desc": "사기 조건에 맞지 않고 스테이킹·언스테이킹 패턴만 보였다.",
+      "ko": "정상 스테이킹"
+    },
+    "onset": {
+      "category": "term",
+      "desc": "사기로 분류된 경우 처음으로 자금이 빠져나간 블록이다.",
+      "ko": "사기 발현 시점"
+    },
+    "participantMidExit": {
+      "category": "evidence",
+      "desc": "마지막 블록 전에 금액이 있는 참여자 출금이 있다 (동적 분석 판정 단계).",
+      "ko": "참여자 중도 출금"
+    },
+    "participantNoMidExit": {
+      "category": "evidence",
+      "desc": "마지막 블록 전에 금액이 있는 참여자 출금이 없다 (동적 분석 판정 단계).",
+      "ko": "참여자 중도 출금 없음"
+    },
+    "ponzi_scheme": {
+      "category": "fraud_type_hint",
+      "desc": "동적 분석이 폰지 사기로 판정했다.",
+      "ko": "폰지 사기"
+    },
+    "prevention_risk_level": {
+      "category": "term",
+      "desc": "배포 전 예방 분석(온톨로지 체크리스트)의 위험 등급이다.",
+      "ko": "코드 위험 수준"
+    },
+    "pump_and_dump": {
+      "category": "fraud_type_hint",
+      "desc": "동적 분석이 펌프앤덤프로 판정했다.",
+      "ko": "펌프앤덤프"
+    },
+    "report_hash": {
+      "category": "term",
+      "desc": "리포트를 정해진 규칙으로 직렬화한 뒤 계산한 SHA-256 값이다. 같은 입력이면 같은 값이 나온다.",
+      "ko": "리포트 해시"
+    },
+    "rug_pull": {
+      "category": "fraud_type_hint",
+      "desc": "동적 분석이 러그풀로 판정했다.",
+      "ko": "러그풀"
+    },
+    "scam_history": {
+      "category": "trust_axis",
+      "desc": "과도 수익(130% 초과)이나 오너 드레인이 있으면 0점이다. 가중치 15%.",
+      "ko": "스캠 연루 이력"
+    },
+    "singleLargeOutflow": {
+      "category": "evidence",
+      "desc": "최대 단일 출금이 최고 잔고의 70% 이상이다 (동적 분석 판정 단계).",
+      "ko": "단일 대형 유출"
+    },
+    "trust_grade": {
+      "category": "term",
+      "desc": "지갑 신뢰 점수의 평균(60%)과 최저값(40%)을 섞은 점수의 등급이다.",
+      "ko": "평균 지갑 등급"
+    },
+    "trust_score": {
+      "category": "term",
+      "desc": "지갑 하나를 5축으로 평가한 0~100 점수다. 높을수록 안전하다.",
+      "ko": "지갑 신뢰 점수"
+    },
+    "tx_diversity": {
+      "category": "trust_axis",
+      "desc": "입금·출금 등 거래 종류가 다양할수록 높다. 가중치 15%.",
+      "ko": "거래 다양성"
+    },
+    "unclassified_warning": {
+      "category": "fraud_type_hint",
+      "desc": "사기 유형 조건에는 맞지 않지만 출금 차단 신호가 있어 경고만 낸다.",
+      "ko": "유형 미확정 (출금 차단 경고)"
+    },
+    "unknown": {
+      "category": "fraud_type_hint",
+      "desc": "어떤 판정 규칙에도 맞지 않았다.",
+      "ko": "판정 불가"
+    },
+    "withdrawFailure": {
+      "category": "evidence",
+      "desc": "출금 성공률이 100% 미만이다. 금액 0으로 끝난 출금 시도가 있다는 뜻이다.",
+      "ko": "출금 실패 발생"
+    },
+    "withdraw_block_warning": {
+      "category": "term",
+      "desc": "오너가 아닌 지갑의 출금이 막히는 신호다. 사기 유형과 별도로 표시한다.",
+      "ko": "출금 차단 경고"
+    }
+  },
+  "scenarios": [
+    {
+      "attestStatus": "B",
+      "description": "운영자가 보상 풀을 채우고, 참여자 10명이 스테이킹한 뒤 보상과 함께 원금을 돌려받는다.",
+      "expectedType": "normal_staking",
+      "id": "normal",
+      "label": "정상 스테이킹",
+      "reportHash": "0x08f1e9e69219a0b2b8557682168241a7c1df79e24345f89601da13766d68a609"
+    },
+    {
+      "attestStatus": "B",
+      "description": "참여자 10명이 입금하고, 먼저 들어온 3명이 신규 입금으로 수익을 받은 뒤 운영자가 남은 잔고를 전액 인출한다.",
+      "expectedType": "ponzi_scheme",
+      "id": "ponzi",
+      "label": "폰지 사기",
+      "reportHash": "0xea71ae0cb366c7fae71749c584ab574f4f816aa64c6da6504b33b4ad222dd63a"
+    },
+    {
+      "attestStatus": "B",
+      "description": "참여자 10명이 점점 큰 금액을 입금한 뒤 운영자가 잔고 전액을 한 번에 인출한다.",
+      "expectedType": "rug_pull",
+      "id": "rugpull",
+      "label": "러그풀",
+      "reportHash": "0x8a6def5dbae578d70ff8518670f38fa0447c6915e36ea0ac9ffae66193e4e4e4"
+    },
+    {
+      "attestStatus": "B",
+      "description": "지갑 19개가 소액을 나눠 입금하고, 한 지갑이 모인 자금 전액을 인출한다(레이어링).",
+      "expectedType": "money_laundering",
+      "id": "laundering",
+      "label": "자금세탁",
+      "reportHash": "0xed9442e63c0de5224afc5f04b9d3bc73c318ece02c7c33a32b6c0c5368236c81"
+    },
+    {
+      "attestStatus": "B",
+      "description": "내부자 3명이 먼저 대량 입금하고 후발자 5명이 들어온 뒤, 내부자가 자금을 빼내 후발자의 출금이 실패한다.",
+      "expectedType": "pump_and_dump",
+      "id": "pumpdump",
+      "label": "펌프앤덤프",
+      "reportHash": "0xaae9a4ceefb45d5965285ddff2ece86dfe8b35acae0ace6fcc16732e4b866d76"
+    }
+  ],
+  "schemaVersion": 1,
+  "sourceCommit": "3f9afdd"
+}

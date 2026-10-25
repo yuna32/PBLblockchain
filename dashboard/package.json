@@ -3,10 +3,15 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:static": "VITE_STATIC=1 vite build",
     "preview": "vite preview",
+    "preview:static": "VITE_STATIC=1 vite preview",
     "test": "vitest run"
   },
   "dependencies": {
@@ -18,7 +23,8 @@
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "react-router-dom": "7.18.4",
-    "recharts": "3.10.1"
+    "recharts": "3.10.1",
+    "viem": "2.47.17"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "6.1.2",

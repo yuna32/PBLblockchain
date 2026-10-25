@@ -6,7 +6,8 @@ import { api } from "../api/client.js";
 import { useApp } from "./AppContext.jsx";
 import { attestPhase, backendOptions, lookupPlan, recordKey } from "../lib/attest.js";
 
-const AttestContext = createContext(null);
+// 정적 모드에서는 state/StaticAttest.jsx가 같은 컨텍스트를 채운다
+export const AttestContext = createContext(null);
 const POLL_MS = 400;
 const STARTING_POLL_MS = 1500;
 const FIXTURE_POLL_MS = 1000;

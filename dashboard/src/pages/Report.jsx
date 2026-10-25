@@ -1,13 +1,17 @@
 // 온체인 리포트: 리포트 해시, 온체인 기록(방식 선택·기록·기록 카드), 검증과 변조 시연, 입력 해시, canonical.
+// 정적 모드에서는 기록·서버 검증 대신 증명 카드(상태 A/B)와 브라우저 무결성 검증을 보여 준다(pages/ReportStatic.jsx).
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronRight, Copy, ExternalLink, FileCheck, FlaskConical, Info, LoaderCircle, RotateCcw, ShieldCheck } from "lucide-react";
+import { ExternalLink, FileCheck, Info, LoaderCircle, ShieldCheck } from "lucide-react";
 import { api } from "../api/client.js";
+import { STATIC_MODE } from "../mode.js";
 import { useApp } from "../state/AppContext.jsx";
 import { useAttest } from "../state/AttestContext.jsx";
 import { Badge, Card, Collapsible, EstimateTag, ICON, ReportGate, Segmented, StatusView, Term } from "../components/ui.jsx";
 import { SourceBadge } from "../components/SidePanel.jsx";
+import { CopyValue, HashLine, TamperPanel, VerifyResult } from "../components/AttestParts.jsx";
+import { StaticIntegrityCard, StaticProofCard } from "./ReportStatic.jsx";
 import { attestError, BACKEND_NAMES, explorerLinks, PHASE_LABELS, payloadRows, recordRows, tamperPresets, verifyView } from "../lib/attest.js";
-import { fmtDateTime, shortMiddle } from "../lib/format.js";
+import { fmtDateTime } from "../lib/format.js";
 
 export default function Report() {
   return <ReportGate>{data => <ReportBody key={data.envelope.report_sha256 + data.view.scenario} data={data} />}</ReportGate>;
@@ -54,8 +58,17 @@ function ReportBody({ data }) {
         )}
       </Card>
 
-      <AttestCard reportId={current.reportId} />
-      <VerifyCard reportId={current.reportId} report={data.report} />
+      {STATIC_MODE ? (
+        <>
+          <StaticProofCard scenario={current.reportId} data={data} canonical={canon.data} />
+          <StaticIntegrityCard scenario={current.reportId} data={data} canonical={canon.data} />
+        </>
+      ) : (
+        <>
+          <AttestCard reportId={current.reportId} />
+          <VerifyCard reportId={current.reportId} report={data.report} />
+        </>
+      )}
 
       <Card title="입력 파일 해시" aside={<span className="muted small">envelope.input</span>}>
         <ul className="rows rows-static">
@@ -251,7 +264,6 @@ function RecordDetails({ record, reused }) {
 function VerifyCard({ reportId, report }) {
   const { health, glossary } = useApp();
   const { selected, backendId, verifyOf, verify, phaseOf } = useAttest();
-  const [open, setOpen] = useState(false);
   const resultRef = useRef(null);
   const entry = verifyOf(reportId);
   const phase = phaseOf(reportId);
@@ -261,7 +273,6 @@ function VerifyCard({ reportId, report }) {
   const view = entry?.status === "done" ? verifyView(entry.result, glossary) : null;
   const presets = useMemo(() => tamperPresets(report, glossary), [report, glossary]);
   const tamperFailed = entry?.status === "error" && entry.tamper;
-  const ToggleIcon = open ? ChevronDown : ChevronRight;
 
   const runTamper = async preset => {
     await verify(reportId, { backend: backendId, tamper: { path: preset.path, value: preset.value } });
@@ -280,160 +291,14 @@ function VerifyCard({ reportId, report }) {
       {(phase === "none" || phase === "error") && <p className="muted small hint">먼저 위에서 온체인에 기록해야 검증할 수 있습니다.</p>}
       {phase === "readonly" && <p className="muted small hint">이 리포트는 {selected?.label}에 기록이 없어 검증할 수 없습니다. 읽기 전용이라 여기서 기록할 수도 없습니다.</p>}
 
-      <div className={`tamper ${open ? "open" : ""}`}>
-        <button type="button" className="tamper-head" onClick={() => setOpen(o => !o)} aria-expanded={open}>
-          <ToggleIcon {...ICON} size={16} />
-          <FlaskConical {...ICON} size={16} />
-          <span className="tamper-title">리포트를 일부러 바꿔서 검증해 보기</span>
-          <span className="collapsible-summary">변조 시연 · 저장되지 않음</span>
-        </button>
-        {open && (
-          <div className="tamper-body">
-            <p className="muted small">
-              아래 항목 하나를 바꾼 리포트 사본으로 검증합니다. 사본은 서버 메모리에서만 쓰고 버리며, 리포트 파일과 온체인 기록은 바뀌지 않습니다.
-            </p>
-            {presets.length === 0 ? <p className="muted small">이 리포트에는 바꿔 볼 수 있는 항목이 없습니다.</p> : (
-              <ul className="rows rows-static">
-                {presets.map(p => (
-                  <li key={p.id} className="row">
-                    <span className="row-main">
-                      <span className="row-title">{p.label}</span>
-                      <span className="row-desc"><code className="mono">{p.path}</code> · <span className="num">{p.fromText} → {p.toText}</span></span>
-                    </span>
-                    <button type="button" className="btn btn-secondary" disabled={!canVerify} onClick={() => runTamper(p)}>
-                      {running && entry.tamper?.path === p.path ? <LoaderCircle {...ICON} size={14} className="spin" /> : null}
-                      바꿔서 검증
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {tamperFailed && <StatusView kind="error" {...attestError(entry.error, "변조 시연을 실행하지 못했습니다")} />}
-          </div>
-        )}
-      </div>
+      <TamperPanel presets={presets} canRun={canVerify} runningPath={running ? entry.tamper?.path : null} onRun={runTamper}
+        note="아래 항목 하나를 바꾼 리포트 사본으로 검증합니다. 사본은 서버 메모리에서만 쓰고 버리며, 리포트 파일과 온체인 기록은 바뀌지 않습니다."
+        error={tamperFailed ? attestError(entry.error, "변조 시연을 실행하지 못했습니다") : null} />
 
       {entry?.status === "error" && !entry.tamper && <StatusView kind="error" {...attestError(entry.error, "검증하지 못했습니다")} />}
       <div ref={resultRef}>
         {view && <VerifyResult view={view} tamper={entry.tamper} disabled={!canVerify} onRestore={() => verify(reportId, { backend: backendId })} />}
       </div>
     </Card>
-  );
-}
-
-function VerifyResult({ view, tamper, disabled, onRestore }) {
-  return (
-    <div className="verify">
-      {view.tamperDemo && (
-        <div className="notice notice-caution">
-          <FlaskConical {...ICON} size={18} />
-          <div className="notice-text">
-            <strong>시연용 · 저장되지 않음</strong>
-            서버 메모리의 리포트 사본에서 <code className="mono">{tamper?.path}</code> 값만 바꿔 검증한 결과입니다. 리포트 파일과 온체인 기록은 그대로입니다.
-          </div>
-          <button type="button" className="btn btn-secondary" disabled={disabled} onClick={onRestore}>
-            <RotateCcw {...ICON} size={14} />원래대로 다시 검증
-          </button>
-        </div>
-      )}
-      <div className={`verify-head verify-${view.tone}`}>
-        <Badge tone={view.tone}>{view.label}</Badge>
-        <span>{view.summary}</span>
-      </div>
-
-      <div className="hash-compare">
-        <div className="hash-compare-item">
-          <span className="field-label">온체인에 기록된 리포트 해시</span>
-          <code className="mono">{view.hash.onChain}</code>
-        </div>
-        <div className="hash-compare-mid">
-          <Badge tone={view.hash.match ? "safe" : "danger"}>{view.hash.match ? "같음" : "다름"}</Badge>
-        </div>
-        <div className="hash-compare-item">
-          <span className="field-label">현재 리포트에서 계산한 해시</span>
-          <code className="mono">{view.hash.current}</code>
-        </div>
-      </div>
-
-      <table className="table table-static">
-        <thead>
-          <tr><th>항목</th><th>온체인 기록</th><th>현재 리포트</th><th className="r">결과</th></tr>
-        </thead>
-        <tbody>
-          {view.rows.map(r => (
-            <tr key={r.name} className={!r.match && !r.informational ? "row-mismatch" : ""}>
-              <td>{r.label} {r.informational && <EstimateTag>참고용</EstimateTag>}</td>
-              <td className={r.onChain.mono ? "mono" : "num"} title={r.onChain.full ?? undefined}>{r.onChain.text}</td>
-              <td className={r.current.mono ? "mono" : "num"} title={r.current.full ?? undefined}>{r.current.text}</td>
-              <td className="r">
-                {r.match ? <Badge tone="safe">일치</Badge> : r.informational ? <Badge tone="neutral">다름 · 참고용</Badge> : <Badge tone="danger">불일치</Badge>}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <p className="disclaimer">
-        참고용 항목(스캔 시각, 분석기 버전)은 같은 리포트라도 분석을 다시 실행하거나 서버 버전이 바뀌면 달라질 수 있어, 달라도 검증 결과에 영향을 주지 않습니다.
-        {view.informationalMismatch.length > 0 && ` 이번에는 ${view.informationalMismatch.join(", ")}이(가) 다르지만 결과는 그대로입니다.`}
-      </p>
-
-      {!view.hash.match && (
-        <div className="changed">
-          <h3 className="sub-title">기록 이후 바뀐 항목</h3>
-          {view.changedPaths.length ? (
-            <ul className="rows rows-static">
-              {view.changedPaths.map(c => (
-                <li key={c.path} className="row">
-                  <code className="mono">{c.path}</code>
-                  <span className="row-value">{c.label ?? <span className="muted small">용어집에 없음</span>}</span>
-                </li>
-              ))}
-            </ul>
-          ) : <p className="muted small">{view.snapshotAvailable ? "바뀐 경로를 찾지 못했습니다." : "기록 당시 스냅샷이 없어 바뀐 경로는 표시할 수 없습니다."}</p>}
-        </div>
-      )}
-      <p className="muted small num">검증한 기록 UID <code className="mono">{shortMiddle(view.uid)}</code></p>
-    </div>
-  );
-}
-
-// ── 복사 ──
-function useCopy(value) {
-  const [copied, setCopied] = useState(false);
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
-    } catch {
-      setCopied(false);
-    }
-  };
-  return [copied, copy];
-}
-
-function CopyValue({ value, display }) {
-  const [copied, copy] = useCopy(value);
-  return (
-    <span className="copy-value">
-      <code className="mono" title={value}>{display ?? shortMiddle(value)}</code>
-      <button type="button" className="icon-btn" onClick={copy} title="복사" aria-label="복사">
-        <Copy {...ICON} size={14} />
-      </button>
-      {copied && <span className="muted small">복사됨</span>}
-    </span>
-  );
-}
-
-function HashLine({ value, large }) {
-  const [copied, copy] = useCopy(value);
-  return (
-    <div className={`hash ${large ? "hash-lg" : ""}`}>
-      <code className="mono">{value}</code>
-      <button type="button" className="icon-btn" onClick={copy} title="복사">
-        <Copy {...ICON} size={15} />
-      </button>
-      {copied && <span className="muted small">복사됨</span>}
-    </div>
   );
 }

@@ -34,6 +34,9 @@ code, .mono { font-family: var(--font-mono); font-size: 12.5px; }
 .main { grid-column: 1; grid-row: 3; overflow: auto; padding: 24px 28px 40px; }
 .side-panel { grid-column: 2; grid-row: 2 / 4; overflow: hidden; border-left: 1px solid var(--border); background: var(--surface); }
 .rail { grid-column: 3; grid-row: 2 / 4; }
+/* 정적 모드 면책 푸터 */
+.app-footer { max-width: 1180px; margin: 24px auto 0; padding-top: 14px; border-top: 1px solid var(--border); font-size: var(--fs-label); color: var(--text-3); line-height: 1.6; }
+.static-note { margin: 0; line-height: 1.6; }
 
 .topbar {
   display: flex; align-items: center; gap: 32px;

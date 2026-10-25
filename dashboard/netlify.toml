@@ -1,0 +1,8 @@
+# Netlify 설정 (Base directory = dashboard). 정적 모드로 빌드한다.
+# 해시 라우팅(#/overview)이라 rewrite가 필요 없다. 스냅샷은 public/snapshot/이 dist/snapshot/으로 복사된다.
+[build]
+  command = "npm run build:static"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"

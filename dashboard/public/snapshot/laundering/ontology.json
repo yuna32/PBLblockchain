@@ -1,0 +1,440 @@
+{
+  "highlight": {
+    "evasionPath": [],
+    "path": [
+      [
+        "evidence:distributedInflow",
+        "condition:UniqueParticipants",
+        "class:MoneyLaundering"
+      ],
+      [
+        "evidence:singleLargeOutflow",
+        "condition:MaxTxAlert",
+        "class:MoneyLaundering"
+      ],
+      [
+        "evidence:singleLargeOutflow",
+        "condition:SingleDrain",
+        "class:MoneyLaundering"
+      ]
+    ]
+  },
+  "links": [
+    {
+      "active": true,
+      "kind": "subClassOf",
+      "label": "하위 클래스",
+      "source": "class:MoneyLaundering",
+      "target": "parent:FraudPattern"
+    },
+    {
+      "active": true,
+      "kind": "requires",
+      "label": "필요 조건",
+      "source": "class:MoneyLaundering",
+      "target": "condition:UniqueParticipants"
+    },
+    {
+      "active": true,
+      "kind": "supportedBy",
+      "label": "근거",
+      "source": "evidence:distributedInflow",
+      "target": "condition:UniqueParticipants"
+    },
+    {
+      "active": true,
+      "kind": "requires",
+      "label": "필요 조건",
+      "source": "class:MoneyLaundering",
+      "target": "condition:MaxTxAlert"
+    },
+    {
+      "active": true,
+      "kind": "supportedBy",
+      "label": "근거",
+      "source": "evidence:singleLargeOutflow",
+      "target": "condition:MaxTxAlert"
+    },
+    {
+      "active": true,
+      "kind": "requires",
+      "label": "충분 조건",
+      "source": "class:MoneyLaundering",
+      "target": "condition:SingleDrain"
+    },
+    {
+      "active": true,
+      "kind": "supportedBy",
+      "label": "근거",
+      "source": "evidence:singleLargeOutflow",
+      "target": "condition:SingleDrain"
+    },
+    {
+      "active": false,
+      "kind": "exhibits",
+      "label": "회피 하위 유형",
+      "source": "class:MoneyLaundering",
+      "target": "evasion:MoneyLaundering_BalanceDropEvasion"
+    },
+    {
+      "active": false,
+      "kind": "exhibits",
+      "label": "회피 하위 유형",
+      "source": "class:MoneyLaundering",
+      "target": "evasion:MoneyLaundering_MaxTxEvasion"
+    },
+    {
+      "active": false,
+      "kind": "exhibits",
+      "label": "회피 하위 유형",
+      "source": "class:MoneyLaundering",
+      "target": "evasion:MoneyLaundering_SlowDrain"
+    },
+    {
+      "active": false,
+      "kind": "exhibits",
+      "label": "회피 하위 유형",
+      "source": "class:MoneyLaundering",
+      "target": "evasion:MoneyLaundering_HopLaundering"
+    },
+    {
+      "active": false,
+      "kind": "exhibits",
+      "label": "사용 기법",
+      "source": "class:MoneyLaundering",
+      "target": "technique:OwnerRecipientArbitrage"
+    },
+    {
+      "active": true,
+      "kind": "affects",
+      "label": "피해 역할",
+      "source": "class:MoneyLaundering",
+      "target": "role:Depositor"
+    },
+    {
+      "active": true,
+      "kind": "affects",
+      "label": "피해 역할",
+      "source": "class:MoneyLaundering",
+      "target": "role:Victim"
+    },
+    {
+      "active": true,
+      "kind": "affects",
+      "label": "수혜 역할",
+      "source": "class:MoneyLaundering",
+      "target": "role:Insider"
+    },
+    {
+      "active": true,
+      "kind": "mitigatedBy",
+      "label": "권고 조치",
+      "source": "class:MoneyLaundering",
+      "target": "patch:SINGLE_COLLECTOR_DRAIN"
+    },
+    {
+      "active": true,
+      "kind": "mitigatedBy",
+      "label": "권고 조치",
+      "source": "class:MoneyLaundering",
+      "target": "patch:MANY_TO_ONE_FLOW"
+    },
+    {
+      "active": true,
+      "kind": "mitigatedBy",
+      "label": "권고 조치",
+      "source": "class:MoneyLaundering",
+      "target": "patch:NO_MINIMUM_HOLD_PERIOD"
+    }
+  ],
+  "meta": {
+    "conditions": [
+      {
+        "approx": false,
+        "classes": [
+          "PonziScheme",
+          "RugPull"
+        ],
+        "condition": "BalanceDrop",
+        "label": "잔고 급락 신호",
+        "note": "동적 규칙 BALANCE_DROP 발동 여부.",
+        "status": "met"
+      },
+      {
+        "approx": false,
+        "classes": [
+          "PonziScheme"
+        ],
+        "condition": "FlowSpike",
+        "label": "순유출 급증 신호",
+        "note": "동적 규칙 FLOW_SPIKE 발동 여부.",
+        "status": "met"
+      },
+      {
+        "approx": true,
+        "classes": [
+          "PonziScheme",
+          "RugPull",
+          "MoneyLaundering"
+        ],
+        "condition": "MaxTxAlert",
+        "label": "최대 단일 거래 신호",
+        "note": "근사: 근거 기준은 최대 단일 출금이 최고 잔고의 70% 이상이고, 온톨로지 공식은 직전 잔고의 90% 이상이다.",
+        "status": "met"
+      },
+      {
+        "approx": false,
+        "classes": [
+          "PonziScheme"
+        ],
+        "condition": "MidWithdrawalsExist",
+        "label": "중도 출금 있음",
+        "note": "dynamic.reasoning_steps의 participantMidExit가 true.",
+        "status": "unmet"
+      },
+      {
+        "approx": false,
+        "classes": [
+          "RugPull"
+        ],
+        "condition": "NoMidWithdrawals",
+        "label": "중도 출금 없음",
+        "note": "dynamic.reasoning_steps의 participantMidExit가 false.",
+        "status": "met"
+      },
+      {
+        "approx": true,
+        "classes": [
+          "MoneyLaundering"
+        ],
+        "condition": "UniqueParticipants",
+        "label": "다수 입금자",
+        "note": "근사: 근거 기준은 고유 입금자 5명 이상이고, 온톨로지 임계값은 비율 0.3(UNIQUE_PARTICIPANTS)이다.",
+        "status": "met"
+      },
+      {
+        "approx": false,
+        "classes": [
+          "MoneyLaundering"
+        ],
+        "condition": "SingleDrain",
+        "label": "단일 대량 인출",
+        "note": "dynamic.reasoning_steps의 singleLargeOutflow가 true (최대 단일 출금이 최고 잔고의 70% 이상).",
+        "status": "met"
+      },
+      {
+        "approx": false,
+        "classes": [
+          "PumpDump"
+        ],
+        "condition": "InsiderPrivilege",
+        "label": "내부자 특권 조건",
+        "note": "정적 규칙 INSIDER_PRIVILEGE 발동 여부.",
+        "status": "unmet"
+      },
+      {
+        "approx": true,
+        "classes": [
+          "PumpDump"
+        ],
+        "condition": "AsymmetricWithdrawal",
+        "label": "비대칭 출금",
+        "note": "근사: 입금액의 130%를 넘게 받은 지갑이 있으면 충족으로 본다. 그 지갑이 내부자인지는 보지 않는다.",
+        "status": "met"
+      },
+      {
+        "approx": true,
+        "classes": [
+          "PumpDump"
+        ],
+        "condition": "LateParticipantLoss",
+        "label": "후발 참여자 손실",
+        "note": "근사: 출금 성공률(dynamic.withdraw_success_rate)이 100% 미만이면 충족으로 본다. 실패한 지갑이 후발 참여자인지는 보지 않는다.",
+        "status": "unmet"
+      }
+    ],
+    "fraudTypeHint": "money_laundering",
+    "mappingNote": "시연용 매핑, 온톨로지 정의 아님. 회피 기법 활성 판정도 시연용 매핑이며, 해당 유형의 usesEvasion 목록에 있는 기법만 표시한다. OwnerWithdrawAll은 중첩 pipeline(analysis/analysis/pipeline.js)과 같이 정적 UNCONSTRAINED_OWNER_DRAIN으로, SmurfingDeposit은 분산 입금 신호(reasoning_steps.distributedInflow)로 판정한다. 중첩 pipeline의 CONCENTRATION_DRAIN 규칙은 의미가 달라 따르지 않음",
+    "owlInferred": [
+      "MoneyLaundering"
+    ],
+    "owlMismatch": null,
+    "owlNote": "저장소의 예전 로그 기준 결과로 현재 fixture와 값이 다를 수 있음",
+    "scenarioFraudClass": "MoneyLaundering",
+    "source": {
+      "conditionMapping": "시연용 매핑, 온톨로지 정의 아님",
+      "ontology": "analysis/fraud_ontology.js",
+      "report": "MoneyLaundering",
+      "techniqueMapping": "회피 기법 활성 판정도 시연용 매핑이며, 해당 유형의 usesEvasion 목록에 있는 기법만 표시한다. OwnerWithdrawAll은 중첩 pipeline(analysis/analysis/pipeline.js)과 같이 정적 UNCONSTRAINED_OWNER_DRAIN으로, SmurfingDeposit은 분산 입금 신호(reasoning_steps.distributedInflow)로 판정한다. 중첩 pipeline의 CONCENTRATION_DRAIN 규칙은 의미가 달라 따르지 않음"
+    },
+    "techniques": [
+      {
+        "label": "관리자 전액 인출",
+        "note": "정적 규칙 UNCONSTRAINED_OWNER_DRAIN 발동 여부 (중첩 pipeline 규칙 준용).",
+        "status": "met",
+        "technique": "OwnerWithdrawAll"
+      },
+      {
+        "label": "스머핑 분산 입금",
+        "note": "분산 입금 신호 dynamic.reasoning_steps의 distributedInflow가 true (중첩 pipeline의 CONCENTRATION_DRAIN 규칙은 따르지 않음).",
+        "status": "met",
+        "technique": "SmurfingDeposit"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "active": true,
+      "desc": "블록체인 사기 패턴의 최상위 개념",
+      "group": "class",
+      "id": "parent:FraudPattern",
+      "kind": "parent",
+      "label": "사기 패턴"
+    },
+    {
+      "active": true,
+      "desc": "다수 입금 후 단일 주소로 전액 출금 (레이어링 통합)",
+      "group": "class",
+      "id": "class:MoneyLaundering",
+      "kind": "class",
+      "label": "자금세탁"
+    },
+    {
+      "active": true,
+      "approx": true,
+      "desc": "서로 다른 지갑 여러 개가 입금했다. 근사: 근거 기준은 고유 입금자 5명 이상이고, 온톨로지 임계값은 비율 0.3(UNIQUE_PARTICIPANTS)이다. 이 리포트: 충족.",
+      "group": "condition",
+      "id": "condition:UniqueParticipants",
+      "kind": "condition",
+      "label": "다수 입금자",
+      "status": "met"
+    },
+    {
+      "active": true,
+      "desc": "서로 다른 입금자가 5명 이상이다 (동적 분석 판정 단계). 근사: 근거 기준은 고유 입금자 5명 이상이고, 온톨로지 임계값은 비율 0.3(UNIQUE_PARTICIPANTS)이다. (시연용 매핑, 온톨로지 정의 아님)",
+      "group": "evidence",
+      "id": "evidence:distributedInflow",
+      "kind": "evidence",
+      "label": "분산 유입",
+      "status": "met"
+    },
+    {
+      "active": true,
+      "approx": true,
+      "desc": "단일 거래가 직전 잔고의 90% 이상인 신호다. 이 화면에서는 최대 단일 출금이 최고 잔고의 70% 이상인지로 근사한다. 온톨로지 공식: max_single_tx[b] >= cumulative_balance[b-1] * 0.9. 근사: 근거 기준은 최대 단일 출금이 최고 잔고의 70% 이상이고, 온톨로지 공식은 직전 잔고의 90% 이상이다. 이 리포트: 충족.",
+      "group": "condition",
+      "id": "condition:MaxTxAlert",
+      "kind": "condition",
+      "label": "최대 단일 거래 신호",
+      "status": "met"
+    },
+    {
+      "active": true,
+      "desc": "최대 단일 출금이 최고 잔고의 70% 이상이다 (동적 분석 판정 단계). 근사: 근거 기준은 최대 단일 출금이 최고 잔고의 70% 이상이고, 온톨로지 공식은 직전 잔고의 90% 이상이다. (시연용 매핑, 온톨로지 정의 아님)",
+      "group": "evidence",
+      "id": "evidence:singleLargeOutflow",
+      "kind": "evidence",
+      "label": "단일 대형 유출",
+      "status": "met"
+    },
+    {
+      "active": true,
+      "approx": false,
+      "desc": "한 번의 출금이 잔고 대부분을 가져갔다. 이 리포트: 충족.",
+      "group": "condition",
+      "id": "condition:SingleDrain",
+      "kind": "condition",
+      "label": "단일 대량 인출",
+      "status": "met"
+    },
+    {
+      "active": false,
+      "desc": "BALANCE_DROP 신호 미발생 → 기본 탐지기 우회 가능",
+      "group": "evasion_subclass",
+      "id": "evasion:MoneyLaundering_BalanceDropEvasion",
+      "kind": "evasion",
+      "label": "잔고 급락 회피형"
+    },
+    {
+      "active": false,
+      "desc": "MAX_TX_ALERT 신호 미발생 → 기본 탐지기 우회 가능",
+      "group": "evasion_subclass",
+      "id": "evasion:MoneyLaundering_MaxTxEvasion",
+      "kind": "evasion",
+      "label": "최대 거래 회피형"
+    },
+    {
+      "active": false,
+      "desc": "시계열 패턴 희석 → 급락 지점 탐지 어려움",
+      "group": "evasion_subclass",
+      "id": "evasion:MoneyLaundering_SlowDrain",
+      "kind": "evasion",
+      "label": "시간 분산 회피형"
+    },
+    {
+      "active": false,
+      "desc": "자금 출처 역추적 난이도 상승",
+      "group": "evasion_subclass",
+      "id": "evasion:MoneyLaundering_HopLaundering",
+      "kind": "evasion",
+      "label": "중간 경유 지갑형"
+    },
+    {
+      "active": false,
+      "desc": "온톨로지에 정의 없음. 이 리포트에서 사용 여부를 판정하는 근거는 없다.",
+      "group": "evasion_technique",
+      "id": "technique:OwnerRecipientArbitrage",
+      "kind": "evasion",
+      "label": "수령자 우회",
+      "status": "no_data"
+    },
+    {
+      "active": true,
+      "desc": "온톨로지에 정의 없음. 온톨로지에 정의 없음. fraud_ontology.js의 MoneyLaundering.affectedRoles에 이름만 있다.",
+      "group": "role",
+      "id": "role:Depositor",
+      "kind": "role",
+      "label": "입금자"
+    },
+    {
+      "active": true,
+      "desc": "원금을 돌려받지 못한 참여자다.",
+      "group": "role",
+      "id": "role:Victim",
+      "kind": "role",
+      "label": "피해자"
+    },
+    {
+      "active": true,
+      "desc": "운영자나 내부자로, 사기 구조에서 이득을 보는 쪽이다.",
+      "group": "role",
+      "id": "role:Insider",
+      "kind": "role",
+      "label": "내부자"
+    },
+    {
+      "active": true,
+      "desc": "다수 지갑 입금 → 단일 주소 전액 인출 구조 (세탁 완성 경로) 권고: 입금자 비례 환불 구조로 전환. 단일 수혜자 함수 제거",
+      "group": "prevention",
+      "id": "patch:SINGLE_COLLECTOR_DRAIN",
+      "kind": "patch",
+      "label": "단일 수집자 전액 인출"
+    },
+    {
+      "active": true,
+      "desc": "자금세탁 구조의 핵심: 출처 분산 → 목적지 집중 권고: 최대 수혜자 비율 제한 (단일 주소 30% 초과 인출 불가)",
+      "group": "prevention",
+      "id": "patch:MANY_TO_ONE_FLOW",
+      "kind": "patch",
+      "label": "다수→단일 자금 집중 구조"
+    },
+    {
+      "active": true,
+      "desc": "입금 즉시 인출 가능 → 세탁 사이클 가속 권고: 입금 후 최소 N블록 경과 후 인출 허용",
+      "group": "prevention",
+      "id": "patch:NO_MINIMUM_HOLD_PERIOD",
+      "kind": "patch",
+      "label": "최소 보유 기간 없음"
+    }
+  ]
+}

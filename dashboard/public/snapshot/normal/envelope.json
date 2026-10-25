@@ -1,0 +1,27 @@
+{
+  "canonical_version": "jcs-rfc8785/pbl-demo-v1",
+  "contract": "NormalStaking",
+  "created_at": "2026-10-24T14:18:53.835Z",
+  "input": {
+    "csv": {
+      "file": "normal_log.csv",
+      "normalization": "CR 제거, 빈 줄 제거, timestamp 열 제외, LF로 연결 (마지막 줄바꿈 없음)",
+      "sha256": "bf552765a945bca21b65618b1a8a3e3191c505674d670fe107dd75e5b5f7a0e4"
+    },
+    "seed": "pbl-demo",
+    "sol": {
+      "file": "NormalStaking.sol",
+      "normalization": "CRLF→LF",
+      "sha256": "5370a42811387a48b0523e3be07364f3e10713f02977f408cc9520457cb69832"
+    }
+  },
+  "report_hash_excluded": [
+    "timestamp",
+    "dynamic.csv",
+    "trust.csv",
+    "static.file"
+  ],
+  "report_sha256": "08f1e9e69219a0b2b8557682168241a7c1df79e24345f89601da13766d68a609",
+  "scenario": "normal",
+  "source": "fixture"
+}

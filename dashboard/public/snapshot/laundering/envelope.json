@@ -1,0 +1,27 @@
+{
+  "canonical_version": "jcs-rfc8785/pbl-demo-v1",
+  "contract": "MoneyLaundering",
+  "created_at": "2026-10-24T14:18:56.874Z",
+  "input": {
+    "csv": {
+      "file": "laundering_log.csv",
+      "normalization": "CR 제거, 빈 줄 제거, timestamp 열 제외, LF로 연결 (마지막 줄바꿈 없음)",
+      "sha256": "b8944848326cc53f36f3725afbf0e94ed38c5ee4e0bf43ff87f510dda143f62b"
+    },
+    "seed": "pbl-demo",
+    "sol": {
+      "file": "MoneyLaundering.sol",
+      "normalization": "CRLF→LF",
+      "sha256": "9082467f777e426112983351564e87724928d659f282166590836f74f95afe97"
+    }
+  },
+  "report_hash_excluded": [
+    "timestamp",
+    "dynamic.csv",
+    "trust.csv",
+    "static.file"
+  ],
+  "report_sha256": "ed9442e63c0de5224afc5f04b9d3bc73c318ece02c7c33a32b6c0c5368236c81",
+  "scenario": "laundering",
+  "source": "fixture"
+}

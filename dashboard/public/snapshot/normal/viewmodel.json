@@ -1,0 +1,123 @@
+{
+  "codeAssessment": {
+    "fraudTypeSuspected": null,
+    "mainRules": [
+      {
+        "description": "고정 수익률 약속 변수 (과도한 수익 보장 의심)",
+        "id": "REWARD_PROMISE",
+        "weight": 15
+      }
+    ],
+    "preventionRiskLabel": "정상 구조",
+    "preventionRiskLevel": "LOW",
+    "preventionRiskScore": 0,
+    "staticRiskScore": 15,
+    "staticVerdict": "LOW_RISK"
+  },
+  "combination": {
+    "basis": [
+      "예방 분석 위험 수준이 낮음(LOW)으로, 코드 위험 높음 기준(높음 또는 매우 높음)에 해당하지 않습니다.",
+      "운영자 전액 인출 지갑(drainer) 0개, 과도 수익 지갑(extractor) 0개, 최저 지갑 등급 A로 지갑 위험 높음 기준에 해당하지 않습니다."
+    ],
+    "codeRisk": "low",
+    "criteriaNote": "시연용 임시 기준",
+    "label": "낮은 위험",
+    "quadrant": "low-low",
+    "walletRisk": "low"
+  },
+  "contract": "NormalStaking",
+  "disclaimer": "본 결과는 시뮬레이션 거래 로그와 컨트랙트 소스 코드에 대한 휴리스틱 분석 결과이며, 실제 사기 여부를 확정하지 않는다. 판정 규칙과 임계값은 연구 단계의 잠정값이라 오탐과 미탐이 있을 수 있다. 본 결과는 투자 판단의 근거가 될 수 없으며, 이를 근거로 한 결정의 책임은 이용자에게 있다.",
+  "headline": {
+    "reasons": [
+      {
+        "detail": "평균 지갑 등급은 A이고, 운영자 전액 인출 지갑(drainer) 0개, 과도 수익 지갑(extractor) 0개가 있습니다.",
+        "label": "최저 지갑 등급 A",
+        "page": "trust"
+      },
+      {
+        "detail": "배포 전 예방 분석에서 위험 항목이 검출되지 않았습니다.",
+        "label": "코드 위험 수준 낮음",
+        "page": "report"
+      }
+    ],
+    "text": "분석한 범위에서는 사기 패턴이 감지되지 않았습니다.",
+    "tone": "safe"
+  },
+  "patterns": {
+    "dynamicRiskScore": 0,
+    "dynamicVerdict": "LOW_RISK",
+    "evasion": {
+      "confidence": 0,
+      "detected": false,
+      "subclass": null
+    },
+    "fraudClassified": false,
+    "fraudTypeHint": "normal_staking",
+    "fraudTypeLabel": "정상 스테이킹",
+    "inflowStop": {
+      "detected": false,
+      "lastDepositBlock": 31,
+      "stopRatio": 0.571
+    },
+    "reasoningSteps": [
+      "singleLargeOutflow: false (1.049 / peak 15.000 = 7%)",
+      "distributedInflow: true (11 unique depositors)",
+      "ownerWithdrawAll: false (recipient 0x70997970... found in depositor list)",
+      "participantMidExit: true (9 mid-exit withdrawals)",
+      "withdrawSuccessRate: 100.0% (10/10 succeeded)",
+      "nonPrivilegedSuccessRate: 100.0% (owner 0xf39fd6e5... 제외 10건 중 성공)",
+      "balanceAtFailure: 0.000 ETH (amount_eth=0 시점 잔고 최댓값, n=0)",
+      "→ normal_staking (stake/unstake pattern, no fraud signals)"
+    ],
+    "signals": []
+  },
+  "phase": {
+    "events": [
+      {
+        "block": 31,
+        "label": "마지막 입금",
+        "type": "inflow_stop"
+      },
+      {
+        "block": 53,
+        "label": "첫 출금",
+        "type": "first_withdraw"
+      }
+    ],
+    "onset": null
+  },
+  "reportHash": "08f1e9e69219a0b2b8557682168241a7c1df79e24345f89601da13766d68a609",
+  "scenario": "normal",
+  "source": "fixture",
+  "walletAssessment": {
+    "drainerCount": 0,
+    "extractorCount": 0,
+    "extractorDefinition": "is_drainer가 아니면서 profit_ratio > 1.3인 지갑 (입금액 대비 1.3배 초과 수령)",
+    "lowestDiffersFromOverall": false,
+    "lowestWallet": {
+      "address": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+      "grade": "A",
+      "trustScore": 78
+    },
+    "trustGrade": "A",
+    "trustScore": 86,
+    "walletCount": 11
+  },
+  "warnings": [
+    {
+      "detail": "비오너 출금 10건 중 성공률 100.0% > 5%, 실패 시점 잔고 0.000 ETH",
+      "detected": false,
+      "source": "dynamic.withdraw_block_warning"
+    },
+    {
+      "detail": [],
+      "detected": false,
+      "source": "prevention.withdraw_block_warning"
+    },
+    {
+      "detail": [],
+      "detected": false,
+      "source": "prevention.code_pattern_warnings"
+    }
+  ]
+}

@@ -95,7 +95,10 @@ export const PHASE_LABELS = {
   running: "기록 중",
   recorded: "기록됨",
   prerecorded: "사전 기록",
-  error: "기록 실패"
+  error: "기록 실패",
+  // 정적 모드 (state/StaticAttest.jsx): 상태 A / 상태 B
+  attested: "Sepolia 기록 있음",
+  pending_onchain: "온체인 기록 대기 중"
 };
 
 // 진행 표시의 "온체인 기록" 단계
@@ -107,6 +110,8 @@ export function onchainFlowState(phase) {
     case "error": return { state: "error", sub: "기록 실패" };
     case "unavailable": return { state: "disabled", sub: "사용 불가" };
     case "readonly": return { state: "disabled", sub: "읽기 전용" };
+    case "attested": return { state: "done", sub: "Sepolia 기록 있음" };
+    case "pending_onchain": return { state: "pending", sub: "기록 대기 중" };
     default: return { state: "pending", sub: PHASE_LABELS[phase] ?? "기록 전" };
   }
 }
@@ -116,6 +121,8 @@ export function onchainBadge(phase, chainName = "로컬 체인") {
   if (phase === "recorded" || phase === "prerecorded") {
     return { tone: "primary", label: "온체인 기록됨", extra: phase === "prerecorded" ? "사전 기록" : null };
   }
+  if (phase === "attested") return { tone: "primary", label: "Sepolia 기록 있음", extra: null };
+  if (phase === "pending_onchain") return { tone: "neutral", label: "온체인 기록 대기 중", extra: null };
   if (phase === "running") return { tone: "neutral", label: "기록 중", extra: null };
   if (phase === "error") return { tone: "danger", label: "기록 실패", extra: null };
   const extra = phase === "unavailable" ? `${chainName} 사용 불가` : phase === "offline" ? "서버 끊김" : phase === "readonly" ? "읽기 전용" : null;
@@ -124,11 +131,13 @@ export function onchainBadge(phase, chainName = "로컬 체인") {
 
 export const CHAIN_SHORT_NAMES = { local: "로컬 체인", "eas-sepolia": "Sepolia" };
 
-// 마지막 검증 결과 요약 (개요 배지 옆)
+// 마지막 검증 결과 요약 (개요 배지 옆). entry.kind: server(기본) | integrity | onchain (정적 모드)
 export function verifySummary(entry) {
   if (!entry || entry.status !== "done" || !entry.result) return null;
   const ok = entry.result.verified;
-  return { tone: ok ? "safe" : "danger", label: ok ? "일치" : "불일치", tamperDemo: Boolean(entry.result.tamperDemo) };
+  const label = ok ? "일치" : "불일치";
+  const text = entry.kind === "integrity" ? `무결성 검증 ${label}` : entry.kind === "onchain" ? `온체인 기록과 ${label}` : `검증 ${label}`;
+  return { tone: ok ? "safe" : "danger", label, text, tamperDemo: Boolean(entry.result.tamperDemo) };
 }
 
 // 기록 카드의 메타 행 (hex 값은 앞뒤만 보이고 복사 버튼을 단다)
@@ -190,8 +199,44 @@ export function pathLabel(path, glossary) {
   return PATH_FIELDS[path] ? FIELD_LABELS[PATH_FIELDS[path]] : null;
 }
 
-// POST /api/report/:id/verify 응답 → 화면용
-export function verifyView(result, glossary) {
+// 결과 종류별 문구. integrity는 온체인 검증이 아니라 "배포된 파일이 변조되지 않았음"이므로 온체인 표현을 쓰지 않는다.
+//   server:    서버 검증 (POST /api/report/:id/verify)
+//   integrity: 정적 모드 무결성 검증 (verifyBrowser.verifyIntegrity). attested=false면 "아직 온체인에 기록되지 않았습니다"를 붙인다
+//   onchain:   정적 모드 온체인 조회 (verifyBrowser.verifyOnchain, 상태 A에서만)
+function kindTexts(kind, verified, hashMatch, attested) {
+  if (kind === "integrity") {
+    return {
+      label: verified ? "무결성 검증 일치" : "무결성 검증 불일치",
+      summary: verified
+        ? (attested ? "무결성 검증: 일치 (배포된 리포트 파일이 envelope의 해시와 같습니다)" : "무결성 검증: 일치 (이 데모는 아직 온체인에 기록되지 않았습니다)")
+        : "무결성 검증 불일치: 현재 리포트에서 계산한 해시가 envelope에 기록된 해시와 다릅니다.",
+      hashLabels: { recorded: "envelope에 기록된 리포트 해시", current: "현재 리포트에서 계산한 해시" },
+      tamperScope: "브라우저 메모리"
+    };
+  }
+  const recordedLabel = { recorded: "온체인에 기록된 리포트 해시", current: "현재 리포트에서 계산한 해시" };
+  if (kind === "onchain") {
+    return {
+      label: verified ? "온체인 기록과 일치" : "온체인 기록과 불일치",
+      summary: verified ? "온체인 기록과 일치: Sepolia에 기록된 값과 배포된 리포트가 같습니다." : "검증 실패(불일치): 체인에 기록된 값과 배포된 리포트가 다릅니다.",
+      hashLabels: recordedLabel,
+      tamperScope: "브라우저 메모리"
+    };
+  }
+  return {
+    label: verified ? "일치" : "불일치",
+    summary: verified
+      ? "체인에 기록된 값과 현재 리포트가 같습니다."
+      : hashMatch
+        ? "리포트 해시는 같지만 기록 필드 일부가 현재 리포트와 다릅니다."
+        : "현재 리포트의 해시가 체인에 기록된 해시와 다릅니다. 기록한 뒤 리포트 내용이 바뀌었습니다.",
+    hashLabels: recordedLabel,
+    tamperScope: "서버 메모리"
+  };
+}
+
+// 검증 결과 → 화면용. options: { kind: "server" | "integrity" | "onchain", attested }
+export function verifyView(result, glossary, { kind = "server", attested = false } = {}) {
   if (!result) return null;
   const rows = (result.fields ?? []).map(f => ({
     name: f.name,
@@ -202,17 +247,16 @@ export function verifyView(result, glossary) {
     current: formatField(f.name, f.current, glossary)
   }));
   const verified = Boolean(result.verified);
-  const summary = verified
-    ? "체인에 기록된 값과 현재 리포트가 같습니다."
-    : result.hashMatch
-      ? "리포트 해시는 같지만 기록 필드 일부가 현재 리포트와 다릅니다."
-      : "현재 리포트의 해시가 체인에 기록된 해시와 다릅니다. 기록한 뒤 리포트 내용이 바뀌었습니다.";
+  const texts = kindTexts(kind, verified, Boolean(result.hashMatch), attested);
   return {
+    kind,
     uid: result.uid,
     verified,
     tone: verified ? "safe" : "danger",
-    label: verified ? "일치" : "불일치",
-    summary,
+    label: texts.label,
+    summary: texts.summary,
+    hashLabels: texts.hashLabels,
+    tamperScope: texts.tamperScope,
     hash: { onChain: result.onChainReportHash, current: result.currentReportHash, match: Boolean(result.hashMatch) },
     rows,
     informationalMismatch: rows.filter(r => r.informational && !r.match).map(r => r.label),

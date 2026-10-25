@@ -51,7 +51,7 @@ function SummaryStrip({ view, envelope }) {
       <div className="strip-item"><span className="strip-label">데이터</span><span className="strip-value"><SourceBadge source={envelope.source} /></span></div>
       <button type="button" className="strip-item strip-link" onClick={() => navigate(`${pagePath("report")}${search}`)}
         title="온체인 리포트에서 기록·검증 보기">
-        <span className="strip-label">온체인{backendId === "local" ? "" : ` (${CHAIN_SHORT_NAMES[backendId]})`} <ChevronRight {...ICON} size={13} /></span>
+        <span className="strip-label">온체인{CHAIN_SHORT_NAMES[backendId] && backendId !== "local" ? ` (${CHAIN_SHORT_NAMES[backendId]})` : ""} <ChevronRight {...ICON} size={13} /></span>
         <span className="strip-value"><OnchainBadge phase={currentPhase} verifyEntry={verifyOf(current.reportId)} backend={backendId} /></span>
       </button>
       <div className="strip-item">

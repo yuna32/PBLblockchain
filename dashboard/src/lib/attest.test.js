@@ -129,9 +129,19 @@ describe("온체인 상태 도출", () => {
   it("verifySummary: 끝난 검증만", () => {
     expect(verifySummary(null)).toBe(null);
     expect(verifySummary({ status: "running" })).toBe(null);
-    expect(verifySummary({ status: "done", result: verifyResponse("ponzi") })).toEqual({ tone: "safe", label: "일치", tamperDemo: false });
+    expect(verifySummary({ status: "done", result: verifyResponse("ponzi") })).toEqual({ tone: "safe", label: "일치", text: "검증 일치", tamperDemo: false });
     expect(verifySummary({ status: "done", result: verifyResponse("ponzi", { path: "trust.overall_trust_score", value: 95 }) }))
-      .toEqual({ tone: "danger", label: "불일치", tamperDemo: true });
+      .toEqual({ tone: "danger", label: "불일치", text: "검증 불일치", tamperDemo: true });
+    // 정적 모드: 무결성 검증은 온체인 표현을 쓰지 않는다
+    expect(verifySummary({ status: "done", kind: "integrity", result: { verified: false, tamperDemo: true } }).text).toBe("무결성 검증 불일치");
+    expect(verifySummary({ status: "done", kind: "onchain", result: { verified: true } }).text).toBe("온체인 기록과 일치");
+  });
+
+  it("정적 모드 상태: Sepolia 기록 있음 / 온체인 기록 대기 중", () => {
+    expect(onchainFlowState("attested")).toEqual({ state: "done", sub: "Sepolia 기록 있음" });
+    expect(onchainFlowState("pending_onchain")).toEqual({ state: "pending", sub: "기록 대기 중" });
+    expect(onchainBadge("attested").label).toBe("Sepolia 기록 있음");
+    expect(onchainBadge("pending_onchain")).toEqual({ tone: "neutral", label: "온체인 기록 대기 중", extra: null });
   });
 });
 

@@ -4,6 +4,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { Check, CircleDashed, History, LayoutList, LoaderCircle, PanelRightClose, PanelRightOpen, X } from "lucide-react";
 import { useApp } from "../state/AppContext.jsx";
 import { useAttest } from "../state/AttestContext.jsx";
+import { STATIC_MODE } from "../mode.js";
 import { flowSteps } from "../lib/flow.js";
 import { PAGES } from "../lib/terms.js";
 import { ScenarioPanel, HistoryPanel } from "./SidePanel.jsx";
@@ -21,15 +22,22 @@ export default function Layout({ children }) {
     <div className={`app ${open ? "" : "panel-closed"}`}>
       <TopBar />
       <FlowSteps />
-      <main className="main" data-scenario={current.data?.view.scenario ?? ""} data-status={current.status}>{children}</main>
+      <main className="main" data-scenario={current.data?.view.scenario ?? ""} data-status={current.status} data-mode={STATIC_MODE ? "static" : "server"}>
+        {children}
+        {STATIC_MODE && (
+          <footer className="app-footer">
+            시뮬레이션 데이터이며 실제 사기 판정이 아닙니다. 로컬 hardhat 시뮬레이션으로 만든 거래를 미리 분석해 둔 결과를 보여 주는 정적 데모입니다.
+          </footer>
+        )}
+      </main>
       {open && (
         <aside className="side-panel">
-          {panel === "scenarios" ? <ScenarioPanel /> : <HistoryPanel />}
+          {panel === "scenarios" || STATIC_MODE ? <ScenarioPanel /> : <HistoryPanel />}
         </aside>
       )}
       <nav className="rail" aria-label="오른쪽 패널">
         <RailButton icon={LayoutList} label="시나리오" active={open && panel === "scenarios"} onClick={() => toggle("scenarios")} />
-        <RailButton icon={History} label="실행 기록" active={open && panel === "history"} onClick={() => toggle("history")} />
+        {!STATIC_MODE && <RailButton icon={History} label="실행 기록" active={open && panel === "history"} onClick={() => toggle("history")} />}
         <div className="rail-spacer" />
         <RailButton icon={open ? PanelRightClose : PanelRightOpen} label={open ? "접기" : "펼치기"} onClick={() => setOpen(o => !o)} />
       </nav>
@@ -65,13 +73,27 @@ function TopBar() {
         ))}
       </nav>
       <div className="topbar-right">
-        <Badge tone="neutral" title="실제 블록체인 데이터가 아니라 로컬 hardhat 시뮬레이션으로 만든 거래입니다">시뮬레이션 데이터</Badge>
-        <span className={`conn conn-${health.state}`} title={tip} aria-label={tip}>
-          <span className="conn-dot" />
-          {up ? "연결됨" : health.state === "checking" ? "확인 중" : "끊김"}
-        </span>
+        {STATIC_MODE ? (
+          <Badge tone="primary" title="서버 없이 미리 계산해 둔 결과(스냅샷)를 보여 줍니다. 분석 실행·증명 기록은 로컬 서버 모드에서 사용 가능합니다.">
+            정적 데모: 사전 계산된 시뮬레이션 결과
+          </Badge>
+        ) : (
+          <>
+            <Badge tone="neutral" title="실제 블록체인 데이터가 아니라 로컬 hardhat 시뮬레이션으로 만든 거래입니다">시뮬레이션 데이터</Badge>
+            <ConnIndicator health={health} up={up} tip={tip} />
+          </>
+        )}
       </div>
     </header>
+  );
+}
+
+function ConnIndicator({ health, up, tip }) {
+  return (
+    <span className={`conn conn-${health.state}`} title={tip} aria-label={tip}>
+      <span className="conn-dot" />
+      {up ? "연결됨" : health.state === "checking" ? "확인 중" : "끊김"}
+    </span>
   );
 }
 
@@ -80,7 +102,9 @@ const STEP_ICON = { done: Check, running: LoaderCircle, error: X };
 function FlowSteps() {
   const { selected, job, current } = useApp();
   const { currentPhase } = useAttest();
-  const steps = flowSteps({ scenario: selected, job, hasReport: Boolean(current.data), onchain: currentPhase });
+  const steps = flowSteps({ scenario: selected, job, hasReport: Boolean(current.data), onchain: currentPhase })
+    // 정적 모드: 분석은 이 화면에서 실행하지 않고 미리 계산된 결과를 연다
+    .map(s => (STATIC_MODE && s.key === "analysis" ? { ...s, sub: "사전 계산된 결과" } : s));
   return (
     <ol className="flow" data-onchain={currentPhase ?? ""}>
       {steps.map((s, i) => {

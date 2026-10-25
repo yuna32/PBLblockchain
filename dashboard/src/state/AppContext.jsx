@@ -1,6 +1,7 @@
 // 앱 상태: 선택 시나리오, 현재 작업·리포트, 실행 기록, 서버 상태, 용어집.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client.js";
+import { STATIC_MODE } from "../mode.js";
 import { readStored, writeStored } from "./storage.js";
 
 const AppContext = createContext(null);
@@ -75,7 +76,13 @@ export function AppProvider({ children }) {
   }, []);
 
   // 분석 실행: POST /api/analyze → /api/jobs/:id 400ms 폴링 → 리포트 열기
+  // 정적 모드: 분석 작업이 없다. 저장된 결과(스냅샷)를 바로 연다(진행 표시를 만들지 않는다).
   const analyze = useCallback(async (scenario, mode) => {
+    if (STATIC_MODE) {
+      setJob(null);
+      await openReport(scenario, { job: { mode: "static", status: "done", source: "fixture", scenario } });
+      return;
+    }
     let jobId;
     try {
       ({ jobId } = await api.analyze(scenario, mode));

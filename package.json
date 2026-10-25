@@ -23,7 +23,9 @@
     "demo:ui": "npm --prefix dashboard run dev",
     "demo:eas:check": "node --env-file-if-exists=.env demo/scripts/eas.js check",
     "demo:eas:register": "node --env-file-if-exists=.env demo/scripts/eas.js register",
-    "demo:eas:record-fixtures": "node --env-file-if-exists=.env demo/scripts/eas.js record-fixtures"
+    "demo:eas:record-fixtures": "node --env-file-if-exists=.env demo/scripts/eas.js record-fixtures",
+    "demo:export": "node demo/export.js",
+    "dashboard:build:static": "npm --prefix dashboard run build:static"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.3",

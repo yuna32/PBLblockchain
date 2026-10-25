@@ -131,3 +131,41 @@ Sepolia 기록은 지울 수 없다. 분석 코드나 fixture를 다시 만들�
 - 기록 전 점검: 잔액이 예상 수수료보다 적으면 체인에 보내기 전에 409 `insufficient_funds`, 스키마가 없으면 409 `schema_not_registered`, RPC 오류·시간 초과는 재시도 후 503 `rpc_unavailable`(주소는 가림). 기록은 큐에서 하나씩 처리한다(nonce 충돌 방지).
 - 탐색기 링크: 기록은 `<탐색기>/attestation/view/<uid>`, 스키마는 `<탐색기>/schema/view/<스키마 UID>`. 기록 화면 경로는 문서로 확인하지 못해 화면에 "형식 미확인"을 붙인다.
 - 검증 코어(`lib/attest/verify.js`, `jcs.js`, `schema.js`, `abi.js`)는 Node 전용 모듈 없이 viem만 쓰므로 나중에 브라우저에서 RPC로 직접 검증할 때도 쓸 수 있다. `jcs.js`는 `lib/canonical.js`와 같은 규칙의 순수 구현이며 시험으로 같은 결과임을 확인한다.
+
+## 정적 배포 (서버 없이 Vercel/Netlify)
+
+서버 없이 올릴 수 있는 대시보드다. 5개 시나리오의 결과를 미리 계산한 스냅샷(`dashboard/public/snapshot/`)을 읽는다.
+`VITE_STATIC=1`로 빌드하면 정적 모드, 아니면 기존 서버 모드다(`npm run demo:ui`는 그대로 서버 모드).
+
+### 정적 모드에서 달라지는 점
+- 상단에 "정적 데모: 사전 계산된 시뮬레이션 결과" 배지, 하단에 "시뮬레이션 데이터이며 실제 사기 판정이 아닙니다" 면책 문구.
+- 분석 실행 대신 "시나리오 선택 → 저장된 결과 보기". 진행 표시를 흉내 내지 않는다. 실행 기록 패널은 없다.
+- 증명 기록 버튼(서버 키로 서명)과 서버 검증은 숨기고 "로컬 서버 모드에서 사용 가능"이라고 안내한다. 클라이언트 번들에는 키나 서명 기능이 없다.
+- 증명 상태는 스냅샷으로 정한다(`dashboard/src/lib/attestStatus.js`).
+  - 상태 A "Sepolia 기록 있음": `attestation.json`이 있고 chainId 11155111, UID·txHash 형식이 맞음 → UID, txHash, EAS Explorer(탐색기 주소와 UID — 기록 화면 경로는 확인되지 않아 직접 링크하지 않음), "온체인 조회" 버튼.
+  - 상태 B "온체인 기록 없음": 파일이 없거나 chainId가 11155111이 아님 → "온체인 기록 대기 중" 안내와 무결성 검증만. Sepolia 표현이나 UID를 보여 주지 않는다.
+  - 상태 C "조회 불가": 상태 A인데 브라우저 RPC 조회가 실패(네트워크, 체인 ID 불일치, UID 없음 등).
+- 리포트 무결성 검증(항상 가능): 배포된 report.json을 브라우저에서 같은 규칙으로 직렬화해 WebCrypto SHA-256으로 해시하고 envelope의 해시와 비교한다. **온체인 검증이 아니라** 배포된 파일이 바뀌지 않았음을 보여 준다. "온체인 기록과 일치"라는 표현은 상태 A의 온체인 조회 결과에만 쓴다.
+- 변조 시연: 브라우저 메모리의 리포트 사본만 바꿔 무결성 검증을 다시 실행한다(서버 호출·파일 변경 없음).
+- 온체인 조회(상태 A만): viem을 동적으로 불러와(상태 B만 있으면 viem은 로드되지 않음) 읽기 전용 RPC로 `EAS.getAttestation(uid)`를 읽고 리포트 해시·컨트랙트 주소·코드 위험 등급·신뢰 점수·최저 지갑 신뢰 점수를 비교한다.
+- WebCrypto는 https나 localhost에서만 동작한다(파일을 직접 열면 무결성 검증이 안 됨).
+
+### 스냅샷 (`npm run demo:export`)
+- 서버의 fixture 경로(`server/fixture_run.js`)로 5개 시나리오를 분석해 `dashboard/public/snapshot/`에 `index.json`과 시나리오별 `report`, `viewmodel`, `timeseries`, `ontology`, `canonical`, `envelope` JSON을 쓴다(약 315KB). 상태 A면 `attestation.json`도(공개 값만).
+- 결정적이다: 키 정렬, 실행 시각 대신 fixture의 시각, `generatedAt`은 fixture 생성 시각 중 가장 늦은 값. 분석 결과의 리포트 해시가 fixture와 다르면 실패한다.
+- `attestations.sepolia.json`의 chainId가 11155111이 아닌 기록(로컬 31337 등)은 공개적으로 검증할 수 없는 값이라 빼고 로그를 남긴다.
+- 끝에 출력물을 스스로 검사한다: "alchemy", "PRIVATE_KEY", 비밀 환경 변수 값, 허용 필드(uid, txHash, schemaUID, reportHash) 밖의 0x+64자리 16진수가 있으면 실패. `.env`는 읽지 않는다.
+- 스냅샷은 git에 커밋한다. `demo/test/export.test.js`가 커밋된 스냅샷이 지금 코드의 결과와 같은지 확인한다.
+
+### 배포 절차 1) 지금 (Sepolia 기록 없음, 5개 모두 상태 B)
+1. `npm run demo:export` → `dashboard/public/snapshot/` 확인, 바뀌었으면 커밋.
+2. `npm --prefix dashboard ci` (대시보드에 viem 의존성이 추가됨) → `npm run dashboard:build:static` → `dashboard/dist/`.
+3. 로컬 미리보기: `npm --prefix dashboard run preview:static` → http://localhost:4173 (WebCrypto 때문에 localhost로 연다).
+4. Vercel: 저장소를 연결하고 **Root Directory = `dashboard`**. 빌드 설정은 `dashboard/vercel.json`(설치 `npm ci`, 빌드 `npm run build:static`, 출력 `dist`)을 따른다. Node 22 이상. rewrite 설정은 필요 없다(해시 라우팅).
+   Netlify를 쓰면 Base directory = `dashboard`, `dashboard/netlify.toml`을 따른다.
+
+### 배포 절차 2) 나중에 온체인 기록을 추가할 때
+1. 4c 절차로 `npm run demo:eas:register`, `npm run demo:eas:record-fixtures` → `demo/fixtures/attestations.sepolia.json`.
+2. `npm run demo:export`를 다시 실행 → 해당 시나리오가 상태 A가 되고 `attestation.json`이 생긴다(코드 수정 없음, 화면이 기능 감지로 온체인 조회를 켠다).
+3. 커밋 → 재배포. Vercel 환경 변수에 `VITE_SEPOLIA_RPC`(읽기 전용 Sepolia RPC 주소)를 추가한다. 없으면 온체인 조회 버튼이 "RPC 미설정"으로 꺼진다.
+   - `VITE_*` 값은 공개 번들에 그대로 들어간다. 키가 들어 있는 RPC 주소(예: 개인 Alchemy 키)는 넣지 말고, 공개 RPC나 도메인 제한이 걸린 주소를 쓴다. 기본 공개 RPC 주소는 정하지 않았다(확인 불가, 사용자가 지정).
