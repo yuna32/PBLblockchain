@@ -3,6 +3,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import crypto from "crypto";
 import fs from "fs";
+import net from "net";
 import os from "os";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -61,8 +62,10 @@ async function waitJob(base, jobId, timeoutMs = 120000) {
 }
 
 let base;
+const attestApps = [];
 test.before(async () => { base = await start(); });
 test.after(async () => {
+  await Promise.all(attestApps.map(a => a.stop()));
   await Promise.all(servers.map(s => new Promise(r => s.close(r))));
   fs.rmSync(runsRoot, { recursive: true, force: true });
 });
@@ -259,6 +262,237 @@ test("5개 시나리오: view.headline·combination, /ontology 응답 (mode=fixt
     });
   }
   console.log("  [summary] " + JSON.stringify(rows));
+});
+
+// ── 4a: 온체인 기록 (임의 포트의 hardhat node) ──
+function freePort() {
+  return new Promise((resolve, reject) => {
+    const srv = net.createServer();
+    srv.listen(0, "127.0.0.1", () => { const { port } = srv.address(); srv.close(() => resolve(port)); });
+    srv.on("error", reject);
+  });
+}
+
+function dirDigest(dir) {
+  const out = [];
+  const walk = d => fs.readdirSync(d, { withFileTypes: true }).forEach(e => {
+    const p = path.join(d, e.name);
+    if (e.isDirectory()) walk(p); else out.push(`${path.relative(dir, p)} ${crypto.createHash("sha256").update(fs.readFileSync(p)).digest("hex")}`);
+  });
+  walk(dir);
+  return out.sort();
+}
+
+const alive = pid => { try { process.kill(pid, 0); return true; } catch { return false; } };
+
+async function startAttest(attestOptions) {
+  const runsDir = fs.mkdtempSync(path.join(runsRoot, "a-"));
+  const app = createApp({ runsDir, attest: attestOptions });
+  await new Promise(r => app.server.listen(0, "127.0.0.1", r));
+  servers.push(app.server);
+  attestApps.push(app.attest);
+  return { base: `http://127.0.0.1:${app.server.address().port}`, app, runsDir };
+}
+
+const SECRET_TOKEN = "secret-token-xyz";
+const seenBodies = [];
+const seenLogs = [];
+const origConsole = {};
+async function aapi(b, method, p, body) {
+  const r = await api(b, method, p, body);
+  seenBodies.push(JSON.stringify(r.body));
+  return r;
+}
+async function waitAttestJob(b, id, timeoutMs = 60000) {
+  const t0 = Date.now();
+  for (;;) {
+    const { status, body } = await aapi(b, "GET", `/api/attest-jobs/${id}`);
+    assert.equal(status, 200);
+    if (body.status === "done" || body.status === "error") return body;
+    if (Date.now() - t0 > timeoutMs) throw new Error(`기록 작업 시간 초과: ${id}`);
+    await new Promise(r => setTimeout(r, 20));
+  }
+}
+const fixtureEnvelope = name => JSON.parse(fs.readFileSync(path.join(ROOT, "demo/fixtures", name, "envelope.json"), "utf8"));
+
+let A;
+const PRERECORD_EXPECTED = {
+  normal: [86, 78, "LOW"], ponzi: [49, 8, "CRITICAL"], rugpull: [46, 8, "CRITICAL"],
+  laundering: [57, 30, "CRITICAL"], pumpdump: [73, 58, "CRITICAL"]
+};
+
+test("온체인 기록: 로컬 체인 시작, fixture 5개 사전 기록과 조회", async () => {
+  for (const m of ["log", "warn", "error"]) {
+    origConsole[m] = console[m];
+    console[m] = (...args) => { seenLogs.push(args.map(String).join(" ")); origConsole[m](...args); };
+  }
+  const rpcUrl = `http://127.0.0.1:${await freePort()}`;
+  A = await startAttest({ enabled: true, rpcUrl, startTimeoutMs: 60000 });
+  A.rpcUrl = rpcUrl;
+  const starting = await aapi(A.base, "GET", "/api/attest/backends");
+  assert.deepEqual([starting.body[0].id, starting.body[0].available, starting.body[0].reason], ["local", false, "시작 중"]);
+
+  const s = await A.app.attest.start();
+  assert.deepEqual([s.available, s.chainId, s.spawned, s.prerecorded], [true, 31337, true, 5]);
+  const { body: backends } = await aapi(A.base, "GET", "/api/attest/backends");
+  assert.deepEqual(backends, [
+    { id: "local", label: "로컬 체인 (hardhat)", available: true, chainId: 31337 },
+    { id: "eas-sepolia", label: "EAS (Sepolia 테스트넷)", available: false, reason: "미설정(4c에서 구현)" }
+  ]);
+
+  const { status, body: pre } = await aapi(A.base, "GET", "/api/fixtures/attestations");
+  assert.equal(status, 200);
+  assert.deepEqual(Object.keys(pre), ["normal", "ponzi", "rugpull", "laundering", "pumpdump"]);
+  const summary = [];
+  for (const [name, [trust, minWallet, grade]] of Object.entries(PRERECORD_EXPECTED)) {
+    const r = pre[name];
+    assert.match(r.uid, /^0x[0-9a-f]{64}$/);
+    assert.deepEqual([r.backend, r.chainId, r.explorerUrl, r.prerecorded, r.canonicalSnapshot, r.scenario], ["local", 31337, null, true, true, name]);
+    assert.equal(r.payload.reportHash, `0x${fixtureEnvelope(name).report_sha256}`);
+    assert.deepEqual([r.payload.trustScore, r.payload.minWalletTrustScore, r.payload.codeRiskGrade], [trust, minWallet, grade]);
+    assert.equal(r.payload.contractAddress, "0x5fbdb2315678afecb367f032d93f642f64180aa3");
+    assert.match(r.payload.analyzerVersion, /^([0-9a-f]{7,}|unknown)\+jcs-rfc8785\/pbl-demo-v1$/);
+    assert.ok(!("snapshot" in r));
+    summary.push(`${name} ${r.payload.reportHash.slice(2, 10)} trust=${trust} min=${minWallet} ${grade} uid=${r.uid.slice(0, 10)}`);
+  }
+  assert.equal(new Set(Object.values(pre).map(r => r.uid)).size, 5);
+  origConsole.log(`  [prerecord] ${summary.join(" | ")}`);
+});
+
+test("온체인 기록: fixture 리포트는 사전 기록과 연결, 재기록은 force일 때만 새 uid", async () => {
+  const post = await aapi(A.base, "POST", "/api/analyze", { scenario: "ponzi", mode: "fixture" });
+  const { job } = await waitJob(A.base, post.body.jobId);
+  const id = job.reportId;
+  const { body: pre } = await aapi(A.base, "GET", "/api/fixtures/attestations");
+
+  const linked = await aapi(A.base, "GET", `/api/report/${id}/attestation`);
+  assert.equal(linked.status, 200);
+  assert.deepEqual([linked.body.uid, linked.body.prerecorded, linked.body.reportId], [pre.ponzi.uid, true, id]);
+
+  const again = await aapi(A.base, "POST", `/api/report/${id}/attest`, { backend: "local" });
+  assert.equal(again.status, 202);
+  const reused = await waitAttestJob(A.base, again.body.attestJobId);
+  assert.deepEqual([reused.status, reused.reused, reused.attestation.uid], ["done", true, pre.ponzi.uid]);
+
+  const forced = await waitAttestJob(A.base, (await aapi(A.base, "POST", `/api/report/${id}/attest`, { backend: "local", force: true })).body.attestJobId);
+  assert.deepEqual([forced.status, forced.reused, forced.attestation.prerecorded], ["done", false, false]);
+  assert.notEqual(forced.attestation.uid, pre.ponzi.uid);
+  const now = await aapi(A.base, "GET", `/api/report/${id}/attestation`);
+  assert.equal(now.body.uid, forced.attestation.uid);
+  assert.deepEqual(Object.keys(now.body).sort(), ["attester", "backend", "blockNumber", "canonicalSnapshot", "chainId", "contract", "explorerUrl", "payload", "prerecorded", "recordedAt", "reportId", "scenario", "schemaUID", "txHash", "uid"]);
+  A.ponzi = { id, uid: forced.attestation.uid, prerecordUid: pre.ponzi.uid };
+});
+
+test("온체인 기록: 검증 일치와 변조 시연(저장하지 않음)", async () => {
+  const { id, uid, prerecordUid } = A.ponzi;
+  const ok = await aapi(A.base, "POST", `/api/report/${id}/verify`, {});
+  assert.equal(ok.status, 200);
+  assert.deepEqual([ok.body.verified, ok.body.hashMatch, ok.body.tamperDemo, ok.body.uid, ok.body.changedPaths], [true, true, false, uid, []]);
+  assert.equal(ok.body.fields.length, 7);
+  assert.deepEqual(ok.body.fields.filter(f => f.informational).map(f => f.name), ["scanTimestamp", "analyzerVersion"]);
+
+  const runsBefore = dirDigest(A.runsDir);
+  const protectedBefore = protectedDigest();
+  const reportBefore = (await aapi(A.base, "GET", `/api/report/${id}`)).body.report;
+
+  const t = await aapi(A.base, "POST", `/api/report/${id}/verify`, { tamper: { path: "trust.overall_trust_score", value: 50 } });
+  assert.equal(t.status, 200);
+  assert.deepEqual([t.body.verified, t.body.hashMatch, t.body.tamperDemo], [false, false, true]);
+  assert.deepEqual(t.body.changedPaths, ["trust.overall_trust_score"]);
+  assert.deepEqual(t.body.fields.filter(f => !f.match).map(f => [f.name, f.onChain, f.current]).filter(([n]) => n !== "reportHash"), [["trustScore", 49, 50]]);
+  origConsole.log(`  [tamper] verified=${t.body.verified} hashMatch=${t.body.hashMatch} changedPaths=${JSON.stringify(t.body.changedPaths)} ` +
+    `onChain=${t.body.onChainReportHash.slice(0, 10)} current=${t.body.currentReportHash.slice(0, 10)}`);
+
+  const ts = await aapi(A.base, "POST", `/api/report/${id}/verify`, { tamper: { path: "timestamp", value: "2030-01-01T00:00:00.000Z" } });
+  assert.deepEqual([ts.body.verified, ts.body.hashMatch, ts.body.tamperDemo], [true, true, true]);
+
+  // 변조는 저장되지 않는다: demo/runs, fixtures·analysis, 리포트, 기록 모두 그대로
+  assert.deepEqual(dirDigest(A.runsDir), runsBefore);
+  assert.deepEqual(protectedDigest(), protectedBefore);
+  assert.deepEqual((await aapi(A.base, "GET", `/api/report/${id}`)).body.report, reportBefore);
+  assert.equal((await aapi(A.base, "GET", `/api/report/${id}/attestation`)).body.uid, uid);
+  assert.equal((await aapi(A.base, "POST", `/api/report/${id}/verify`, {})).body.verified, true);
+
+  // 사전 기록 uid로도 검증 (같은 리포트 해시)
+  const old = await aapi(A.base, "POST", `/api/report/${id}/verify`, { uid: prerecordUid });
+  assert.deepEqual([old.body.verified, old.body.uid], [true, prerecordUid]);
+
+  const cases = [
+    [{ tamper: { path: "trust.nope", value: 1 } }, 400, "invalid_tamper_path"],
+    [{ tamper: { path: "trust.overall_trust_score", value: 999 } }, 400, "invalid_tamper"],
+    [{ tamper: "x" }, 400, "invalid_tamper"],
+    [{ uid: "0x1234" }, 400, "invalid_uid"],
+    [{ uid: `0x${"ab".repeat(32)}` }, 404, "attestation_not_found_onchain"],
+    [{ backend: "eas-sepolia" }, 409, "backend_unavailable"]
+  ];
+  for (const [body, statusCode, code] of cases) {
+    const r = await aapi(A.base, "POST", `/api/report/${id}/verify`, body);
+    assert.deepEqual([r.status, r.body.code], [statusCode, code], JSON.stringify(body));
+  }
+});
+
+test("온체인 기록: live 리포트는 기록 전 404, 기록 후 검증 일치, 입력 오류", async () => {
+  const post = await aapi(A.base, "POST", "/api/analyze", { scenario: "rugpull", mode: "auto" });
+  const { job } = await waitJob(A.base, post.body.jobId);
+  assert.equal(job.source, "live");
+  const id = job.reportId;
+  const before = await aapi(A.base, "GET", `/api/report/${id}/attestation`);
+  assert.deepEqual([before.status, before.body.code], [404, "attestation_not_found"]);
+  const nf = await aapi(A.base, "POST", `/api/report/${id}/verify`, {});
+  assert.deepEqual([nf.status, nf.body.code], [404, "attestation_not_found"]);
+  const done = await waitAttestJob(A.base, (await aapi(A.base, "POST", `/api/report/${id}/attest`, {})).body.attestJobId);
+  assert.deepEqual([done.status, done.reused, done.backend], ["done", false, "local"]);
+  assert.equal((await aapi(A.base, "POST", `/api/report/${id}/verify`, {})).body.verified, true);
+
+  const cases = [
+    [`/api/report/${id}/attest`, { backend: "nope" }, 400, "unknown_backend"],
+    [`/api/report/${id}/attest`, { backend: "eas-sepolia" }, 409, "backend_unavailable"],
+    ["/api/report/nope/attest", {}, 404, "report_not_found"],
+    [`/api/report/${id}/attest`, "{bad", 400, "invalid_json"]
+  ];
+  for (const [p, body, statusCode, code] of cases) {
+    const r = await aapi(A.base, "POST", p, body);
+    assert.deepEqual([r.status, r.body.code], [statusCode, code], p);
+  }
+  const nj = await aapi(A.base, "GET", "/api/attest-jobs/nope");
+  assert.deepEqual([nj.status, nj.body.code], [404, "attest_job_not_found"]);
+  const na = await aapi(A.base, "GET", "/api/report/nope/attestation");
+  assert.deepEqual([na.status, na.body.code], [404, "report_not_found"]);
+});
+
+test("온체인 기록: 체인 시작 실패 시 local 사용 불가, 나머지 API는 정상", async () => {
+  const rpcUrl = `http://127.0.0.1:${await freePort()}/${SECRET_TOKEN}`;
+  const F = await startAttest({ enabled: true, rpcUrl, hardhatCli: "/nonexistent/hardhat/cli.js", startTimeoutMs: 3000 });
+  const r = await F.app.attest.start();
+  assert.equal(r.available, false);
+  const { body: backends } = await aapi(F.base, "GET", "/api/attest/backends");
+  assert.equal(backends[0].available, false);
+  assert.match(backends[0].reason, /^사용 불가: hardhat 실행 파일을 찾을 수 없습니다/);
+  assert.equal((await aapi(F.base, "GET", "/api/health")).status, 200);
+  assert.equal((await aapi(F.base, "GET", "/api/scenarios")).body.length, 5);
+  const post = await aapi(F.base, "POST", "/api/analyze", { scenario: "normal", mode: "fixture" });
+  const { job } = await waitJob(F.base, post.body.jobId);
+  assert.equal(job.status, "done");
+  assert.equal((await aapi(F.base, "GET", `/api/report/${job.reportId}`)).status, 200);
+  const at = await aapi(F.base, "POST", `/api/report/${job.reportId}/attest`, {});
+  assert.deepEqual([at.status, at.body.code], [409, "backend_unavailable"]);
+  assert.deepEqual(Object.values((await aapi(F.base, "GET", "/api/fixtures/attestations")).body), [null, null, null, null, null]);
+  assert.equal((await aapi(F.base, "GET", `/api/report/${job.reportId}/attestation`)).status, 404);
+});
+
+test("온체인 기록: 응답·로그에 RPC 주소와 키가 없고, 종료하면 자식 노드가 정리됨", async () => {
+  for (const m of Object.keys(origConsole)) console[m] = origConsole[m];
+  const rpcHostPort = new URL(A.rpcUrl).host;
+  const haystack = [...seenBodies, ...seenLogs].join("\n");
+  for (const needle of [A.rpcUrl, rpcHostPort, SECRET_TOKEN, "Private Key", "PRIVATE_KEY", "Account #0"]) {
+    assert.ok(!haystack.includes(needle), `노출: ${needle}`);
+  }
+  assert.ok(seenBodies.length > 40, `수집한 응답 ${seenBodies.length}개`);
+  const pid = A.app.attest.chainPid;
+  assert.ok(pid && alive(pid));
+  await A.app.attest.stop();
+  for (let i = 0; i < 30 && alive(pid); i++) await new Promise(r => setTimeout(r, 100));
+  assert.equal(alive(pid), false);
 });
 
 test("analysis/logs, analysis/reports, demo/fixtures 해시가 그대로", () => {

@@ -8,6 +8,12 @@
 //   GET  /api/report/:id/canonical    { canonical, hash }
 //   GET  /api/report/:id/ontology     { nodes, links, highlight, meta }
 //   GET  /api/glossary                { [id]: { ko, desc, category } }
+//   GET  /api/attest/backends         [{ id, label, available, reason? }]
+//   POST /api/report/:id/attest       { backend: "local", force? } → 202 { attestJobId }
+//   GET  /api/attest-jobs/:id         { status, attestation, reused, error, ... }
+//   GET  /api/report/:id/attestation  기록 (없으면 404 attestation_not_found)
+//   POST /api/report/:id/verify       { uid?, tamper? } → { verified, hashMatch, fields, changedPaths, tamperDemo }
+//   GET  /api/fixtures/attestations   시나리오별 사전 기록
 // 오류는 { error, code } JSON.
 
 import fs from "fs";
@@ -22,6 +28,7 @@ import { GLOSSARY } from "../demo/lib/glossary.js";
 import { buildOntologyGraph } from "../demo/lib/ontologygraph.js";
 import { SCENARIO_LIST } from "./scenarios.js";
 import { JobQueue, publicJob } from "./jobs.js";
+import { AttestError, createAttestManager } from "./attest.js";
 
 const __dirname    = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, "..");
@@ -79,15 +86,32 @@ function fixturesAvailable() {
 
 // options.runsDir: 작업 결과 디렉터리 (기본 demo/runs), options.runOptions: runScenario 옵션 (시험용),
 // options.allowedOrigin: CORS 허용 출처 (기본 http://localhost:5173),
-// options.owlResults: owl_results.json 내용 (기본 ontology/owl_results.json을 읽음)
+// options.owlResults: owl_results.json 내용 (기본 ontology/owl_results.json을 읽음),
+// options.attest: 온체인 기록 설정 { enabled, rpcUrl, hardhatCli, nodeBin, startTimeoutMs, prerecord } (기본 꺼짐).
+//   켜면 반환값의 attest.start()로 로컬 체인을 시작한다(server/index.js가 호출).
 export function createApp(options = {}) {
   const {
     runsDir = DEFAULT_RUNS_DIR,
     runOptions = {},
     allowedOrigin = DEV_ORIGIN,
-    owlResults = loadOwlResults(OWL_RESULTS_PATH)
+    owlResults = loadOwlResults(OWL_RESULTS_PATH),
+    attest: attestOptions = { enabled: false }
   } = options;
   const queue = new JobQueue({ runsDir, runOptions });
+  const attest = createAttestManager({ options: attestOptions, projectRoot: PROJECT_ROOT, getJob: id => queue.get(id), loadReport });
+
+  // 본문이 없으면 {}. JSON 객체가 아니면 400.
+  async function readJsonObject(req) {
+    let body;
+    try {
+      body = JSON.parse(await readBody(req) || "{}");
+    } catch (err) {
+      if (err instanceof ApiError) throw err;
+      throw new ApiError(400, "invalid_json", "요청 본문이 JSON이 아님");
+    }
+    if (!body || typeof body !== "object" || Array.isArray(body)) throw new ApiError(400, "invalid_body", "요청 본문은 JSON 객체여야 함");
+    return body;
+  }
 
   function loadReport(id) {
     const job = queue.get(id);
@@ -162,6 +186,39 @@ export function createApp(options = {}) {
       return sendJson(res, 200, publicJob(job));
     }
 
+    if (resource === "attest" && id === "backends" && parts.length === 3) {
+      allow("GET");
+      return sendJson(res, 200, attest.backends());
+    }
+
+    if (resource === "attest-jobs" && id && parts.length === 3) {
+      allow("GET");
+      return sendJson(res, 200, attest.job(id));
+    }
+
+    if (resource === "fixtures" && id === "attestations" && parts.length === 3) {
+      allow("GET");
+      return sendJson(res, 200, attest.fixtureAttestations());
+    }
+
+    if (resource === "report" && id && parts.length === 4 && sub === "attest") {
+      allow("POST");
+      const body = await readJsonObject(req);
+      const job = attest.submit(id, { backend: body.backend ?? "local", force: body.force === true });
+      return sendJson(res, 202, { attestJobId: job.id });
+    }
+
+    if (resource === "report" && id && parts.length === 4 && sub === "attestation") {
+      allow("GET");
+      return sendJson(res, 200, attest.attestation(id));
+    }
+
+    if (resource === "report" && id && parts.length === 4 && sub === "verify") {
+      allow("POST");
+      const body = await readJsonObject(req);
+      return sendJson(res, 200, await attest.verify(id, body));
+    }
+
     if (resource === "report" && id && parts.length <= 4) {
       allow("GET");
       const { report, envelope, csvText } = loadReport(id);
@@ -196,11 +253,13 @@ export function createApp(options = {}) {
     try {
       await route(req, res, new URL(req.url, "http://localhost"));
     } catch (err) {
-      if (err instanceof ApiError) return sendJson(res, err.status, { error: err.message, code: err.code });
-      console.error(err);
-      sendJson(res, 500, { error: err.message, code: "internal_error" });
+      if (err instanceof ApiError || err instanceof AttestError) {
+        return sendJson(res, err.status, { error: attest.redact(err.message), code: err.code });
+      }
+      console.error(attest.redact(err?.stack ?? err));
+      sendJson(res, 500, { error: attest.redact(err.message), code: "internal_error" });
     }
   });
 
-  return { server, queue };
+  return { server, queue, attest };
 }

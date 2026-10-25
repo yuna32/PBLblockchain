@@ -19,7 +19,7 @@
     "run:scenario": "node scenarios/run_scenario.js",
     "run:all": "node scenarios/run_all_scenarios.js",
     "metrics": "node scenarios/run_all_scenarios.js",
-    "demo:server": "node server/index.js",
+    "demo:server": "node --env-file-if-exists=.env server/index.js",
     "demo:ui": "npm --prefix dashboard run dev"
   },
   "devDependencies": {

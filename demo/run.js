@@ -55,6 +55,14 @@ export function checkNode(nodeBin) {
   return { ok, version, message };
 }
 
+// 하위 프로세스(hardhat)에 넘기지 않을 환경변수: 키, 니모닉, RPC, 온체인 기록 설정.
+// 서버를 .env로 띄울 때 이 값들이 시뮬레이션 프로세스로 새지 않게 한다.
+export const SECRET_ENV_PATTERN = /PRIVATE_KEY|MNEMONIC|RPC|EAS_|DEMO_ATTEST_/i;
+
+export function sanitizeEnv(env) {
+  return Object.fromEntries(Object.entries(env).filter(([name]) => !SECRET_ENV_PATTERN.test(name)));
+}
+
 function runHardhat(nodeBin, script, env, timeoutMs) {
   return new Promise(resolve => {
     const child = spawn(nodeBin, [hardhatCli(), "run", script], { cwd: PROJECT_ROOT, env });
@@ -98,7 +106,7 @@ export async function runScenario(name, outDir, options = {}) {
   if (!node.ok) {
     liveError = node.message;
   } else {
-    const env = { ...process.env, DEMO_LOG_DIR: outDir, DEMO_SEED: seed };
+    const env = { ...sanitizeEnv(process.env), DEMO_LOG_DIR: outDir, DEMO_SEED: seed };
     const r = await runHardhat(nodeBin, spec.script, env, timeoutMs);
     if (r.timedOut) liveError = `시뮬레이션 시간 초과 (${timeoutMs} ms)`;
     else if (r.code !== 0) liveError = `시뮬레이션 비정상 종료 (code ${r.code}):\n${tail(r.output)}`;
