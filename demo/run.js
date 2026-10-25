@@ -74,6 +74,7 @@ function tail(text, n = 5) {
 
 // options.seed: DEMO_SEED (기본 DEFAULT_SEED), options.nodeBin: 시뮬레이션에 쓸 node (기본 현재 프로세스),
 // options.timeoutMs: 시뮬레이션 제한 시간, options.allowFallback: false면 시뮬레이션 실패 시 오류를 던진다.
+// options.onStage(stage, info): 단계가 바뀔 때 호출 ("simulate" → "analyze" → "hash"). analyze/hash에는 { source }.
 export async function runScenario(name, outDir, options = {}) {
   const spec = SCENARIOS[name];
   if (!spec) throw new Error(`알 수 없는 시나리오: ${name} (가능한 값: ${Object.keys(SCENARIOS).join(", ")})`);
@@ -81,7 +82,8 @@ export async function runScenario(name, outDir, options = {}) {
     seed = DEFAULT_SEED,
     nodeBin = process.execPath,
     timeoutMs = 60000,
-    allowFallback = true
+    allowFallback = true,
+    onStage = () => {}
   } = options;
 
   outDir = path.resolve(outDir);
@@ -90,6 +92,7 @@ export async function runScenario(name, outDir, options = {}) {
   fs.rmSync(csvPath, { force: true });
 
   // ── 1. 시뮬레이션 (live) ──
+  onStage("simulate", {});
   let liveError = null;
   const node = checkNode(nodeBin);
   if (!node.ok) {
@@ -121,9 +124,11 @@ export async function runScenario(name, outDir, options = {}) {
   }
 
   // ── 3. 분석과 envelope ──
+  onStage("analyze", { source });
   const { report, solPath } = await buildReport(spec.contract, { csvPath });
   const csvText = fs.readFileSync(csvPath, "utf8");
   const solText = fs.readFileSync(solPath, "utf8");
+  onStage("hash", { source });
   const envelope = buildEnvelope({
     scenario: name,
     contract: spec.contract,
