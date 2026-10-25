@@ -6,6 +6,8 @@
 //   GET  /api/report/:id              { report, envelope, view }
 //   GET  /api/report/:id/timeseries   거래 행 배열
 //   GET  /api/report/:id/canonical    { canonical, hash }
+//   GET  /api/report/:id/ontology     { nodes, links, highlight, meta }
+//   GET  /api/glossary                { [id]: { ko, desc, category } }
 // 오류는 { error, code } JSON.
 
 import fs from "fs";
@@ -16,6 +18,8 @@ import { SCENARIOS, FIXTURES_DIR, checkNode } from "../demo/run.js";
 import { canonicalize, hashableReport, sha256Hex } from "../demo/lib/canonical.js";
 import { toTimeseries } from "../demo/lib/timeseries.js";
 import { buildViewModel } from "../demo/lib/viewmodel.js";
+import { GLOSSARY } from "../demo/lib/glossary.js";
+import { buildOntologyGraph } from "../demo/lib/ontologygraph.js";
 import { SCENARIO_LIST } from "./scenarios.js";
 import { JobQueue, publicJob } from "./jobs.js";
 
@@ -23,6 +27,16 @@ const __dirname    = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, "..");
 export const DEFAULT_RUNS_DIR = path.join(PROJECT_ROOT, "demo", "runs");
 export const DEV_ORIGIN = "http://localhost:5173";
+export const OWL_RESULTS_PATH = path.join(PROJECT_ROOT, "ontology", "owl_results.json");
+
+// 온톨로지 그래프 meta.owlInferred용 참고 자료. 없거나 읽을 수 없으면 null.
+function loadOwlResults(file) {
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch {
+    return null;
+  }
+}
 
 const MODES = new Set(["auto", "fixture"]);
 const MAX_BODY_BYTES = 64 * 1024;
@@ -64,12 +78,14 @@ function fixturesAvailable() {
 }
 
 // options.runsDir: 작업 결과 디렉터리 (기본 demo/runs), options.runOptions: runScenario 옵션 (시험용),
-// options.allowedOrigin: CORS 허용 출처 (기본 http://localhost:5173)
+// options.allowedOrigin: CORS 허용 출처 (기본 http://localhost:5173),
+// options.owlResults: owl_results.json 내용 (기본 ontology/owl_results.json을 읽음)
 export function createApp(options = {}) {
   const {
     runsDir = DEFAULT_RUNS_DIR,
     runOptions = {},
-    allowedOrigin = DEV_ORIGIN
+    allowedOrigin = DEV_ORIGIN,
+    owlResults = loadOwlResults(OWL_RESULTS_PATH)
   } = options;
   const queue = new JobQueue({ runsDir, runOptions });
 
@@ -109,6 +125,11 @@ export function createApp(options = {}) {
     if (resource === "scenarios" && parts.length === 2) {
       allow("GET");
       return sendJson(res, 200, SCENARIO_LIST);
+    }
+
+    if (resource === "glossary" && parts.length === 2) {
+      allow("GET");
+      return sendJson(res, 200, GLOSSARY);
     }
 
     if (resource === "analyze" && parts.length === 2) {
@@ -153,6 +174,7 @@ export function createApp(options = {}) {
         const canonical = canonicalize(hashableReport(report));
         return sendJson(res, 200, { canonical, hash: sha256Hex(canonical) });
       }
+      if (sub === "ontology") return sendJson(res, 200, buildOntologyGraph(report, { owlResults }));
     }
 
     throw new ApiError(404, "not_found", `경로 없음: ${url.pathname}`);

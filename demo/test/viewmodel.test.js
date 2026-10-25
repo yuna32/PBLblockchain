@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { buildViewModel, EXTRACTOR_PROFIT_RATIO, DISCLAIMER } from "../lib/viewmodel.js";
+import { buildViewModel, EXTRACTOR_PROFIT_RATIO, DISCLAIMER, HEADLINE_TEMPLATES, HEADLINE_PAGES } from "../lib/viewmodel.js";
 import { toTimeseries } from "../lib/timeseries.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -116,4 +116,73 @@ test("unclassified_warning·코드 패턴 경고는 detected: true로 표시, on
 test("toTimeseries: CRLF 제거, 숫자 열은 숫자", () => {
   const rows = toTimeseries("block,timestamp,from,to,action,amount_eth,contract_balance_eth,participant_count\r\n4,100,0xa,0xb,deposit,1.000,1,1\r\n");
   assert.deepEqual(rows, [{ block: 4, timestamp: 100, from: "0xa", to: "0xb", action: "deposit", amount_eth: 1, contract_balance_eth: 1, participant_count: 1 }]);
+});
+
+// ── headline / combination (3a) ──
+const TONES = { normal: "safe", ponzi: "danger", rugpull: "danger", laundering: "danger", pumpdump: "danger" };
+for (const [name, tone] of Object.entries(TONES)) {
+  test(`headline ${name}: tone ${tone}, 근거는 실제 값, 단정하지 않는 표현`, () => {
+    const input = load(name);
+    const v = buildViewModel(input);
+    const h = v.headline;
+    assert.equal(h.tone, tone);
+    assert.match(h.text, /(가능성이 높습니다|감지되었습니다|감지되지 않았습니다)\.$/);
+    assert.ok(h.reasons.length >= 1 && h.reasons.length <= 4);
+    for (const r of h.reasons) {
+      assert.ok(HEADLINE_PAGES.includes(r.page), r.page);
+      assert.ok(r.label && r.detail);
+    }
+    const labels = h.reasons.map(r => r.label);
+    const onset = v.phase.onset;
+    if (onset) assert.equal(labels[0], `첫 출금 블록 ${onset.block}`);
+    else assert.ok(!labels.some(l => l.startsWith("첫 출금")), "onset이 없으면 첫 출금 근거 생략");
+    assert.ok(labels.includes(`최저 지갑 등급 ${v.walletAssessment.lowestWallet.grade}`));
+    const wallet = h.reasons.find(r => r.page === "trust");
+    assert.match(wallet.detail, new RegExp(`drainer\\) ${v.walletAssessment.drainerCount}개`));
+    assert.match(wallet.detail, new RegExp(`extractor\\) ${v.walletAssessment.extractorCount}개`));
+    assert.ok(v.combination && v.combination.label);
+  });
+}
+
+test("headline 템플릿: 모든 문장이 ~습니다 체", () => {
+  for (const t of Object.values(HEADLINE_TEMPLATES)) assert.match(t, /니다\.$/);
+});
+
+test("headline: 경고가 감지되면 caution이고 경고가 첫 근거", () => {
+  const { report, rows } = load("normal");
+  report.dynamic.fraud_type_hint = "unclassified_warning";
+  report.dynamic.withdraw_block_warning = { detected: true, reason: "비오너 출금 5건 중 성공률 0.0% <= 5%" };
+  const h = buildViewModel({ report, envelope: null, rows }).headline;
+  assert.equal(h.tone, "caution");
+  assert.equal(h.text, HEADLINE_TEMPLATES.unclassified_warning);
+  assert.equal(h.reasons[0].label, "출금 차단 경고 (거래)");
+  assert.match(h.reasons[0].detail, /성공률 0\.0%/);
+});
+
+test("headline 우선순위: 첫 출금 → 회피 패턴 → 지갑 → 코드 (ponzi·pumpdump는 회피 패턴 포함)", () => {
+  const EXPECTED_PAGES = {
+    normal:     ["trust", "report"],
+    ponzi:      ["trade", "ontology", "trust", "report"],
+    rugpull:    ["trade", "trust", "report"],
+    laundering: ["trade", "trust", "report"],
+    pumpdump:   ["trade", "ontology", "trust", "report"]
+  };
+  for (const [name, pages] of Object.entries(EXPECTED_PAGES)) {
+    const h = buildViewModel(load(name)).headline;
+    assert.deepEqual(h.reasons.map(r => r.page), pages, name);
+  }
+  assert.equal(buildViewModel(load("ponzi")).headline.reasons[1].label, "회피 패턴: 최대 거래 회피형");
+  assert.match(buildViewModel(load("pumpdump")).headline.reasons[1].detail, /PumpDump_MaxTxEvasion/);
+});
+
+test("headline: 최대 4개, 근거 없는 항목은 생략", () => {
+  const { report, rows } = load("ponzi");
+  report.dynamic.withdraw_block_warning = { detected: true, reason: "테스트 경고" };
+  const full = buildViewModel({ report, envelope: null, rows }).headline;
+  assert.equal(full.reasons.length, 4);
+  assert.deepEqual(full.reasons.map(r => r.page), ["report", "trade", "ontology", "trust"], "경고가 먼저, 코드 위험은 잘림");
+  const sparse = load("ponzi");
+  sparse.report.prevention.risk_level = undefined;
+  sparse.report.trust.wallet_scores = [];
+  assert.deepEqual(buildViewModel({ ...sparse, envelope: null }).headline.reasons.map(r => r.page), ["trade", "ontology"]);
 });

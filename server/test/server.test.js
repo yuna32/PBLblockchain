@@ -103,7 +103,7 @@ test("잘못된 입력 400, 없는 id 404, 그 밖의 오류 형식", async () =
   }
   const missingJob = await api(base, "GET", "/api/jobs/00000000-0000-0000-0000-000000000000");
   assert.deepEqual([missingJob.status, missingJob.body.code], [404, "job_not_found"]);
-  for (const p of ["/api/report/nope", "/api/report/nope/timeseries", "/api/report/nope/canonical"]) {
+  for (const p of ["/api/report/nope", "/api/report/nope/timeseries", "/api/report/nope/canonical", "/api/report/nope/ontology"]) {
     const r = await api(base, "GET", p);
     assert.deepEqual([r.status, r.body.code], [404, "report_not_found"], p);
   }
@@ -198,7 +198,9 @@ test("report / timeseries / canonical 응답 구조", async () => {
   assert.equal(r.body.report.contract, "PumpDump");
   assert.ok("overall_grade" in r.body.report, "원본 리포트는 그대로");
   assert.ok(!("overall_grade" in r.body.view));
-  assert.deepEqual(Object.keys(r.body.view), ["scenario", "contract", "source", "reportHash", "codeAssessment", "walletAssessment", "warnings", "patterns", "phase", "disclaimer"]);
+  assert.deepEqual(Object.keys(r.body.view), ["scenario", "contract", "source", "reportHash", "codeAssessment", "walletAssessment", "warnings", "patterns", "phase", "disclaimer", "headline", "combination"]);
+  assert.deepEqual(Object.keys(r.body.view.headline), ["tone", "text", "reasons"]);
+  assert.deepEqual(Object.keys(r.body.view.combination), ["codeRisk", "walletRisk", "quadrant", "label", "basis", "criteriaNote"]);
   assert.equal(r.body.view.walletAssessment.extractorCount, 3);
   assert.equal(r.body.view.phase.onset.block, 23);
 
@@ -216,6 +218,47 @@ test("report / timeseries / canonical 응답 구조", async () => {
   assert.equal(c.body.hash, r.body.envelope.report_sha256);
   assert.equal(crypto.createHash("sha256").update(c.body.canonical).digest("hex"), c.body.hash);
   assert.ok(!c.body.canonical.includes('"timestamp":"20'), "리포트 timestamp는 canonical에서 빠짐");
+});
+
+test("GET /api/glossary: fixture 5개의 모든 ID 포함", async () => {
+  const { status, body } = await api(base, "GET", "/api/glossary");
+  assert.equal(status, 200);
+  const { collectTerms } = await import("../../demo/lib/glossary.js");
+  const missing = [];
+  for (const name of ["normal", "ponzi", "rugpull", "laundering", "pumpdump"]) {
+    const report = JSON.parse(fs.readFileSync(path.join(ROOT, "demo/fixtures", name, "report.json"), "utf8"));
+    for (const id of collectTerms(report)) if (!body[id]?.ko || !body[id]?.desc) missing.push(`${name}:${id}`);
+  }
+  assert.deepEqual(missing, []);
+  console.log(`  [glossary] 항목 ${Object.keys(body).length}개, 누락 ${missing.length}건`);
+});
+
+test("5개 시나리오: view.headline·combination, /ontology 응답 (mode=fixture)", async () => {
+  const rows = [];
+  for (const scenario of ["normal", "ponzi", "rugpull", "laundering", "pumpdump"]) {
+    const post = await api(base, "POST", "/api/analyze", { scenario, mode: "fixture" });
+    const { job } = await waitJob(base, post.body.jobId);
+    assert.equal(job.status, "done");
+    const { body: { view } } = await api(base, "GET", `/api/report/${job.reportId}`);
+    const o = await api(base, "GET", `/api/report/${job.reportId}/ontology`);
+    assert.equal(o.status, 200);
+    assert.deepEqual(Object.keys(o.body), ["nodes", "links", "highlight", "meta"]);
+    assert.equal(o.body.meta.owlMismatch, null);
+    assert.ok(Array.isArray(o.body.meta.owlInferred));
+    assert.equal(view.combination.quadrant, scenario === "normal" ? "low-low" : "high-high");
+    rows.push({
+      scenario,
+      tone: view.headline.tone,
+      text: view.headline.text,
+      reasons: view.headline.reasons.map(r => `${r.label}[${r.page}]`).join(" / "),
+      combination: `${view.combination.codeRisk}/${view.combination.walletRisk} ${view.combination.label}`,
+      nodes: `${o.body.nodes.length} (active ${o.body.nodes.filter(n => n.active).length})`,
+      links: `${o.body.links.length} (active ${o.body.links.filter(l => l.active).length})`,
+      paths: o.body.highlight.path.length,
+      owl: o.body.meta.owlInferred.join(",") || "[]"
+    });
+  }
+  console.log("  [summary] " + JSON.stringify(rows));
 });
 
 test("analysis/logs, analysis/reports, demo/fixtures 해시가 그대로", () => {
