@@ -18,16 +18,43 @@ export const BACKEND_NAMES = { local: "로컬 시연 체인", "eas-sepolia": "EA
 // 서버가 로컬 체인을 띄우는 동안 local 백엔드의 reason (demo/lib/attest/index.js)
 export const STARTING_REASON = "시작 중";
 
-// GET /api/attest/backends → 화면용 선택지
+// 방식·리포트별 상태 키
+export const recordKey = (backend, reportId) => `${backend}:${reportId}`;
+
+// GET /api/attest/backends → 화면용 선택지.
+// mode: readwrite | readonly (local은 항상 readwrite). note: 사용 가능하지만 확인이 필요한 점(RPC 연결 실패, 스키마 미등록 등)
 export function backendOptions(backends) {
-  return (backends ?? []).map(b => ({
-    id: b.id,
-    label: BACKEND_NAMES[b.id] ?? b.label ?? b.id,
-    available: b.available === true,
-    starting: b.available !== true && b.reason === STARTING_REASON,
-    reason: b.available === true ? null : b.reason ?? null,
-    chainId: b.chainId ?? null
-  }));
+  return (backends ?? []).map(b => {
+    const available = b.available === true;
+    const mode = available ? b.mode ?? "readwrite" : null;
+    let note = null;
+    if (available && b.reason) note = b.reason;
+    else if (available && b.schemaRegistered === false) note = "스키마가 아직 등록되지 않았습니다 (npm run demo:eas:register).";
+    return {
+      id: b.id,
+      label: BACKEND_NAMES[b.id] ?? b.label ?? b.id,
+      available,
+      starting: !available && b.reason === STARTING_REASON,
+      reason: available ? null : b.reason ?? null,
+      chainId: b.chainId ?? null,
+      mode,
+      explorerBase: b.explorerBase ?? null,
+      explorerUrlVerified: b.explorerUrlVerified ?? null,
+      prerecorded: b.prerecorded ?? null,
+      prerecordedStale: b.prerecordedStale ?? 0,
+      note
+    };
+  });
+}
+
+// 기록의 탐색기 링크. local은 없음. attestation 경로 형식은 문서로 확인하지 못해 verified=false로 온다.
+export function explorerLinks(record) {
+  if (!record?.explorerUrl) return null;
+  return {
+    attestation: record.explorerUrl,
+    verified: record.meta?.explorerUrlVerified ?? null,
+    schema: record.meta?.schemaUrl ?? null
+  };
 }
 
 // 기록 조회 계획. 서버는 fixture 모드 리포트만 사전 기록과 연결하므로(server/attest.js recordFor)
@@ -42,8 +69,8 @@ export function lookupPlan({ mode, localReady, prerecord = "present" }) {
   return prerecord === "present" ? "fetch" : prerecord === "pending" ? "wait" : "none";
 }
 
-// 현재 리포트의 온체인 상태 하나로 정리한다.
-// offline | checking | starting | unavailable | none | running | recorded | prerecorded | error
+// 현재 리포트의 온체인 상태 하나로 정리한다. local: 선택한 방식의 backendOptions() 항목.
+// offline | checking | starting | unavailable | readonly | none | running | recorded | prerecorded | error
 export function attestPhase({ online = true, local = null, entry = null, job = null } = {}) {
   if (job && (job.status === "queued" || job.status === "running")) return "running";
   if (entry?.record) return entry.record.prerecorded ? "prerecorded" : "recorded";
@@ -54,6 +81,7 @@ export function attestPhase({ online = true, local = null, entry = null, job = n
   if (!local.available) return "unavailable";
   if (!entry || entry.status === "loading") return "checking";
   if (entry.status === "error") return "error";
+  if (local.mode === "readonly") return "readonly";
   return "none";
 }
 
@@ -62,6 +90,7 @@ export const PHASE_LABELS = {
   checking: "확인 중",
   starting: "체인 시작 중",
   unavailable: "사용 불가",
+  readonly: "기록 불가 (읽기 전용)",
   none: "기록 전",
   running: "기록 중",
   recorded: "기록됨",
@@ -77,19 +106,23 @@ export function onchainFlowState(phase) {
     case "prerecorded": return { state: "done", sub: "완료 (사전 기록)" };
     case "error": return { state: "error", sub: "기록 실패" };
     case "unavailable": return { state: "disabled", sub: "사용 불가" };
+    case "readonly": return { state: "disabled", sub: "읽기 전용" };
     default: return { state: "pending", sub: PHASE_LABELS[phase] ?? "기록 전" };
   }
 }
 
-// 개요 요약 띠의 온체인 배지
-export function onchainBadge(phase) {
+// 개요 요약 띠의 온체인 배지. chainName: 선택한 방식의 짧은 이름(기본 "로컬 체인")
+export function onchainBadge(phase, chainName = "로컬 체인") {
   if (phase === "recorded" || phase === "prerecorded") {
     return { tone: "primary", label: "온체인 기록됨", extra: phase === "prerecorded" ? "사전 기록" : null };
   }
   if (phase === "running") return { tone: "neutral", label: "기록 중", extra: null };
   if (phase === "error") return { tone: "danger", label: "기록 실패", extra: null };
-  return { tone: "neutral", label: "기록 전", extra: phase === "unavailable" ? "로컬 체인 사용 불가" : phase === "offline" ? "서버 끊김" : null };
+  const extra = phase === "unavailable" ? `${chainName} 사용 불가` : phase === "offline" ? "서버 끊김" : phase === "readonly" ? "읽기 전용" : null;
+  return { tone: "neutral", label: "기록 전", extra };
 }
+
+export const CHAIN_SHORT_NAMES = { local: "로컬 체인", "eas-sepolia": "Sepolia" };
 
 // 마지막 검증 결과 요약 (개요 배지 옆)
 export function verifySummary(entry) {

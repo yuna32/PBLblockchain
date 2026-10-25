@@ -6,7 +6,7 @@ import { useApp } from "../state/AppContext.jsx";
 import { useAttest } from "../state/AttestContext.jsx";
 import { Badge, Card, Collapsible, EstimateTag, ICON, ReportGate, Segmented, StatusView, Term } from "../components/ui.jsx";
 import { SourceBadge } from "../components/SidePanel.jsx";
-import { attestError, BACKEND_NAMES, PHASE_LABELS, payloadRows, recordRows, tamperPresets, verifyView } from "../lib/attest.js";
+import { attestError, BACKEND_NAMES, explorerLinks, PHASE_LABELS, payloadRows, recordRows, tamperPresets, verifyView } from "../lib/attest.js";
 import { fmtDateTime, shortMiddle } from "../lib/format.js";
 
 export default function Report() {
@@ -90,15 +90,15 @@ function ReportBody({ data }) {
 // ── 온체인 기록 ──
 function AttestCard({ reportId }) {
   const { health } = useApp();
-  const { options, local, records, jobs, attest, phaseOf } = useAttest();
-  const [backend, setBackend] = useState("local");
+  const { options, selected, backendId, selectBackend, entryOf, jobOf, attest, phaseOf } = useAttest();
   const phase = phaseOf(reportId);
-  const record = records[reportId]?.record ?? null;
-  const job = jobs[reportId];
+  const entry = entryOf(reportId);
+  const record = entry?.record ?? null;
+  const job = jobOf(reportId);
   const running = phase === "running";
-  const selected = options.find(o => o.id === backend);
-  const canRecord = health.state === "up" && Boolean(selected?.available) && !running;
-  const unavailableOthers = options.filter(o => !o.available && o.id !== "local");
+  const readonly = selected?.mode === "readonly";
+  const canRecord = health.state === "up" && Boolean(selected?.available) && !readonly && !running;
+  const otherNotes = options.filter(o => !o.available && o.id !== "local");
 
   return (
     <Card title="온체인 기록" aside={<PhaseBadge phase={phase} />} className="attest-card">
@@ -107,46 +107,52 @@ function AttestCard({ reportId }) {
         체인에 남은 값은 나중에 고칠 수 없어서, 이 분석 결과가 언제 어떤 내용이었는지 보여 주는 기준이 됩니다.
         검증은 체인에 기록된 값을 다시 읽어 지금 리포트에서 계산한 해시·수치와 같은지 비교합니다.
         해시가 다르면 기록한 뒤 리포트 내용이 바뀌었다는 뜻입니다.
+        로컬 시연 체인은 서버를 켤 때마다 새로 만들어져 기록이 사라지지만, 공개 테스트넷(Sepolia)에 남긴 기록은 지울 수 없고 누구나 탐색기에서 볼 수 있습니다.
       </p>
       <div className="notice notice-sm">
         <Info {...ICON} size={16} />
-        <span>시연 환경에서는 매번 새로 시작하는 로컬 체인에 기록하며, 모든 시나리오가 같은 컨트랙트 주소(새 체인의 첫 배포 주소)를 씁니다. 시나리오는 리포트 해시로 구분됩니다.</span>
+        {backendId === "local"
+          ? <span>시연 환경에서는 매번 새로 시작하는 로컬 체인에 기록하며, 모든 시나리오가 같은 컨트랙트 주소(새 체인의 첫 배포 주소)를 씁니다. 시나리오는 리포트 해시로 구분됩니다.</span>
+          : <span>Sepolia 기록은 영구적입니다. fixture 리포트가 기록 뒤에 바뀌면 체인의 리포트 해시와 달라 검증이 불일치로 나옵니다(npm run demo:eas:check로 확인).</span>}
       </div>
 
       <div className="attest-controls">
         <div className="attest-backend">
           <span className="field-label">기록 방식</span>
           {options.length ? (
-            <Segmented size="sm" value={backend} onChange={setBackend}
+            <Segmented size="sm" value={backendId} onChange={selectBackend}
               options={options.map(o => ({ value: o.id, label: backendLabel(o), disabled: !o.available }))} />
           ) : <span className="muted small">{health.state === "up" ? "불러오는 중" : "서버 연결 필요"}</span>}
         </div>
         <button type="button" className={`btn ${record ? "btn-secondary btn-md" : "btn-primary"}`} disabled={!canRecord}
-          onClick={() => attest(reportId, { backend, force: Boolean(record) })}
-          title={record ? "같은 리포트를 새 UID로 한 번 더 기록합니다" : undefined}>
+          onClick={() => attest(reportId, { backend: backendId, force: Boolean(record) })}
+          title={readonly ? "읽기 전용: 기록용 키가 없습니다" : record ? "같은 리포트를 새 UID로 한 번 더 기록합니다" : undefined}>
           {running ? <LoaderCircle {...ICON} size={16} className="spin" /> : <FileCheck {...ICON} size={16} />}
           {running ? "기록 중" : record ? "다시 기록(새 UID)" : "온체인에 기록"}
         </button>
       </div>
-      {unavailableOthers.map(o => (
-        <p key={o.id} className="muted small backend-note">{o.label}: 준비 중 · {o.reason}</p>
+      {readonly && <p className="muted small backend-note">기록 불가 · 조회/검증만 — 서버에 기록용 키(DEMO_EAS_PRIVATE_KEY)가 없어 읽기 전용입니다.</p>}
+      {selected?.note && <p className="small backend-note text-caution">{selected.note}</p>}
+      {otherNotes.map(o => (
+        <p key={o.id} className="muted small backend-note">{o.label}: {o.reason}</p>
       ))}
 
       {phase === "offline" && <StatusView kind="down" title="시연 API 서버에 연결할 수 없습니다" detail="WSL에서 npm run demo:server를 실행한 뒤 새로고침하세요." />}
       {phase === "starting" && <StatusView kind="loading" title="로컬 시연 체인을 시작하는 중입니다" detail="hardhat node를 띄우고 사전 기록을 마치면 기록할 수 있습니다." />}
-      {phase === "unavailable" && <StatusView kind="error" title="로컬 시연 체인을 쓸 수 없습니다" detail={local?.reason} />}
+      {phase === "unavailable" && <StatusView kind="error" title={`${selected?.label ?? "이 기록 방식"}을(를) 쓸 수 없습니다`} detail={selected?.reason} />}
       {running && <AttestProgress job={job} />}
       {job?.status === "error" && job.failure && <StatusView kind="error" {...attestError(job.failure, "기록하지 못했습니다")} />}
-      {records[reportId]?.status === "error" && !record && <StatusView kind="error" {...attestError(records[reportId].error, "기록 정보를 불러오지 못했습니다")} />}
+      {entry?.status === "error" && !record && <StatusView kind="error" {...attestError(entry.error, "기록 정보를 불러오지 못했습니다")} />}
       {record && <RecordDetails record={record} reused={job?.status === "done" && job.reused} />}
     </Card>
   );
 }
 
-// local은 이번 서버에서 쓸 수 없을 때 "사용 불가", 나머지(eas-sepolia)는 아직 구현 전이라 "준비 중"
+// 쓸 수 없으면 local은 "사용 불가", eas-sepolia는 설정이 없으면 "미설정". 읽기 전용이면 "조회/검증만".
 function backendLabel(o) {
-  if (o.available || o.starting) return o.label;
-  return `${o.label} · ${o.id === "local" ? "사용 불가" : "준비 중"}`;
+  if (o.starting) return o.label;
+  if (o.available) return o.mode === "readonly" ? `${o.label} · 조회/검증만` : o.label;
+  return `${o.label} · ${o.id !== "local" && String(o.reason).startsWith("미설정") ? "미설정" : "사용 불가"}`;
 }
 
 function PhaseBadge({ phase }) {
@@ -181,12 +187,14 @@ function AttestProgress({ job }) {
 
 function RecordDetails({ record, reused }) {
   const { glossary } = useApp();
+  const links = explorerLinks(record);
   return (
     <div className="record">
       <div className="record-head">
         <ShieldCheck {...ICON} size={18} />
         <strong>기록 카드</strong>
-        {record.prerecorded && <Badge tone="neutral" title="서버가 시작할 때 사전 생성본 리포트를 미리 기록했습니다">사전 기록</Badge>}
+        {record.prerecorded && <Badge tone="neutral" title={record.backend === "local" ? "서버가 시작할 때 사전 생성본 리포트를 미리 기록했습니다" : "demo:eas:record-fixtures로 미리 기록한 것입니다"}>사전 기록</Badge>}
+        {record.stale && <Badge tone="caution" title="이 기록 뒤에 fixture 리포트가 바뀌어 리포트 해시가 다릅니다 (npm run demo:eas:check)">fixture와 해시 다름</Badge>}
         {reused && <Badge tone="neutral" title="같은 리포트의 기존 기록을 그대로 돌려받았습니다">기존 기록</Badge>}
         <span className="record-meta muted small num">{BACKEND_NAMES[record.backend] ?? record.backend} · {fmtDateTime(record.recordedAt)}</span>
       </div>
@@ -218,10 +226,22 @@ function RecordDetails({ record, reused }) {
           </ul>
         </div>
       </div>
-      {record.explorerUrl && (
-        <a className="link" href={record.explorerUrl} target="_blank" rel="noreferrer">
-          탐색기에서 보기 <ExternalLink {...ICON} size={14} />
-        </a>
+      {links && (
+        <div className="explorer-links">
+          <a className="link" href={links.attestation} target="_blank" rel="noreferrer">
+            탐색기에서 기록 보기 <ExternalLink {...ICON} size={14} />
+          </a>
+          {links.verified === false && (
+            <span title="탐색기의 기록 화면 경로(/attestation/view/<uid>)는 문서로 확인하지 못한 추정 형식입니다. 열리지 않으면 탐색기에서 UID로 검색하세요.">
+              <EstimateTag>형식 미확인</EstimateTag>
+            </span>
+          )}
+          {links.schema && (
+            <a className="link" href={links.schema} target="_blank" rel="noreferrer">
+              스키마 보기 <ExternalLink {...ICON} size={14} />
+            </a>
+          )}
+        </div>
       )}
     </div>
   );
@@ -230,21 +250,21 @@ function RecordDetails({ record, reused }) {
 // ── 검증과 변조 시연 ──
 function VerifyCard({ reportId, report }) {
   const { health, glossary } = useApp();
-  const { local, verifies, verify, phaseOf } = useAttest();
+  const { selected, backendId, verifyOf, verify, phaseOf } = useAttest();
   const [open, setOpen] = useState(false);
   const resultRef = useRef(null);
-  const entry = verifies[reportId];
+  const entry = verifyOf(reportId);
   const phase = phaseOf(reportId);
   const hasRecord = phase === "recorded" || phase === "prerecorded";
   const running = entry?.status === "running";
-  const canVerify = hasRecord && !running && health.state === "up" && local?.available === true;
+  const canVerify = hasRecord && !running && health.state === "up" && selected?.available === true;
   const view = entry?.status === "done" ? verifyView(entry.result, glossary) : null;
   const presets = useMemo(() => tamperPresets(report, glossary), [report, glossary]);
   const tamperFailed = entry?.status === "error" && entry.tamper;
   const ToggleIcon = open ? ChevronDown : ChevronRight;
 
   const runTamper = async preset => {
-    await verify(reportId, { tamper: { path: preset.path, value: preset.value } });
+    await verify(reportId, { backend: backendId, tamper: { path: preset.path, value: preset.value } });
     resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
@@ -252,12 +272,13 @@ function VerifyCard({ reportId, report }) {
     <Card title="검증" aside={view ? <Badge tone={view.tone}>{view.label}</Badge> : running ? <Badge tone="neutral">검증 중</Badge> : null}>
       <p className="muted">체인에 기록된 7개 필드를 다시 읽어, 지금 서버에 있는 리포트에서 계산한 값과 비교합니다.</p>
       <div className="btn-row">
-        <button type="button" className="btn btn-primary" disabled={!canVerify} onClick={() => verify(reportId)}>
+        <button type="button" className="btn btn-primary" disabled={!canVerify} onClick={() => verify(reportId, { backend: backendId })}>
           {running && !entry.tamper ? <LoaderCircle {...ICON} size={16} className="spin" /> : <ShieldCheck {...ICON} size={16} />}
           {running && !entry.tamper ? "검증 중" : "검증"}
         </button>
       </div>
       {(phase === "none" || phase === "error") && <p className="muted small hint">먼저 위에서 온체인에 기록해야 검증할 수 있습니다.</p>}
+      {phase === "readonly" && <p className="muted small hint">이 리포트는 {selected?.label}에 기록이 없어 검증할 수 없습니다. 읽기 전용이라 여기서 기록할 수도 없습니다.</p>}
 
       <div className={`tamper ${open ? "open" : ""}`}>
         <button type="button" className="tamper-head" onClick={() => setOpen(o => !o)} aria-expanded={open}>
@@ -294,7 +315,7 @@ function VerifyCard({ reportId, report }) {
 
       {entry?.status === "error" && !entry.tamper && <StatusView kind="error" {...attestError(entry.error, "검증하지 못했습니다")} />}
       <div ref={resultRef}>
-        {view && <VerifyResult view={view} tamper={entry.tamper} disabled={!canVerify} onRestore={() => verify(reportId)} />}
+        {view && <VerifyResult view={view} tamper={entry.tamper} disabled={!canVerify} onRestore={() => verify(reportId, { backend: backendId })} />}
       </div>
     </Card>
   );

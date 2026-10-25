@@ -8,12 +8,13 @@
 //   GET  /api/report/:id/canonical    { canonical, hash }
 //   GET  /api/report/:id/ontology     { nodes, links, highlight, meta }
 //   GET  /api/glossary                { [id]: { ko, desc, category } }
-//   GET  /api/attest/backends         [{ id, label, available, reason? }]
-//   POST /api/report/:id/attest       { backend: "local", force? } → 202 { attestJobId }
-//   GET  /api/attest-jobs/:id         { status, attestation, reused, error, ... }
-//   GET  /api/report/:id/attestation  기록 (없으면 404 attestation_not_found)
-//   POST /api/report/:id/verify       { uid?, tamper? } → { verified, hashMatch, fields, changedPaths, tamperDemo }
-//   GET  /api/fixtures/attestations   시나리오별 사전 기록
+//   GET  /api/attest/backends         [{ id, label, available, reason?, mode?, chainId?, explorerBase?, prerecorded?, ... }]
+//   POST /api/report/:id/attest       { backend: "local" | "eas-sepolia", force? } → 202 { attestJobId }
+//                                     (읽기 전용·잔액 부족·스키마 미등록은 409, RPC 불가는 503 — 큐에 넣기 전에)
+//   GET  /api/attest-jobs/:id         { status, attestation, reused, error, errorCode, ... }
+//   GET  /api/report/:id/attestation?backend=   기록 (없으면 404 attestation_not_found, backend 생략 시 local)
+//   POST /api/report/:id/verify       { backend?, uid?, tamper? } → { verified, hashMatch, fields, changedPaths, tamperDemo }
+//   GET  /api/fixtures/attestations?backend=    시나리오별 사전 기록
 // 오류는 { error, code } JSON.
 
 import fs from "fs";
@@ -87,8 +88,9 @@ function fixturesAvailable() {
 // options.runsDir: 작업 결과 디렉터리 (기본 demo/runs), options.runOptions: runScenario 옵션 (시험용),
 // options.allowedOrigin: CORS 허용 출처 (기본 http://localhost:5173),
 // options.owlResults: owl_results.json 내용 (기본 ontology/owl_results.json을 읽음),
-// options.attest: 온체인 기록 설정 { enabled, rpcUrl, hardhatCli, nodeBin, startTimeoutMs, prerecord } (기본 꺼짐).
-//   켜면 반환값의 attest.start()로 로컬 체인을 시작한다(server/index.js가 호출).
+// options.attest: 온체인 기록 설정 { enabled, rpcUrl, hardhatCli, nodeBin, startTimeoutMs, prerecord,
+//   eas, easTuning, easFixturesFile } (기본 꺼짐). eas는 demo/lib/attest/config.js easConfigFromEnv()의 값.
+//   반환값의 attest.start()로 로컬 체인을 시작하고 eas-sepolia 연결을 점검한다(server/index.js가 호출).
 export function createApp(options = {}) {
   const {
     runsDir = DEFAULT_RUNS_DIR,
@@ -198,19 +200,19 @@ export function createApp(options = {}) {
 
     if (resource === "fixtures" && id === "attestations" && parts.length === 3) {
       allow("GET");
-      return sendJson(res, 200, attest.fixtureAttestations());
+      return sendJson(res, 200, attest.fixtureAttestations(url.searchParams.get("backend") ?? undefined));
     }
 
     if (resource === "report" && id && parts.length === 4 && sub === "attest") {
       allow("POST");
       const body = await readJsonObject(req);
-      const job = attest.submit(id, { backend: body.backend ?? "local", force: body.force === true });
+      const job = await attest.submit(id, { backend: body.backend ?? "local", force: body.force === true });
       return sendJson(res, 202, { attestJobId: job.id });
     }
 
     if (resource === "report" && id && parts.length === 4 && sub === "attestation") {
       allow("GET");
-      return sendJson(res, 200, attest.attestation(id));
+      return sendJson(res, 200, attest.attestation(id, url.searchParams.get("backend") ?? undefined));
     }
 
     if (resource === "report" && id && parts.length === 4 && sub === "verify") {

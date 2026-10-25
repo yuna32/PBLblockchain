@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  FIELD_ORDER, FIELD_LABELS, backendOptions, attestPhase, lookupPlan, onchainFlowState, onchainBadge, verifySummary,
+  FIELD_ORDER, FIELD_LABELS, backendOptions, attestPhase, lookupPlan, onchainFlowState, onchainBadge, verifySummary, recordKey, explorerLinks,
   recordRows, formatField, payloadRows, pathLabel, verifyView, getPath, tamperPresets, attestError
 } from "./attest.js";
 import { fmtDateTime, shortMiddle } from "./format.js";
@@ -36,18 +36,44 @@ describe("기록 필드와 기록 방식", () => {
     expect(FIELD_ORDER.map(f => FIELD_LABELS[f])).toEqual(["컨트랙트 주소", "리포트 해시", "코드 위험 등급", "신뢰 점수", "최저 지갑 신뢰 점수", "스캔 시각", "분석기 버전"]);
   });
 
-  it("backendOptions: local 사용 가능, eas-sepolia 준비 중, 시작 중 구분", () => {
+  it("backendOptions: local 사용 가능, eas-sepolia 미설정, 시작 중 구분", () => {
     const list = [
       { id: "local", label: "로컬 체인 (hardhat)", available: true, chainId: 31337 },
-      { id: "eas-sepolia", label: "EAS (Sepolia 테스트넷)", available: false, reason: "미설정(4c에서 구현)" }
+      { id: "eas-sepolia", label: "EAS (Sepolia 테스트넷)", available: false, reason: "미설정 (DEMO_EAS_RPC_URL 없음)" }
     ];
+    const base = { explorerBase: null, explorerUrlVerified: null, prerecorded: null, prerecordedStale: 0, note: null };
     expect(backendOptions(list)).toEqual([
-      { id: "local", label: "로컬 시연 체인", available: true, starting: false, reason: null, chainId: 31337 },
-      { id: "eas-sepolia", label: "EAS (Sepolia 테스트넷)", available: false, starting: false, reason: "미설정(4c에서 구현)", chainId: null }
+      { id: "local", label: "로컬 시연 체인", available: true, starting: false, reason: null, chainId: 31337, mode: "readwrite", ...base },
+      { id: "eas-sepolia", label: "EAS (Sepolia 테스트넷)", available: false, starting: false, reason: "미설정 (DEMO_EAS_RPC_URL 없음)", chainId: null, mode: null, ...base }
     ]);
     expect(backendOptions([{ id: "local", available: false, reason: "시작 중" }])[0].starting).toBe(true);
     expect(backendOptions([{ id: "local", available: false, reason: "비활성 (서버 설정에서 꺼짐)" }])[0]).toMatchObject({ starting: false, available: false });
     expect(backendOptions(null)).toEqual([]);
+  });
+
+  it("backendOptions: eas-sepolia (server/attest.js backends 응답)", () => {
+    const eas = {
+      id: "eas-sepolia", label: "EAS (Sepolia 테스트넷)", available: true, mode: "readonly", chainId: 11155111,
+      explorerBase: "https://sepolia.easscan.org", explorerUrlVerified: false, schemaUID: `0x${"ab".repeat(32)}`,
+      schemaRegistered: true, attester: null, prerecorded: 5, prerecordedStale: 1
+    };
+    expect(backendOptions([eas])[0]).toEqual({
+      id: "eas-sepolia", label: "EAS (Sepolia 테스트넷)", available: true, starting: false, reason: null, chainId: 11155111,
+      mode: "readonly", explorerBase: "https://sepolia.easscan.org", explorerUrlVerified: false, prerecorded: 5, prerecordedStale: 1, note: null
+    });
+    expect(backendOptions([{ ...eas, schemaRegistered: false }])[0].note).toMatch(/demo:eas:register/);
+    expect(backendOptions([{ ...eas, reason: "RPC에 연결할 수 없습니다", reasonCode: "rpc_unavailable" }])[0]).toMatchObject({ available: true, note: "RPC에 연결할 수 없습니다" });
+    expect(recordKey("eas-sepolia", "r1")).toBe("eas-sepolia:r1");
+  });
+
+  it("explorerLinks: local은 없음, eas는 기록·스키마 링크와 형식 미확인 표시", () => {
+    expect(explorerLinks(recordOf("ponzi"))).toBe(null);
+    const uid = `0x${"ab".repeat(32)}`;
+    const rec = recordOf("ponzi", {
+      backend: "eas-sepolia", explorerUrl: `https://sepolia.easscan.org/attestation/view/${uid}`,
+      meta: { explorerUrlVerified: false, schemaUrl: "https://sepolia.easscan.org/schema/view/0x1" }
+    });
+    expect(explorerLinks(rec)).toEqual({ attestation: `https://sepolia.easscan.org/attestation/view/${uid}`, verified: false, schema: "https://sepolia.easscan.org/schema/view/0x1" });
   });
 });
 
@@ -70,6 +96,11 @@ describe("온체인 상태 도출", () => {
     expect(attestPhase({ local })).toBe("checking");
     expect(attestPhase({ local, entry: { status: "error" } })).toBe("error");
     expect(attestPhase({ local, entry: { status: "none" } })).toBe("none");
+    // 읽기 전용(eas-sepolia, 키 없음): 기록이 없으면 readonly, 기록이 있으면 그대로 기록 상태
+    const ro = { id: "eas-sepolia", available: true, starting: false, mode: "readonly" };
+    expect(attestPhase({ local: ro, entry: { status: "none" } })).toBe("readonly");
+    expect(attestPhase({ local: ro, entry: rec(true) })).toBe("prerecorded");
+    expect(attestPhase({ local: ro, entry: { status: "loading" } })).toBe("checking");
   });
 
   it("lookupPlan: fixture 모드만 조회, 체인 준비 전에는 대기", () => {
@@ -90,6 +121,9 @@ describe("온체인 상태 도출", () => {
     expect(onchainBadge("recorded")).toEqual({ tone: "primary", label: "온체인 기록됨", extra: null });
     expect(onchainBadge("none").label).toBe("기록 전");
     expect(onchainBadge("unavailable")).toEqual({ tone: "neutral", label: "기록 전", extra: "로컬 체인 사용 불가" });
+    expect(onchainBadge("unavailable", "Sepolia").extra).toBe("Sepolia 사용 불가");
+    expect(onchainBadge("readonly")).toEqual({ tone: "neutral", label: "기록 전", extra: "읽기 전용" });
+    expect(onchainFlowState("readonly")).toEqual({ state: "disabled", sub: "읽기 전용" });
   });
 
   it("verifySummary: 끝난 검증만", () => {

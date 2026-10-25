@@ -20,7 +20,10 @@
     "run:all": "node scenarios/run_all_scenarios.js",
     "metrics": "node scenarios/run_all_scenarios.js",
     "demo:server": "node --env-file-if-exists=.env server/index.js",
-    "demo:ui": "npm --prefix dashboard run dev"
+    "demo:ui": "npm --prefix dashboard run dev",
+    "demo:eas:check": "node --env-file-if-exists=.env demo/scripts/eas.js check",
+    "demo:eas:register": "node --env-file-if-exists=.env demo/scripts/eas.js register",
+    "demo:eas:record-fixtures": "node --env-file-if-exists=.env demo/scripts/eas.js record-fixtures"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.3",

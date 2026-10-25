@@ -337,7 +337,7 @@ test("온체인 기록: 로컬 체인 시작, fixture 5개 사전 기록과 조�
   const { body: backends } = await aapi(A.base, "GET", "/api/attest/backends");
   assert.deepEqual(backends, [
     { id: "local", label: "로컬 체인 (hardhat)", available: true, chainId: 31337 },
-    { id: "eas-sepolia", label: "EAS (Sepolia 테스트넷)", available: false, reason: "미설정(4c에서 구현)" }
+    { id: "eas-sepolia", label: "EAS (Sepolia 테스트넷)", available: false, reason: "미설정 (DEMO_EAS_RPC_URL 없음)" }
   ]);
 
   const { status, body: pre } = await aapi(A.base, "GET", "/api/fixtures/attestations");

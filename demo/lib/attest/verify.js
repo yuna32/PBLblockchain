@@ -1,7 +1,28 @@
-// 검증: 체인에서 읽은 payload와, 현재 리포트로 다시 만든 payload·canonical 해시를 비교한다.
+// 읽기 전용 검증 코어: 체인 조회(readAttestation), 디코딩, canonical 재계산, 비교(verifyAgainstChain).
+// 순수 모듈이다 — fs·child_process·process 같은 Node 전용 모듈에 의존하지 않는다(viem과 ./jcs.js, ./schema.js, ./abi.js만).
+// 나중에 브라우저에서 RPC로 직접 검증할 때도 이 파일을 그대로 쓸 수 있다.
 // tamper(시연용 변조)는 리포트의 메모리 사본만 바꾼다 — 원본과 파일은 절대 바꾸지 않는다.
-import { canonicalize, hashableReport, reportHash } from "../canonical.js";
-import { buildPayload, FIELD_NAMES, INFORMATIONAL_FIELDS } from "./schema.js";
+import { zeroHash } from "viem";
+import { EAS_ABI } from "./abi.js";
+import { canonicalize, hashableReport, reportHash } from "./jcs.js";
+import { buildPayload, decodePayload, FIELD_NAMES, INFORMATIONAL_FIELDS } from "./schema.js";
+
+// EAS.getAttestation으로 기록을 읽는다. 없는 uid면 null (EAS는 revert 대신 빈 기록을 돌려준다).
+// client: viem PublicClient, schemaUID: 이 서비스의 스키마 UID (다르면 payload를 해독하지 않는다)
+export async function readAttestation({ client, easAddress, schemaUID, uid }) {
+  const att = await client.readContract({ address: easAddress, abi: EAS_ABI, functionName: "getAttestation", args: [uid] });
+  if (!att || att.uid === zeroHash) return null;
+  const schemaMatches = att.schema.toLowerCase() === String(schemaUID).toLowerCase();
+  return {
+    uid: att.uid,
+    schemaUID: att.schema,
+    attester: att.attester.toLowerCase(),
+    time: new Date(Number(att.time) * 1000).toISOString(),
+    revoked: att.revocationTime !== 0n,
+    schemaMatches,
+    payload: schemaMatches ? decodePayload(att.data) : null
+  };
+}
 
 export class TamperError extends Error {
   constructor(message, code) {

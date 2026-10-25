@@ -19,7 +19,7 @@ export function SourceBadge({ source, reason }) {
 
 export function ScenarioPanel() {
   const { scenarios, selected, selectScenario, lastByScenario, useFixture, setUseFixture, analyze, job, health } = useApp();
-  const { scenarioMarks } = useAttest();
+  const { scenarioMarks, backendId } = useAttest();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const running = job && (job.status === "queued" || job.status === "running");
@@ -47,7 +47,7 @@ export function ScenarioPanel() {
                   <span className="row-main">
                     <span className="row-title">{s.label}</span>
                     <span className="row-desc">{s.description}</span>
-                    <OnchainMark mark={scenarioMarks[s.id]} />
+                    <OnchainMark mark={scenarioMarks[s.id]} backend={backendId} />
                   </span>
                   {last && (
                     <span className="row-badges">

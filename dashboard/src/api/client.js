@@ -53,13 +53,13 @@ export const api = {
   ontology:   id => request(`/report/${encodeURIComponent(id)}/ontology`),
   canonical:  id => request(`/report/${encodeURIComponent(id)}/canonical`),
 
-  // 온체인 기록·검증 (server/attest.js)
+  // 온체인 기록·검증 (server/attest.js). backend: "local" | "eas-sepolia"
   attestBackends:      () => request("/attest/backends"),
-  fixtureAttestations: () => request("/fixtures/attestations"),
-  attestation: id => request(`/report/${encodeURIComponent(id)}/attestation`),
+  fixtureAttestations: (backend = "local") => request(`/fixtures/attestations?backend=${encodeURIComponent(backend)}`),
+  attestation: (id, backend = "local") => request(`/report/${encodeURIComponent(id)}/attestation?backend=${encodeURIComponent(backend)}`),
   attest:      (id, { backend = "local", force = false } = {}) => postJson(`/report/${encodeURIComponent(id)}/attest`, { backend, force }),
   attestJob:   id => request(`/attest-jobs/${encodeURIComponent(id)}`),
-  verify:      (id, { uid, tamper } = {}) => postJson(`/report/${encodeURIComponent(id)}/verify`, {
-    ...(uid ? { uid } : {}), ...(tamper ? { tamper } : {})
+  verify:      (id, { backend = "local", uid, tamper } = {}) => postJson(`/report/${encodeURIComponent(id)}/verify`, {
+    backend, ...(uid ? { uid } : {}), ...(tamper ? { tamper } : {})
   })
 };

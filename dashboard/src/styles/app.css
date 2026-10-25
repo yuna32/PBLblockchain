@@ -385,6 +385,8 @@ button.row:disabled { cursor: default; opacity: 0.6; }
 .copy-value { display: inline-flex; align-items: center; gap: 2px; }
 .copy-value code { color: var(--text-1); }
 .link { display: inline-flex; align-items: center; gap: 4px; margin-top: 12px; color: var(--primary-strong); font-weight: 600; text-decoration: none; }
+.explorer-links { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; margin-top: 12px; }
+.explorer-links .link { margin-top: 0; }
 
 .tamper { margin-top: 16px; border: 1px solid var(--border); border-radius: var(--radius-ctl); background: var(--fill-1); }
 .tamper-head {

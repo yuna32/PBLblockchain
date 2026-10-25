@@ -1,11 +1,19 @@
 // 온체인 기록 스키마와 payload (계획서 기능 5, 종합 등급 없음).
 // payload는 JSON으로 다루기 쉬운 형태다: 주소·해시는 소문자 0x 문자열, 정수는 number.
-import { decodeAbiParameters, encodeAbiParameters, parseAbiParameters } from "viem";
-import { CANONICAL_VERSION } from "../canonical.js";
+// 순수 모듈 (viem만 사용, 브라우저에서도 쓸 수 있음).
+import { decodeAbiParameters, encodeAbiParameters, encodePacked, keccak256, parseAbiParameters, zeroAddress } from "viem";
+import { CANONICAL_VERSION } from "./jcs.js";
 
 export const SCHEMA =
   "address contractAddress,bytes32 reportHash,string codeRiskGrade,uint8 trustScore," +
   "uint8 minWalletTrustScore,uint64 scanTimestamp,string analyzerVersion";
+export const SCHEMA_RESOLVER = zeroAddress;
+export const SCHEMA_REVOCABLE = true;
+
+// SchemaRegistry의 UID 규칙: keccak256(abi.encodePacked(schema, resolver, revocable)). 체인 조회 없이 결정된다.
+export function schemaUID(schema = SCHEMA, resolver = SCHEMA_RESOLVER, revocable = SCHEMA_REVOCABLE) {
+  return keccak256(encodePacked(["string", "address", "bool"], [schema, resolver, revocable]));
+}
 export const SCHEMA_PARAMS = parseAbiParameters(SCHEMA);
 export const FIELD_NAMES = SCHEMA_PARAMS.map(p => p.name);
 // 불일치해도 검증 결과(verified)에 영향을 주지 않는 정보성 필드

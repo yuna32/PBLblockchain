@@ -5,6 +5,7 @@ import { useApp } from "../state/AppContext.jsx";
 import { Badge, Card, Collapsible, EstimateTag, ICON, ReportGate, Stat, Term, ToneBadge } from "../components/ui.jsx";
 import { SourceBadge } from "../components/SidePanel.jsx";
 import { OnchainBadge } from "../components/Onchain.jsx";
+import { CHAIN_SHORT_NAMES } from "../lib/attest.js";
 import { useAttest } from "../state/AttestContext.jsx";
 import { matrixCells, RISK_LABELS } from "../lib/combination.js";
 import { pagePath, term } from "../lib/terms.js";
@@ -31,7 +32,7 @@ function OverviewBody({ data }) {
 
 function SummaryStrip({ view, envelope }) {
   const { scenarios, current } = useApp();
-  const { currentPhase, verifies } = useAttest();
+  const { currentPhase, verifyOf, backendId } = useAttest();
   const navigate = useNavigate();
   const { search } = useLocation();
   const scenario = scenarios.find(s => s.id === view.scenario);
@@ -50,8 +51,8 @@ function SummaryStrip({ view, envelope }) {
       <div className="strip-item"><span className="strip-label">데이터</span><span className="strip-value"><SourceBadge source={envelope.source} /></span></div>
       <button type="button" className="strip-item strip-link" onClick={() => navigate(`${pagePath("report")}${search}`)}
         title="온체인 리포트에서 기록·검증 보기">
-        <span className="strip-label">온체인 <ChevronRight {...ICON} size={13} /></span>
-        <span className="strip-value"><OnchainBadge phase={currentPhase} verifyEntry={verifies[current.reportId]} /></span>
+        <span className="strip-label">온체인{backendId === "local" ? "" : ` (${CHAIN_SHORT_NAMES[backendId]})`} <ChevronRight {...ICON} size={13} /></span>
+        <span className="strip-value"><OnchainBadge phase={currentPhase} verifyEntry={verifyOf(current.reportId)} backend={backendId} /></span>
       </button>
       <div className="strip-item">
         <span className="strip-label">리포트 해시</span>
