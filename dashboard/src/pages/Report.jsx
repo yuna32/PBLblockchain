@@ -1,10 +1,13 @@
-// 온체인 리포트: 리포트 해시(canonical 직렬화의 SHA-256)와 입력 해시. Attestation 기록·검증은 다음 단계에서 연결한다.
-import { useEffect, useState } from "react";
-import { Copy, FileCheck, ShieldCheck } from "lucide-react";
+// 온체인 리포트: 리포트 해시, 온체인 기록(방식 선택·기록·기록 카드), 검증과 변조 시연, 입력 해시, canonical.
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown, ChevronRight, Copy, ExternalLink, FileCheck, FlaskConical, Info, LoaderCircle, RotateCcw, ShieldCheck } from "lucide-react";
 import { api } from "../api/client.js";
 import { useApp } from "../state/AppContext.jsx";
-import { Badge, Card, Collapsible, ICON, ReportGate, StatusView, Term } from "../components/ui.jsx";
+import { useAttest } from "../state/AttestContext.jsx";
+import { Badge, Card, Collapsible, EstimateTag, ICON, ReportGate, Segmented, StatusView, Term } from "../components/ui.jsx";
 import { SourceBadge } from "../components/SidePanel.jsx";
+import { attestError, BACKEND_NAMES, PHASE_LABELS, payloadRows, recordRows, tamperPresets, verifyView } from "../lib/attest.js";
+import { fmtDateTime, shortMiddle } from "../lib/format.js";
 
 export default function Report() {
   return <ReportGate>{data => <ReportBody key={data.envelope.report_sha256 + data.view.scenario} data={data} />}</ReportGate>;
@@ -51,6 +54,9 @@ function ReportBody({ data }) {
         )}
       </Card>
 
+      <AttestCard reportId={current.reportId} />
+      <VerifyCard reportId={current.reportId} report={data.report} />
+
       <Card title="입력 파일 해시" aside={<span className="muted small">envelope.input</span>}>
         <ul className="rows rows-static">
           <li className="row row-stack">
@@ -77,23 +83,301 @@ function ReportBody({ data }) {
           </>
         )}
       </Collapsible>
-
-      <Card title="온체인 기록 (Attestation)" aside={<Badge tone="neutral">다음 단계에서 연결</Badge>}>
-        <p className="muted">리포트 해시를 체인에 기록하고 검증하는 기능은 아직 연결되지 않았습니다.</p>
-        <div className="btn-row">
-          <button type="button" className="btn btn-secondary" disabled title="다음 단계에서 연결">
-            <FileCheck {...ICON} size={16} />기록하기
-          </button>
-          <button type="button" className="btn btn-secondary" disabled title="다음 단계에서 연결">
-            <ShieldCheck {...ICON} size={16} />검증하기
-          </button>
-        </div>
-      </Card>
     </div>
   );
 }
 
-function HashLine({ value, large }) {
+// ── 온체인 기록 ──
+function AttestCard({ reportId }) {
+  const { health } = useApp();
+  const { options, local, records, jobs, attest, phaseOf } = useAttest();
+  const [backend, setBackend] = useState("local");
+  const phase = phaseOf(reportId);
+  const record = records[reportId]?.record ?? null;
+  const job = jobs[reportId];
+  const running = phase === "running";
+  const selected = options.find(o => o.id === backend);
+  const canRecord = health.state === "up" && Boolean(selected?.available) && !running;
+  const unavailableOthers = options.filter(o => !o.available && o.id !== "local");
+
+  return (
+    <Card title="온체인 기록" aside={<PhaseBadge phase={phase} />} className="attest-card">
+      <p className="lead">
+        온체인 기록은 이 리포트의 해시와 핵심 수치 7가지를 블록체인에 남기는 것입니다.
+        체인에 남은 값은 나중에 고칠 수 없어서, 이 분석 결과가 언제 어떤 내용이었는지 보여 주는 기준이 됩니다.
+        검증은 체인에 기록된 값을 다시 읽어 지금 리포트에서 계산한 해시·수치와 같은지 비교합니다.
+        해시가 다르면 기록한 뒤 리포트 내용이 바뀌었다는 뜻입니다.
+      </p>
+      <div className="notice notice-sm">
+        <Info {...ICON} size={16} />
+        <span>시연 환경에서는 매번 새로 시작하는 로컬 체인에 기록하며, 모든 시나리오가 같은 컨트랙트 주소(새 체인의 첫 배포 주소)를 씁니다. 시나리오는 리포트 해시로 구분됩니다.</span>
+      </div>
+
+      <div className="attest-controls">
+        <div className="attest-backend">
+          <span className="field-label">기록 방식</span>
+          {options.length ? (
+            <Segmented size="sm" value={backend} onChange={setBackend}
+              options={options.map(o => ({ value: o.id, label: backendLabel(o), disabled: !o.available }))} />
+          ) : <span className="muted small">{health.state === "up" ? "불러오는 중" : "서버 연결 필요"}</span>}
+        </div>
+        <button type="button" className={`btn ${record ? "btn-secondary btn-md" : "btn-primary"}`} disabled={!canRecord}
+          onClick={() => attest(reportId, { backend, force: Boolean(record) })}
+          title={record ? "같은 리포트를 새 UID로 한 번 더 기록합니다" : undefined}>
+          {running ? <LoaderCircle {...ICON} size={16} className="spin" /> : <FileCheck {...ICON} size={16} />}
+          {running ? "기록 중" : record ? "다시 기록(새 UID)" : "온체인에 기록"}
+        </button>
+      </div>
+      {unavailableOthers.map(o => (
+        <p key={o.id} className="muted small backend-note">{o.label}: 준비 중 · {o.reason}</p>
+      ))}
+
+      {phase === "offline" && <StatusView kind="down" title="시연 API 서버에 연결할 수 없습니다" detail="WSL에서 npm run demo:server를 실행한 뒤 새로고침하세요." />}
+      {phase === "starting" && <StatusView kind="loading" title="로컬 시연 체인을 시작하는 중입니다" detail="hardhat node를 띄우고 사전 기록을 마치면 기록할 수 있습니다." />}
+      {phase === "unavailable" && <StatusView kind="error" title="로컬 시연 체인을 쓸 수 없습니다" detail={local?.reason} />}
+      {running && <AttestProgress job={job} />}
+      {job?.status === "error" && job.failure && <StatusView kind="error" {...attestError(job.failure, "기록하지 못했습니다")} />}
+      {records[reportId]?.status === "error" && !record && <StatusView kind="error" {...attestError(records[reportId].error, "기록 정보를 불러오지 못했습니다")} />}
+      {record && <RecordDetails record={record} reused={job?.status === "done" && job.reused} />}
+    </Card>
+  );
+}
+
+// local은 이번 서버에서 쓸 수 없을 때 "사용 불가", 나머지(eas-sepolia)는 아직 구현 전이라 "준비 중"
+function backendLabel(o) {
+  if (o.available || o.starting) return o.label;
+  return `${o.label} · ${o.id === "local" ? "사용 불가" : "준비 중"}`;
+}
+
+function PhaseBadge({ phase }) {
+  if (!phase) return null;
+  const tone = phase === "recorded" || phase === "prerecorded" ? "primary" : phase === "error" ? "danger" : "neutral";
+  return <Badge tone={tone}>{phase === "prerecorded" ? "기록됨 · 사전 기록" : PHASE_LABELS[phase]}</Badge>;
+}
+
+const JOB_STEPS = [
+  { key: "request", label: "요청" },
+  { key: "queued", label: "대기열" },
+  { key: "running", label: "체인에 기록" },
+  { key: "done", label: "완료" }
+];
+
+function AttestProgress({ job }) {
+  const at = !job?.id ? 0 : job.status === "queued" ? 1 : 2;
+  return (
+    <ol className="job-steps attest-progress" aria-label="기록 진행">
+      {JOB_STEPS.map((s, i) => {
+        const state = i < at ? "done" : i === at ? "running" : "pending";
+        return (
+          <li key={s.key} className={`job-step job-${state}`}>
+            {state === "running" ? <LoaderCircle {...ICON} size={14} className="spin" /> : state === "done" ? <FileCheck {...ICON} size={14} /> : <span className="job-dot" />}
+            {s.label}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function RecordDetails({ record, reused }) {
+  const { glossary } = useApp();
+  return (
+    <div className="record">
+      <div className="record-head">
+        <ShieldCheck {...ICON} size={18} />
+        <strong>기록 카드</strong>
+        {record.prerecorded && <Badge tone="neutral" title="서버가 시작할 때 사전 생성본 리포트를 미리 기록했습니다">사전 기록</Badge>}
+        {reused && <Badge tone="neutral" title="같은 리포트의 기존 기록을 그대로 돌려받았습니다">기존 기록</Badge>}
+        <span className="record-meta muted small num">{BACKEND_NAMES[record.backend] ?? record.backend} · {fmtDateTime(record.recordedAt)}</span>
+      </div>
+      <div className="grid-2 grid-tight">
+        <div>
+          <h3 className="sub-title">기록 정보</h3>
+          <ul className="rows rows-static">
+            {recordRows(record).map(r => (
+              <li key={r.key} className="row">
+                <span className="row-title">{r.label}</span>
+                <span className="row-value">{r.hex ? <CopyValue value={r.value} /> : <span className="num">{r.value}</span>}</span>
+              </li>
+            ))}
+            <li className="row">
+              <span className="row-title">기록 시각</span>
+              <span className="row-value num">{fmtDateTime(record.recordedAt)}</span>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <h3 className="sub-title">기록한 값 (7개 필드)</h3>
+          <ul className="rows rows-static">
+            {payloadRows(record.payload, glossary).map(f => (
+              <li key={f.name} className="row">
+                <span className="row-title">{f.label}</span>
+                <span className="row-value">{f.mono ? <CopyValue value={f.full ?? f.text} display={f.text} /> : <span className="num" title={f.full ?? undefined}>{f.text}</span>}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+      {record.explorerUrl && (
+        <a className="link" href={record.explorerUrl} target="_blank" rel="noreferrer">
+          탐색기에서 보기 <ExternalLink {...ICON} size={14} />
+        </a>
+      )}
+    </div>
+  );
+}
+
+// ── 검증과 변조 시연 ──
+function VerifyCard({ reportId, report }) {
+  const { health, glossary } = useApp();
+  const { local, verifies, verify, phaseOf } = useAttest();
+  const [open, setOpen] = useState(false);
+  const resultRef = useRef(null);
+  const entry = verifies[reportId];
+  const phase = phaseOf(reportId);
+  const hasRecord = phase === "recorded" || phase === "prerecorded";
+  const running = entry?.status === "running";
+  const canVerify = hasRecord && !running && health.state === "up" && local?.available === true;
+  const view = entry?.status === "done" ? verifyView(entry.result, glossary) : null;
+  const presets = useMemo(() => tamperPresets(report, glossary), [report, glossary]);
+  const tamperFailed = entry?.status === "error" && entry.tamper;
+  const ToggleIcon = open ? ChevronDown : ChevronRight;
+
+  const runTamper = async preset => {
+    await verify(reportId, { tamper: { path: preset.path, value: preset.value } });
+    resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  return (
+    <Card title="검증" aside={view ? <Badge tone={view.tone}>{view.label}</Badge> : running ? <Badge tone="neutral">검증 중</Badge> : null}>
+      <p className="muted">체인에 기록된 7개 필드를 다시 읽어, 지금 서버에 있는 리포트에서 계산한 값과 비교합니다.</p>
+      <div className="btn-row">
+        <button type="button" className="btn btn-primary" disabled={!canVerify} onClick={() => verify(reportId)}>
+          {running && !entry.tamper ? <LoaderCircle {...ICON} size={16} className="spin" /> : <ShieldCheck {...ICON} size={16} />}
+          {running && !entry.tamper ? "검증 중" : "검증"}
+        </button>
+      </div>
+      {(phase === "none" || phase === "error") && <p className="muted small hint">먼저 위에서 온체인에 기록해야 검증할 수 있습니다.</p>}
+
+      <div className={`tamper ${open ? "open" : ""}`}>
+        <button type="button" className="tamper-head" onClick={() => setOpen(o => !o)} aria-expanded={open}>
+          <ToggleIcon {...ICON} size={16} />
+          <FlaskConical {...ICON} size={16} />
+          <span className="tamper-title">리포트를 일부러 바꿔서 검증해 보기</span>
+          <span className="collapsible-summary">변조 시연 · 저장되지 않음</span>
+        </button>
+        {open && (
+          <div className="tamper-body">
+            <p className="muted small">
+              아래 항목 하나를 바꾼 리포트 사본으로 검증합니다. 사본은 서버 메모리에서만 쓰고 버리며, 리포트 파일과 온체인 기록은 바뀌지 않습니다.
+            </p>
+            {presets.length === 0 ? <p className="muted small">이 리포트에는 바꿔 볼 수 있는 항목이 없습니다.</p> : (
+              <ul className="rows rows-static">
+                {presets.map(p => (
+                  <li key={p.id} className="row">
+                    <span className="row-main">
+                      <span className="row-title">{p.label}</span>
+                      <span className="row-desc"><code className="mono">{p.path}</code> · <span className="num">{p.fromText} → {p.toText}</span></span>
+                    </span>
+                    <button type="button" className="btn btn-secondary" disabled={!canVerify} onClick={() => runTamper(p)}>
+                      {running && entry.tamper?.path === p.path ? <LoaderCircle {...ICON} size={14} className="spin" /> : null}
+                      바꿔서 검증
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {tamperFailed && <StatusView kind="error" {...attestError(entry.error, "변조 시연을 실행하지 못했습니다")} />}
+          </div>
+        )}
+      </div>
+
+      {entry?.status === "error" && !entry.tamper && <StatusView kind="error" {...attestError(entry.error, "검증하지 못했습니다")} />}
+      <div ref={resultRef}>
+        {view && <VerifyResult view={view} tamper={entry.tamper} disabled={!canVerify} onRestore={() => verify(reportId)} />}
+      </div>
+    </Card>
+  );
+}
+
+function VerifyResult({ view, tamper, disabled, onRestore }) {
+  return (
+    <div className="verify">
+      {view.tamperDemo && (
+        <div className="notice notice-caution">
+          <FlaskConical {...ICON} size={18} />
+          <div className="notice-text">
+            <strong>시연용 · 저장되지 않음</strong>
+            서버 메모리의 리포트 사본에서 <code className="mono">{tamper?.path}</code> 값만 바꿔 검증한 결과입니다. 리포트 파일과 온체인 기록은 그대로입니다.
+          </div>
+          <button type="button" className="btn btn-secondary" disabled={disabled} onClick={onRestore}>
+            <RotateCcw {...ICON} size={14} />원래대로 다시 검증
+          </button>
+        </div>
+      )}
+      <div className={`verify-head verify-${view.tone}`}>
+        <Badge tone={view.tone}>{view.label}</Badge>
+        <span>{view.summary}</span>
+      </div>
+
+      <div className="hash-compare">
+        <div className="hash-compare-item">
+          <span className="field-label">온체인에 기록된 리포트 해시</span>
+          <code className="mono">{view.hash.onChain}</code>
+        </div>
+        <div className="hash-compare-mid">
+          <Badge tone={view.hash.match ? "safe" : "danger"}>{view.hash.match ? "같음" : "다름"}</Badge>
+        </div>
+        <div className="hash-compare-item">
+          <span className="field-label">현재 리포트에서 계산한 해시</span>
+          <code className="mono">{view.hash.current}</code>
+        </div>
+      </div>
+
+      <table className="table table-static">
+        <thead>
+          <tr><th>항목</th><th>온체인 기록</th><th>현재 리포트</th><th className="r">결과</th></tr>
+        </thead>
+        <tbody>
+          {view.rows.map(r => (
+            <tr key={r.name} className={!r.match && !r.informational ? "row-mismatch" : ""}>
+              <td>{r.label} {r.informational && <EstimateTag>참고용</EstimateTag>}</td>
+              <td className={r.onChain.mono ? "mono" : "num"} title={r.onChain.full ?? undefined}>{r.onChain.text}</td>
+              <td className={r.current.mono ? "mono" : "num"} title={r.current.full ?? undefined}>{r.current.text}</td>
+              <td className="r">
+                {r.match ? <Badge tone="safe">일치</Badge> : r.informational ? <Badge tone="neutral">다름 · 참고용</Badge> : <Badge tone="danger">불일치</Badge>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="disclaimer">
+        참고용 항목(스캔 시각, 분석기 버전)은 같은 리포트라도 분석을 다시 실행하거나 서버 버전이 바뀌면 달라질 수 있어, 달라도 검증 결과에 영향을 주지 않습니다.
+        {view.informationalMismatch.length > 0 && ` 이번에는 ${view.informationalMismatch.join(", ")}이(가) 다르지만 결과는 그대로입니다.`}
+      </p>
+
+      {!view.hash.match && (
+        <div className="changed">
+          <h3 className="sub-title">기록 이후 바뀐 항목</h3>
+          {view.changedPaths.length ? (
+            <ul className="rows rows-static">
+              {view.changedPaths.map(c => (
+                <li key={c.path} className="row">
+                  <code className="mono">{c.path}</code>
+                  <span className="row-value">{c.label ?? <span className="muted small">용어집에 없음</span>}</span>
+                </li>
+              ))}
+            </ul>
+          ) : <p className="muted small">{view.snapshotAvailable ? "바뀐 경로를 찾지 못했습니다." : "기록 당시 스냅샷이 없어 바뀐 경로는 표시할 수 없습니다."}</p>}
+        </div>
+      )}
+      <p className="muted small num">검증한 기록 UID <code className="mono">{shortMiddle(view.uid)}</code></p>
+    </div>
+  );
+}
+
+// ── 복사 ──
+function useCopy(value) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try {
@@ -104,6 +388,24 @@ function HashLine({ value, large }) {
       setCopied(false);
     }
   };
+  return [copied, copy];
+}
+
+function CopyValue({ value, display }) {
+  const [copied, copy] = useCopy(value);
+  return (
+    <span className="copy-value">
+      <code className="mono" title={value}>{display ?? shortMiddle(value)}</code>
+      <button type="button" className="icon-btn" onClick={copy} title="복사" aria-label="복사">
+        <Copy {...ICON} size={14} />
+      </button>
+      {copied && <span className="muted small">복사됨</span>}
+    </span>
+  );
+}
+
+function HashLine({ value, large }) {
+  const [copied, copy] = useCopy(value);
   return (
     <div className={`hash ${large ? "hash-lg" : ""}`}>
       <code className="mono">{value}</code>

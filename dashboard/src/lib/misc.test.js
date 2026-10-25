@@ -73,11 +73,18 @@ describe("온톨로지 표시", () => {
 });
 
 describe("진행 표시", () => {
-  it("flowSteps: 온체인 기록은 항상 비활성", () => {
-    expect(flowSteps({ scenario: null, job: null, hasReport: false }).map(s => s.state)).toEqual(["current", "pending", "disabled", "pending"]);
-    expect(flowSteps({ scenario: "ponzi", job: { status: "running" }, hasReport: true }).map(s => s.state)).toEqual(["done", "running", "disabled", "pending"]);
-    expect(flowSteps({ scenario: "ponzi", job: { status: "done" }, hasReport: true }).map(s => s.state)).toEqual(["done", "done", "disabled", "done"]);
+  it("flowSteps: 온체인 기록은 리포트의 기록 상태를 따르고, 시각화는 기존 동작 그대로", () => {
+    expect(flowSteps({ scenario: null, job: null, hasReport: false }).map(s => s.state)).toEqual(["current", "pending", "pending", "pending"]);
+    expect(flowSteps({ scenario: "ponzi", job: { status: "running" }, hasReport: true, onchain: "prerecorded" }).map(s => s.state)).toEqual(["done", "running", "pending", "pending"]);
+    expect(flowSteps({ scenario: "ponzi", job: { status: "done" }, hasReport: true }).map(s => s.state)).toEqual(["done", "done", "pending", "done"]);
     expect(flowSteps({ scenario: "ponzi", job: { status: "error" }, hasReport: false })[1].state).toBe("error");
+    const chain = phase => flowSteps({ scenario: "ponzi", job: { status: "done" }, hasReport: true, onchain: phase });
+    expect([chain("none")[2].state, chain("none")[2].sub]).toEqual(["pending", "기록 전"]);
+    expect([chain("running")[2].state, chain("running")[2].sub]).toEqual(["running", "기록 중"]);
+    expect([chain("recorded")[2].state, chain("recorded")[2].sub]).toEqual(["done", "완료"]);
+    expect([chain("prerecorded")[2].state, chain("prerecorded")[2].sub]).toEqual(["done", "완료 (사전 기록)"]);
+    expect([chain("error")[2].state, chain("unavailable")[2].state]).toEqual(["error", "disabled"]);
+    for (const p of ["none", "running", "recorded", "prerecorded", "error", "unavailable"]) expect(chain(p)[3].state).toBe("done");
   });
 
   it("stageSteps: auto와 fixture", () => {

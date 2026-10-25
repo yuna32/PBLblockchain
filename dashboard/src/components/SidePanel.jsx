@@ -2,7 +2,9 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { Check, CircleDashed, LoaderCircle, Minus, Play, X } from "lucide-react";
 import { useApp } from "../state/AppContext.jsx";
+import { useAttest } from "../state/AttestContext.jsx";
 import { stageSteps } from "../lib/flow.js";
+import { OnchainMark } from "./Onchain.jsx";
 import { fmtTime, shortHash } from "../lib/format.js";
 import { Badge, ICON, StatusView } from "./ui.jsx";
 
@@ -17,6 +19,7 @@ export function SourceBadge({ source, reason }) {
 
 export function ScenarioPanel() {
   const { scenarios, selected, selectScenario, lastByScenario, useFixture, setUseFixture, analyze, job, health } = useApp();
+  const { scenarioMarks } = useAttest();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const running = job && (job.status === "queued" || job.status === "running");
@@ -44,6 +47,7 @@ export function ScenarioPanel() {
                   <span className="row-main">
                     <span className="row-title">{s.label}</span>
                     <span className="row-desc">{s.description}</span>
+                    <OnchainMark mark={scenarioMarks[s.id]} />
                   </span>
                   {last && (
                     <span className="row-badges">

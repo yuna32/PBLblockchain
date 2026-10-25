@@ -358,6 +358,66 @@ button.row:disabled { cursor: default; opacity: 0.6; }
   font-family: var(--font-mono); font-size: 12px; line-height: 1.55; color: var(--text-2);
 }
 
+/* 온체인 기록·검증 */
+.lead { margin: 0 0 12px; color: var(--text-2); line-height: 1.65; }
+.notice-sm { padding: 10px 14px; border-radius: var(--radius-ctl); font-size: 13px; color: var(--text-2); align-items: center; }
+.notice-caution { background: var(--caution-weak); border-color: var(--caution-weak); align-items: center; }
+.notice-caution svg { color: var(--caution); }
+.notice-caution strong { color: var(--caution); }
+.notice-text { flex: 1; font-size: 13px; color: var(--text-2); }
+.notice-text strong { font-size: var(--fs-body); }
+.field-label { font-size: var(--fs-label); color: var(--text-3); }
+.attest-controls { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-top: 16px; }
+.attest-backend { display: flex; flex-direction: column; gap: 6px; }
+.backend-note { margin: 8px 0 0; }
+.hint { margin: 8px 0 0; }
+.btn-md { height: 40px; padding: 0 16px; font-size: var(--fs-body); }
+.segmented button:disabled { cursor: not-allowed; color: var(--text-4); }
+.job-steps.attest-progress { margin: 16px 0 4px; }
+.job-pending { color: var(--text-4); }
+.job-dot { width: 8px; height: 8px; margin: 0 3px; border-radius: 50%; border: 1px solid var(--border-strong); }
+
+.record { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+.record-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.record-head svg { color: var(--primary); }
+.record-meta { margin-left: auto; }
+.record .sub-title { margin-top: 12px; }
+.copy-value { display: inline-flex; align-items: center; gap: 2px; }
+.copy-value code { color: var(--text-1); }
+.link { display: inline-flex; align-items: center; gap: 4px; margin-top: 12px; color: var(--primary-strong); font-weight: 600; text-decoration: none; }
+
+.tamper { margin-top: 16px; border: 1px solid var(--border); border-radius: var(--radius-ctl); background: var(--fill-1); }
+.tamper-head {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 12px 14px; border: 0; background: transparent; cursor: pointer; text-align: left; color: var(--text-2);
+}
+.tamper-title { font-weight: 600; color: var(--text-1); }
+.tamper-body { padding: 0 14px 14px; }
+.tamper-body > p { margin: 0 0 4px; }
+.tamper .rows-static .row { border-bottom-color: var(--fill-2); }
+.tamper .row-desc { white-space: normal; }
+
+.verify { display: flex; flex-direction: column; gap: 14px; margin-top: 20px; }
+.verify-head { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+.verify-head .badge { font-size: 13px; padding: 3px 10px; }
+.verify-danger { color: var(--danger); }
+.hash-compare { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 12px; align-items: center; }
+.hash-compare-item { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: var(--radius-ctl); background: var(--fill-1); min-width: 0; }
+.hash-compare-item code { overflow-wrap: anywhere; color: var(--text-1); }
+.table-static tbody tr { cursor: default; }
+.table-static tbody tr:hover { background: transparent; }
+.table-static td.mono { font-size: 12px; }
+.table tbody tr.row-mismatch { background: var(--danger-weak); }
+.changed .sub-title { margin-top: 0; }
+.changed .row { gap: 16px; }
+.verify .disclaimer { margin: 0; }
+
+.onchain-badge { display: inline-flex; align-items: center; gap: 6px; }
+.onchain-mark { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 11.5px; color: var(--text-3); }
+.strip-link { border: 0; border-right: 1px solid var(--fill-2); background: transparent; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.strip-link:hover { background: var(--fill-1); }
+.strip-link .strip-label { display: inline-flex; align-items: center; gap: 2px; }
+
 /* 작업 단계 */
 .job { display: flex; flex-direction: column; gap: 8px; }
 .job-steps { display: flex; gap: 12px; margin: 0; padding: 0; list-style: none; font-size: var(--fs-label); color: var(--text-3); }

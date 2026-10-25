@@ -3,6 +3,7 @@ import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { Check, CircleDashed, History, LayoutList, LoaderCircle, PanelRightClose, PanelRightOpen, X } from "lucide-react";
 import { useApp } from "../state/AppContext.jsx";
+import { useAttest } from "../state/AttestContext.jsx";
 import { flowSteps } from "../lib/flow.js";
 import { PAGES } from "../lib/terms.js";
 import { ScenarioPanel, HistoryPanel } from "./SidePanel.jsx";
@@ -78,9 +79,10 @@ const STEP_ICON = { done: Check, running: LoaderCircle, error: X };
 
 function FlowSteps() {
   const { selected, job, current } = useApp();
-  const steps = flowSteps({ scenario: selected, job, hasReport: Boolean(current.data) });
+  const { currentPhase } = useAttest();
+  const steps = flowSteps({ scenario: selected, job, hasReport: Boolean(current.data), onchain: currentPhase });
   return (
-    <ol className="flow">
+    <ol className="flow" data-onchain={currentPhase ?? ""}>
       {steps.map((s, i) => {
         const Icon = STEP_ICON[s.state] ?? CircleDashed;
         return (

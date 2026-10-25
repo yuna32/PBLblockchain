@@ -32,6 +32,12 @@ async function request(path, options) {
   return body;
 }
 
+const postJson = (path, body) => request(path, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body ?? {})
+});
+
 export const api = {
   health:     () => request("/health"),
   scenarios:  () => request("/scenarios"),
@@ -45,5 +51,15 @@ export const api = {
   report:     id => request(`/report/${encodeURIComponent(id)}`),
   timeseries: id => request(`/report/${encodeURIComponent(id)}/timeseries`),
   ontology:   id => request(`/report/${encodeURIComponent(id)}/ontology`),
-  canonical:  id => request(`/report/${encodeURIComponent(id)}/canonical`)
+  canonical:  id => request(`/report/${encodeURIComponent(id)}/canonical`),
+
+  // 온체인 기록·검증 (server/attest.js)
+  attestBackends:      () => request("/attest/backends"),
+  fixtureAttestations: () => request("/fixtures/attestations"),
+  attestation: id => request(`/report/${encodeURIComponent(id)}/attestation`),
+  attest:      (id, { backend = "local", force = false } = {}) => postJson(`/report/${encodeURIComponent(id)}/attest`, { backend, force }),
+  attestJob:   id => request(`/attest-jobs/${encodeURIComponent(id)}`),
+  verify:      (id, { uid, tamper } = {}) => postJson(`/report/${encodeURIComponent(id)}/verify`, {
+    ...(uid ? { uid } : {}), ...(tamper ? { tamper } : {})
+  })
 };
