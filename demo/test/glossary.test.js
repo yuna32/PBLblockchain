@@ -38,6 +38,13 @@ test("핵심 용어가 있음", () => {
   for (const id of ["drainer", "extractor", "lowest_wallet_grade", "INFLOW_STOP", "trust_grade", "onset", "report_hash"]) assert.ok(GLOSSARY[id], id);
 });
 
+test("headline·basis 문장이 한글 라벨로 바꾸는 ID가 모두 있음 (위험 수준, 경고)", () => {
+  const ids = ["LOW", "MEDIUM", "HIGH", "CRITICAL", "ZeroWithdrawBlock", "unclassified_warning",
+               "HIDDEN_WITHDRAW_BLOCK", "NO_PUBLIC_WITHDRAW_ACTIVATE", "HiddenStateUpdate", "StrawManContract"];
+  assert.deepEqual(ids.filter(id => !GLOSSARY[id]), []);
+  assert.deepEqual(["LOW", "MEDIUM", "HIGH", "CRITICAL"].map(id => GLOSSARY[id].ko), ["낮음", "보통", "높음", "매우 높음"]);
+});
+
 test("온톨로지 조건·근거·역할·회피 기법·회피 서브클래스가 모두 있음", () => {
   const ids = new Set();
   for (const ft of Object.values(FraudOntology.fraudTypes)) {

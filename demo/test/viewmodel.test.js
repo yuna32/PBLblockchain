@@ -172,7 +172,69 @@ test("headline 우선순위: 첫 출금 → 회피 패턴 → 지갑 → 코드 
     assert.deepEqual(h.reasons.map(r => r.page), pages, name);
   }
   assert.equal(buildViewModel(load("ponzi")).headline.reasons[1].label, "회피 패턴: 최대 거래 회피형");
-  assert.match(buildViewModel(load("pumpdump")).headline.reasons[1].detail, /PumpDump_MaxTxEvasion/);
+  assert.equal(buildViewModel(load("pumpdump")).headline.reasons[1].detail, "최대 거래 회피형 패턴이 감지되었습니다 (회피 점수 100).");
+  assert.equal(buildViewModel(load("ponzi")).headline.reasons[3].label, "코드 위험 수준 매우 높음");
+  assert.equal(buildViewModel(load("normal")).headline.reasons[1].label, "코드 위험 수준 낮음");
+});
+
+// ── 3c: 문장에 원시 ID가 없어야 한다 ──
+// 대문자_밑줄 식별자(BALANCE_DROP), 클래스_서브클래스(PonziScheme_MaxTxEvasion), 소문자_밑줄(pump_and_dump),
+// camelCase(nonPrivilegedSuccessRate), 괄호 밖의 영어 위험 수준(CRITICAL 단독). "매우 높음(CRITICAL)"처럼 괄호 안은 허용.
+const RAW_ID_PATTERNS = [
+  /\b[A-Z][A-Z0-9]*_[A-Z0-9_]+\b/,
+  /\b[A-Z][a-z]+[A-Za-z]*_[A-Za-z]+\b/,
+  /\b[a-z]+_[a-z_]+\b/,
+  /\b[a-z]+[A-Z][A-Za-z]+\b/,
+  /(?<!\()\b(LOW|MEDIUM|HIGH|CRITICAL)\b(?!\))/
+];
+
+function rawIdsIn(text) {
+  return RAW_ID_PATTERNS.map(p => text.match(p)?.[0]).filter(Boolean);
+}
+
+function sentencesOf(v) {
+  return [
+    ...v.headline.reasons.flatMap(r => [r.label, r.detail]),
+    ...v.combination.basis,
+    v.combination.criteriaNote
+  ];
+}
+
+for (const name of Object.keys(TONES)) {
+  test(`원시 ID 없음 ${name}: headline.reasons, combination.basis·criteriaNote`, () => {
+    const found = sentencesOf(buildViewModel(load(name))).flatMap(s => rawIdsIn(s).map(id => `${id} ← ${s}`));
+    assert.deepEqual(found, []);
+  });
+}
+
+test("원시 ID 없음: 경고가 모두 감지된 합성 리포트", () => {
+  const { report, rows } = load("normal");
+  report.dynamic.fraud_type_hint = "unclassified_warning";
+  report.dynamic.withdraw_block_warning = { detected: true, reason: "비오너 출금 5건 중 성공률 0.0% <= 5%, 실패 시점 잔고 5.000 ETH > 0" };
+  report.dynamic.reasoning_steps = [...report.dynamic.reasoning_steps,
+    "→ unclassified_warning: 유형 미확정, 출금 차단 경고 (ZeroWithdrawBlock: nonPrivilegedSuccessRate 0.0% <= 5%)"];
+  report.prevention.withdraw_block_warning = { detected: true, matched_items: ["HIDDEN_WITHDRAW_BLOCK", "NO_PUBLIC_WITHDRAW_ACTIVATE"] };
+  report.prevention.code_pattern_warnings = [{ id: "CodePattern_HiddenStateUpdate", label: "숨은 상태 갱신", codePattern: "HiddenStateUpdatePattern", evidence: "line 1" }];
+  report.prevention.classification = "unclassified_warning";
+  report.prevention.risk_level = "HIGH";
+  const v = buildViewModel({ report, envelope: null, rows });
+  assert.equal(v.headline.reasons.length, 4);
+  const found = sentencesOf(v).flatMap(s => rawIdsIn(s).map(id => `${id} ← ${s}`));
+  assert.deepEqual(found, []);
+  // 원본 warnings의 detail은 그대로 (문장 내용만 바뀜)
+  assert.deepEqual(v.warnings.find(w => w.source === "prevention.withdraw_block_warning").detail, ["HIDDEN_WITHDRAW_BLOCK", "NO_PUBLIC_WITHDRAW_ACTIVATE"]);
+  assert.match(v.headline.reasons[1].detail, /숨겨진 인출 차단 조건/);
+  assert.match(v.combination.basis[0], /^예방 분석 위험 수준이 높음\(HIGH\)으로/);
+});
+
+test("원시 ID 검사 패턴 자체", () => {
+  assert.deepEqual(rawIdsIn("코드 위험 수준 CRITICAL"), ["CRITICAL"]);
+  assert.deepEqual(rawIdsIn("매우 높음(CRITICAL)으로"), []);
+  assert.ok(rawIdsIn("최대 거래 회피형(PonziScheme_MaxTxEvasion)").length > 0);
+  assert.ok(rawIdsIn("규칙 BALANCE_DROP").length > 0);
+  assert.ok(rawIdsIn("힌트 pump_and_dump").length > 0);
+  assert.ok(rawIdsIn("nonPrivilegedSuccessRate 0%").length > 0);
+  assert.deepEqual(rawIdsIn("운영자 전액 인출 지갑(drainer) 1개, 최저 지갑 등급 F로, 5.000 ETH"), []);
 });
 
 test("headline: 최대 4개, 근거 없는 항목은 생략", () => {

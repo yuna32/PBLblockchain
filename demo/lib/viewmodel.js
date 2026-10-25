@@ -136,11 +136,28 @@ const WARNING_LABELS = {
   "prevention.classification":         "유형 미확정 경고 (코드)"
 };
 
-function warningDetail(detail) {
-  if (typeof detail === "string") return detail;
-  if (Array.isArray(detail)) return detail.join(", ");
-  if (detail && typeof detail === "object") return detail.label ?? detail.id ?? JSON.stringify(detail);
-  return "";
+// headline 근거 문장용 경고 설명: 원시 ID 대신 용어집 한글 라벨과 한국어 문장으로 쓴다.
+// (view.warnings의 detail 원본은 그대로 둔다)
+function warningReasonDetail(w, report) {
+  switch (w.source) {
+    case "dynamic.withdraw_block_warning":
+      return typeof w.detail === "string" ? w.detail : "출금 차단 신호가 감지되었습니다.";
+    case "prevention.withdraw_block_warning": {
+      const items = Array.isArray(w.detail) ? w.detail.map(glossaryLabel) : [];
+      return items.length ? `코드에서 ${items.join(", ")} 항목이 검출되었습니다.` : "코드에서 출금 차단 항목이 검출되었습니다.";
+    }
+    case "prevention.code_pattern_warnings":
+      return `코드 패턴이 검출되었습니다: ${w.detail?.label ?? glossaryLabel(w.detail?.codePattern?.replace(/Pattern$/, ""))}.`;
+    case "dynamic.fraud_type_hint": {
+      const reason = report.dynamic?.withdraw_block_warning?.reason;
+      return `사기 유형 조건에는 맞지 않지만 ${glossaryLabel("ZeroWithdrawBlock")}가 감지되었습니다` + (reason ? ` (${reason}).` : ".");
+    }
+    case "prevention.classification":
+      return `예방 분석에서 ${glossaryLabel("unclassified_warning")}로 분류되었습니다` +
+        (report.prevention?.risk_label ? ` (${report.prevention.risk_label}).` : ".");
+    default:
+      return typeof w.detail === "string" ? w.detail : "";
+  }
 }
 
 // reasons: 경고(감지된 것) → 첫 출금 블록 → 회피 패턴 → 최저 지갑 등급·drainer/extractor → 코드 위험 수준, 최대 4개.
@@ -166,7 +183,7 @@ function buildHeadline({ report, code, wallet, warns, pats, onset, combination }
 
   const reasons = [];
   for (const w of detectedWarnings) {
-    reasons.push({ label: WARNING_LABELS[w.source] ?? w.source, detail: warningDetail(w.detail), page: "report" });
+    reasons.push({ label: WARNING_LABELS[w.source] ?? w.source, detail: warningReasonDetail(w, report), page: "report" });
   }
   if (onset) {
     reasons.push({ label: `첫 출금 블록 ${onset.block}`, detail: `블록 ${onset.block}에서 처음으로 자금이 빠져나갔습니다.`, page: "trade" });
@@ -175,7 +192,7 @@ function buildHeadline({ report, code, wallet, warns, pats, onset, combination }
     const name = glossaryLabel(pats.evasion.subclass);
     reasons.push({
       label: `회피 패턴: ${name}`,
-      detail: `${name}(${pats.evasion.subclass}) 패턴이 감지되었습니다 (회피 점수 ${pats.evasion.confidence}).`,
+      detail: `${name} 패턴이 감지되었습니다 (회피 점수 ${pats.evasion.confidence}).`,
       page: "ontology"
     });
   }
@@ -190,7 +207,7 @@ function buildHeadline({ report, code, wallet, warns, pats, onset, combination }
   if (code.preventionRiskLevel) {
     const detected = (report.prevention?.checklist ?? []).filter(c => c.detected).length;
     reasons.push({
-      label: `코드 위험 수준 ${code.preventionRiskLevel}`,
+      label: `코드 위험 수준 ${glossaryLabel(code.preventionRiskLevel)}`,
       detail: detected > 0
         ? `배포 전 예방 분석에서 위험 항목 ${detected}개가 검출되었습니다.`
         : "배포 전 예방 분석에서 위험 항목이 검출되지 않았습니다.",

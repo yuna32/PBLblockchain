@@ -1,5 +1,8 @@
 // 코드 위험 × 지갑 위험 조합 판정 (시연용 임시 기준, 추후 조정 가능).
 // 입력은 뷰모델의 codeAssessment, walletAssessment. 순수 함수.
+// basis 문장의 위험 수준은 용어집 한글 라벨로 쓰고 원래 값은 괄호로 한 번만 붙인다(예: "매우 높음(CRITICAL)").
+
+import { glossaryLabel } from "./glossary.js";
 
 export const COMBINATION_RULES = {
   // 코드 위험 높음: prevention.risk_level이 이 중 하나
@@ -31,13 +34,17 @@ export function computeCombination({ codeAssessment, walletAssessment }, rules =
   if (rules.walletHigh.lowGrades.includes(lowest)) walletHits.push(`최저 지갑 등급 ${lowest}`);
   const walletHigh = walletHits.length > 0;
 
+  // 한글 라벨은 모두 받침으로 끝나서(낮음·보통·높음·매우 높음) 조사는 "으로"
+  const levelText = level ? `${glossaryLabel(level)}(${level})으로` : "확인 불가로";
+  const criteria = rules.codeHighLevels.map(glossaryLabel).join(" 또는 ");
   const basis = [];
   basis.push(codeHigh
-    ? `예방 분석 위험 수준이 ${level}로, 코드 위험 높음 기준(${rules.codeHighLevels.join(" 또는 ")})에 해당합니다.`
-    : `예방 분석 위험 수준이 ${level ?? "확인 불가"}로, 코드 위험 높음 기준(${rules.codeHighLevels.join(" 또는 ")})에 해당하지 않습니다.`);
+    ? `예방 분석 위험 수준이 ${levelText}, 코드 위험 높음 기준(${criteria})에 해당합니다.`
+    : `예방 분석 위험 수준이 ${levelText}, 코드 위험 높음 기준(${criteria})에 해당하지 않습니다.`);
   basis.push(walletHigh
     ? `${walletHits.join(", ")}로 지갑 위험 높음 기준에 해당합니다.`
-    : `drainer ${drainers}개, extractor ${extractors}개, 최저 지갑 등급 ${lowest ?? "확인 불가"}로 지갑 위험 높음 기준에 해당하지 않습니다.`);
+    : `운영자 전액 인출 지갑(drainer) ${drainers}개, 과도 수익 지갑(extractor) ${extractors}개, ` +
+      `최저 지갑 등급 ${lowest ?? "확인 불가"}로 지갑 위험 높음 기준에 해당하지 않습니다.`);
   if (walletHigh && rules.safeLookingGrades.includes(average)) {
     basis.push(`평균 지갑 등급은 ${average}로 안전해 보이지만, 개별 지갑 기준으로는 지갑 위험이 높습니다.`);
   }

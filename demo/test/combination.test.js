@@ -39,6 +39,19 @@ test("PumpDump: 평균 A인데 지갑 위험 높음을 basis에 명시", () => {
   assert.match(c.basis.join(" "), /평균 지갑 등급은 A로 안전해 보이지만/);
 });
 
+test("basis 문장: 위험 수준은 한글 라벨, 원래 값은 괄호로 한 번", () => {
+  assert.equal(view("ponzi").combination.basis[0],
+    "예방 분석 위험 수준이 매우 높음(CRITICAL)으로, 코드 위험 높음 기준(높음 또는 매우 높음)에 해당합니다.");
+  assert.equal(view("normal").combination.basis[0],
+    "예방 분석 위험 수준이 낮음(LOW)으로, 코드 위험 높음 기준(높음 또는 매우 높음)에 해당하지 않습니다.");
+  assert.equal(view("normal").combination.basis[1],
+    "운영자 전액 인출 지갑(drainer) 0개, 과도 수익 지갑(extractor) 0개, 최저 지갑 등급 A로 지갑 위험 높음 기준에 해당하지 않습니다.");
+  const none = computeCombination({ codeAssessment: { preventionRiskLevel: null }, walletAssessment: null });
+  assert.match(none.basis[0], /^예방 분석 위험 수준이 확인 불가로,/);
+  const medium = computeCombination({ codeAssessment: { preventionRiskLevel: "MEDIUM" }, walletAssessment: null });
+  assert.match(medium.basis[0], /보통\(MEDIUM\)으로/);
+});
+
 test("안전해 보이는 평균 등급 안내는 평균 A일 때만 (PumpDump만)", () => {
   assert.deepEqual(COMBINATION_RULES.safeLookingGrades, ["A"]);
   const withNote = Object.keys(EXPECTED).filter(name => view(name).combination.basis.some(b => b.includes("안전해 보이지만")));
