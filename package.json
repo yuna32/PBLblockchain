@@ -18,7 +18,8 @@
     "gen": "node scenarios/generate_scenarios.js --count 10",
     "run:scenario": "node scenarios/run_scenario.js",
     "run:all": "node scenarios/run_all_scenarios.js",
-    "metrics": "node scenarios/run_all_scenarios.js"
+    "metrics": "node scenarios/run_all_scenarios.js",
+    "demo:server": "node server/index.js"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.3",

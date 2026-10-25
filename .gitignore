@@ -3,5 +3,6 @@ node_modules/
 analysis/logs/honeypot_sim_log.csv
 artifacts/
 cache/
+demo/runs/
 
 *Zone.Identifier
