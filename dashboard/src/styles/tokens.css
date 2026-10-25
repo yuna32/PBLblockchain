@@ -1,0 +1,54 @@
+/* 디자인 토큰: 색·글꼴·간격·크기는 여기 한 곳에서만 정한다.
+   포인트 색은 파랑 하나, 나머지는 회색 단계. 의미 색은 위험·주의·안전 세 가지(항상 글자 라벨과 함께 쓴다). */
+:root {
+  /* 바탕과 면 */
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --fill-1: #f2f4f6;
+  --fill-2: #e8ebed;
+  --border: #e5e8eb;
+  --border-strong: #d1d6db;
+
+  /* 글자 회색 단계 */
+  --text-1: #191f28;
+  --text-2: #4e5968;
+  --text-3: #8b95a1;
+  --text-4: #b0b8c1;
+
+  /* 포인트 */
+  --primary: #3182f6;
+  --primary-strong: #1b64da;
+  --primary-weak: #e8f3ff;
+
+  /* 의미 색 */
+  --danger: #e42939;
+  --danger-weak: #fdeced;
+  --caution: #e8770c;
+  --caution-weak: #fff3e5;
+  --safe: #0d9488;
+  --safe-weak: #e3f6f3;
+
+  /* 차트 */
+  --deposit: var(--primary);
+  --withdraw: #f04452;
+
+  /* 글꼴 (외부 CDN 없이 설치된 글꼴 순서로) */
+  --font: "Pretendard", "Pretendard Variable", "Noto Sans KR", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --fs-label: 12.5px;
+  --fs-body: 14px;
+  --fs-title: 16px;
+  --fs-num: 24px;
+  --fs-num-lg: 28px;
+
+  /* 크기와 간격 */
+  --header-h: 56px;
+  --flow-h: 44px;
+  --panel-w: 320px;
+  --rail-w: 64px;
+  --radius-card: 14px;
+  --radius-ctl: 8px;
+  --gap: 16px;
+  --pad-card: 20px;
+  --shadow: 0 1px 2px rgba(25, 31, 40, 0.04);
+}

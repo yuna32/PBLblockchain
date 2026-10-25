@@ -19,7 +19,8 @@
     "run:scenario": "node scenarios/run_scenario.js",
     "run:all": "node scenarios/run_all_scenarios.js",
     "metrics": "node scenarios/run_all_scenarios.js",
-    "demo:server": "node server/index.js"
+    "demo:server": "node server/index.js",
+    "demo:ui": "npm --prefix dashboard run dev"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.3",
