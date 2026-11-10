@@ -48,6 +48,8 @@ export function createStaticApi({ base = SNAPSHOT_BASE, fetchImpl = (...a) => gl
     timeseries: id => scenarioFile(id, "timeseries.json"),
     ontology: id => scenarioFile(id, "ontology.json"),
     canonical: id => scenarioFile(id, "canonical.json"),
+    // 원자료 화면용 컨트랙트 소스 { file, normalization, sha256, matchesEnvelope, text }
+    source: id => scenarioFile(id, "source.json"),
     // 상태 A면 attestation.json, 아니면 null. 파일 내용도 다시 판정한다(기능 감지).
     attestation: async id => {
       const s = (await index()).scenarios.find(x => x.id === id);

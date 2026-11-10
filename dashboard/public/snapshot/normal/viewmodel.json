@@ -26,6 +26,422 @@
     "walletRisk": "low"
   },
   "contract": "NormalStaking",
+  "decision": {
+    "chain": [
+      {
+        "answer": "아니요",
+        "conditions": [
+          {
+            "id": "mixed_withdrawals",
+            "label": "성공한 출금과 실패한 출금이 섞여 있음",
+            "met": false,
+            "status": "unmet",
+            "unmetText": "실패한 출금이 없음",
+            "valueText": "성공 10건 · 실패 0건"
+          },
+          {
+            "id": "insider_exit",
+            "label": "넣은 돈보다 더 받아 간 출금이 있음",
+            "met": true,
+            "status": "met",
+            "unmetText": "넣은 돈보다 더 받아 간 출금이 없음",
+            "valueText": "있음"
+          },
+          {
+            "id": "balance_at_failure_zero",
+            "label": "출금이 실패한 시점의 잔고가 0",
+            "met": true,
+            "status": "no_data",
+            "unmetText": "출금이 실패한 시점에도 잔고 0 ETH가 남아 있음",
+            "valueText": "실패한 출금 없음"
+          }
+        ],
+        "label": "펌프앤덤프",
+        "matched": false,
+        "no": 1,
+        "question": "먼저 빠져나간 사람 뒤로 출금이 막혔나?",
+        "type": "pump_and_dump"
+      },
+      {
+        "answer": "아니요",
+        "conditions": [
+          {
+            "bar": {
+              "direction": "above",
+              "max": 1,
+              "threshold": 0.7,
+              "unit": "ratio",
+              "value": 0.06993333333333333
+            },
+            "id": "single_large_outflow",
+            "label": "한 번에 빠진 돈이 최고 잔고의 70% 이상",
+            "met": false,
+            "status": "unmet",
+            "unmetText": "한 번에 빠진 돈이 최고 잔고의 7%로 기준(70%)에 못 미침",
+            "valueText": "최고 잔고의 7%"
+          },
+          {
+            "bar": {
+              "direction": "above",
+              "max": 11,
+              "threshold": 5,
+              "unit": "count",
+              "value": 11
+            },
+            "id": "distributed_inflow",
+            "label": "입금한 지갑이 5개 이상",
+            "met": true,
+            "status": "met",
+            "unmetText": "입금한 지갑이 11개로 기준(5개)보다 적음",
+            "valueText": "11개 (운영자 1개 포함)"
+          },
+          {
+            "id": "recipient_is_depositor",
+            "label": "그 돈을 받은 주소가 입금자 중 하나",
+            "met": true,
+            "status": "met",
+            "unmetText": "큰 출금을 받은 주소가 입금한 적 없는 주소",
+            "valueText": "예"
+          }
+        ],
+        "label": "자금세탁",
+        "matched": false,
+        "no": 2,
+        "question": "여러 지갑의 돈을 입금자 지갑 하나로 모아 뺐나?",
+        "type": "money_laundering"
+      },
+      {
+        "answer": "아니요",
+        "conditions": [
+          {
+            "bar": {
+              "direction": "above",
+              "max": 1,
+              "threshold": 0.7,
+              "unit": "ratio",
+              "value": 0.06993333333333333
+            },
+            "id": "single_large_outflow",
+            "label": "한 번에 빠진 돈이 최고 잔고의 70% 이상",
+            "met": false,
+            "status": "unmet",
+            "unmetText": "한 번에 빠진 돈이 최고 잔고의 7%로 기준(70%)에 못 미침",
+            "valueText": "최고 잔고의 7%"
+          },
+          {
+            "id": "recipient_not_depositor",
+            "label": "그 돈을 받은 주소가 입금한 적 없는 주소",
+            "met": false,
+            "status": "unmet",
+            "unmetText": "큰 출금을 받은 주소가 입금자 중 하나",
+            "valueText": "아니요"
+          },
+          {
+            "id": "no_mid_exit",
+            "label": "참여자 중도 출금이 없음",
+            "met": false,
+            "status": "unmet",
+            "unmetText": "참여자 중도 출금이 9건 있음",
+            "valueText": "9건"
+          }
+        ],
+        "label": "러그풀",
+        "matched": false,
+        "no": 3,
+        "question": "운영자가 모인 돈의 대부분을 한 번에 가져갔나?",
+        "type": "rug_pull"
+      },
+      {
+        "answer": "아니요",
+        "conditions": [
+          {
+            "id": "balance_drop",
+            "label": "잔고 급락 신호",
+            "met": false,
+            "status": "unmet",
+            "unmetText": "잔고 급락 신호가 없음",
+            "valueText": "없음"
+          },
+          {
+            "id": "flow_spike",
+            "label": "대량 유출 신호 (누적 출금이 입금의 50% 이상)",
+            "met": false,
+            "status": "unmet",
+            "unmetText": "대량 유출 신호가 없음",
+            "valueText": "없음"
+          },
+          {
+            "id": "mid_exit",
+            "label": "참여자 중도 출금이 있음",
+            "met": true,
+            "status": "met",
+            "unmetText": "참여자 중도 출금이 없음",
+            "valueText": "9건"
+          }
+        ],
+        "label": "폰지",
+        "matched": false,
+        "no": 4,
+        "question": "새로 들어온 돈으로 앞사람에게 돌려줬나?",
+        "type": "ponzi_scheme"
+      },
+      {
+        "answer": "아니요",
+        "conditions": [
+          {
+            "id": "non_owner_attempts",
+            "label": "운영자 외 출금 시도가 있음",
+            "met": true,
+            "status": "met",
+            "unmetText": "운영자 외 출금 시도가 없음",
+            "valueText": "10건"
+          },
+          {
+            "bar": {
+              "direction": "below",
+              "max": 1,
+              "threshold": 0.05,
+              "unit": "ratio",
+              "value": 1
+            },
+            "id": "non_owner_success_low",
+            "label": "운영자 외 출금 성공률 5% 이하",
+            "met": false,
+            "status": "unmet",
+            "unmetText": "운영자 외 출금 성공률이 100%로 기준(5% 이하)보다 높음",
+            "valueText": "100%"
+          },
+          {
+            "id": "balance_left_at_failure",
+            "label": "출금이 실패한 시점에도 잔고가 남아 있음",
+            "met": false,
+            "status": "no_data",
+            "unmetText": "실패한 출금이 없음",
+            "valueText": "실패한 출금 없음"
+          }
+        ],
+        "label": "출금 차단 경고",
+        "matched": false,
+        "no": 5,
+        "question": "참여자의 출금이 막혀 있나?",
+        "type": "unclassified_warning"
+      },
+      {
+        "answer": "예",
+        "conditions": [
+          {
+            "id": "stake_pattern",
+            "label": "스테이킹(stake·unstake) 거래가 있음",
+            "met": true,
+            "status": "met",
+            "unmetText": "스테이킹(맡기고 돌려받기) 거래가 없음",
+            "valueText": "있음"
+          }
+        ],
+        "label": "정상 스테이킹",
+        "matched": true,
+        "no": 6,
+        "question": "맡기고 돌려받는 스테이킹 거래인가?",
+        "type": "normal_staking"
+      }
+    ],
+    "chainSummary": "1~5번 아니요, 6번 예 → 정상 스테이킹 → 근거 없음",
+    "conclusion": "no_evidence",
+    "conclusionLabel": "근거 없음",
+    "copy": {
+      "callouts": [
+        {
+          "block": 53,
+          "detail": "10건 모두 돌려받음",
+          "kind": "first_withdraw",
+          "title": "참여자 출금 시작"
+        }
+      ],
+      "chartNotes": [
+        "참여자 10명이 맡긴 10 ETH보다 많은 10.445 ETH를 돌려받았습니다",
+        "한 번에 큰돈이 빠진 적이 없습니다 (최대 7%)",
+        "신호가 없다고 안전이 보장되는 것은 아닙니다"
+      ],
+      "headline": "분석한 범위에서는 사기 패턴이 보이지 않습니다",
+      "note": "신호가 없다고 안전이 보장되는 것은 아닙니다",
+      "reasons": [
+        "한 번에 빠져나간 돈은 최고 잔고의 7%였습니다",
+        "참여자 출금 10건이 모두 성공했습니다",
+        "운영자는 돈을 가져가지 않았습니다(운영자 수령 0 ETH)"
+      ],
+      "summary": {
+        "analyzed": "입금 11건 · 출금 10건",
+        "firstAnomaly": "보이지 않음"
+      }
+    },
+    "decisive": null,
+    "facts": {
+      "balanceAtFailureEth": 0,
+      "depositCount": 11,
+      "distributedInflow": true,
+      "finalBalanceEth": 4.555,
+      "firstDepositBlock": 4,
+      "firstWithdrawBlock": 53,
+      "hasStakePattern": true,
+      "insiderExit": true,
+      "largestWithdraw": {
+        "action": "unstake",
+        "amountEth": 1.049,
+        "balanceAfterEth": 13.951,
+        "block": 53,
+        "to": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "toIsOwner": false
+      },
+      "lastBlock": 71,
+      "lastDepositBlock": 31,
+      "maxSingleWithdrawEth": 1.049,
+      "maxSingleWithdrawRatio": 0.06993333333333333,
+      "midExitCount": 9,
+      "nonOwnerSuccessCount": 10,
+      "nonOwnerSuccessRate": 1,
+      "nonOwnerWithdrawCount": 10,
+      "ownerDepositEth": 5,
+      "ownerIsDepositor": true,
+      "ownerWithdrawAll": false,
+      "participantDepositCount": 10,
+      "participantMidExit": true,
+      "peakBalanceEth": 15,
+      "rowCount": 21,
+      "signals": {
+        "BALANCE_DROP": false,
+        "FLOW_SPIKE": false,
+        "OSCILLATING_BALANCE": false
+      },
+      "singleLargeOutflow": false,
+      "someWithdrawalsFail": false,
+      "someWithdrawalsSucceed": true,
+      "totalInEth": 15,
+      "uniqueDepositorCount": 11,
+      "withdrawCount": 10,
+      "withdrawFailCount": 0,
+      "withdrawSuccessCount": 10,
+      "withdrawSuccessRate": 1,
+      "zeroWithdrawBlock": false
+    },
+    "flow": {
+      "outs": [
+        {
+          "count": 10,
+          "eth": 10.445,
+          "ethText": "10.445",
+          "kind": "participants",
+          "ratio": 0.6963333333333334,
+          "ratioText": null,
+          "receivedCount": 10
+        },
+        {
+          "count": 0,
+          "eth": 4.555,
+          "ethText": "4.555",
+          "kind": "remaining",
+          "ratio": 0.30366666666666664,
+          "ratioText": null
+        }
+      ],
+      "sources": [
+        {
+          "count": 10,
+          "eth": 10,
+          "ethText": "10",
+          "kind": "participants"
+        },
+        {
+          "count": 1,
+          "eth": 5,
+          "ethText": "5",
+          "kind": "owner_fund"
+        }
+      ],
+      "totalInEth": 15,
+      "totalInText": "15"
+    },
+    "hint": "normal_staking",
+    "matchedStep": 6,
+    "ownerAddress": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+    "principal": {
+      "collector": null,
+      "insiders": null,
+      "late": null,
+      "ownerReceivedEth": 0,
+      "participantWalletCount": 10,
+      "participants": {
+        "count": 10,
+        "depositEth": 10,
+        "fullCount": 10,
+        "noneCount": 0,
+        "partialCount": 0,
+        "receivedCount": 10,
+        "receivedEth": 10.445,
+        "unrecoveredCount": 0
+      }
+    },
+    "segments": [
+      {
+        "from": 4,
+        "key": "deposit",
+        "label": "참여자 입금 10회",
+        "to": 31
+      },
+      {
+        "from": 31,
+        "key": "wait",
+        "label": "대기",
+        "to": 53
+      },
+      {
+        "from": 53,
+        "key": "event1",
+        "label": "참여자 출금",
+        "to": 71
+      }
+    ],
+    "thresholds": {
+      "distributedInflowMin": 5,
+      "flowSpikeRatio": 0.5,
+      "nonOwnerSuccessMax": 0.05,
+      "pumpBalanceAtFailureMax": 0,
+      "singleLargeOutflowRatio": 0.7
+    },
+    "typeLabel": "정상 스테이킹",
+    "version": 1,
+    "whyNot": [
+      {
+        "checked": true,
+        "label": "펌프앤덤프",
+        "reason": "실패한 출금이 없음",
+        "type": "pump_and_dump"
+      },
+      {
+        "checked": true,
+        "label": "자금세탁",
+        "reason": "한 번에 빠진 돈이 최고 잔고의 7%로 기준(70%)에 못 미침",
+        "type": "money_laundering"
+      },
+      {
+        "checked": true,
+        "label": "러그풀",
+        "reason": "한 번에 빠진 돈이 최고 잔고의 7%로 기준(70%)에 못 미침",
+        "type": "rug_pull"
+      },
+      {
+        "checked": true,
+        "label": "폰지",
+        "reason": "잔고 급락 신호가 없음",
+        "type": "ponzi_scheme"
+      },
+      {
+        "checked": true,
+        "label": "출금 차단 경고",
+        "reason": "운영자 외 출금 성공률이 100%로 기준(5% 이하)보다 높음",
+        "type": "unclassified_warning"
+      }
+    ]
+  },
   "disclaimer": "본 결과는 시뮬레이션 거래 로그와 컨트랙트 소스 코드에 대한 휴리스틱 분석 결과이며, 실제 사기 여부를 확정하지 않는다. 판정 규칙과 임계값은 연구 단계의 잠정값이라 오탐과 미탐이 있을 수 있다. 본 결과는 투자 판단의 근거가 될 수 없으며, 이를 근거로 한 결정의 책임은 이용자에게 있다.",
   "headline": {
     "reasons": [

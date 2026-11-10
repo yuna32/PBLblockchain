@@ -5,7 +5,8 @@
 // 출력
 //   index.json  { schemaVersion, generatedAt, sourceCommit, canonicalVersion, attestation: { chainId, explorerBase },
 //                 scenarios: [{ id, label, expectedType, description, reportHash, attestStatus: "A" | "B" }], glossary }
-//   <scenario>/{report, viewmodel, timeseries, ontology, canonical, envelope}.json
+//   <scenario>/{report, viewmodel, timeseries, ontology, canonical, envelope, source}.json
+//     source.json { file, normalization, sha256, matchesEnvelope, text } — 원자료 화면용 컨트랙트 소스
 //   <scenario>/attestation.json  상태 A(Sepolia 기록)일 때만. 공개 값만 넣는다.
 //
 // 결정성 규칙 (같은 입력 → 같은 출력)
@@ -33,6 +34,7 @@ import { canonicalize, hashableReport, sha256Hex, CANONICAL_VERSION } from "./li
 import { toTimeseries } from "./lib/timeseries.js";
 import { buildViewModel } from "./lib/viewmodel.js";
 import { buildOntologyGraph } from "./lib/ontologygraph.js";
+import { contractSource } from "./lib/source.js";
 import { GLOSSARY } from "./lib/glossary.js";
 import { EAS_FIXTURES_BASENAME } from "./lib/attest/config.js";
 import { runFixture } from "../server/fixture_run.js";
@@ -178,7 +180,9 @@ export async function exportSnapshot({ outDir = DEFAULT_OUT, attestationsFile = 
         "viewmodel.json": buildViewModel({ report, envelope, rows }),
         "timeseries.json": rows,
         "ontology.json": buildOntologyGraph(report, { owlResults }),
-        "canonical.json": { canonical, hash: sha256Hex(canonical) }
+        "canonical.json": { canonical, hash: sha256Hex(canonical) },
+        // 원자료 화면용 컨트랙트 소스 (contracts/<envelope.input.sol.file>, CRLF→LF)
+        "source.json": contractSource(envelope)
       };
       const { attestation, excluded } = publicAttestation(name, attestations[name], envelope.report_sha256);
       if (excluded) log(`${name}: 증명 제외 — ${excluded} (공개 사이트에서 검증할 수 없는 값이라 스냅샷에 넣지 않음)`);

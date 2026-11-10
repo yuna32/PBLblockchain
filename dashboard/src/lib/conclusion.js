@@ -1,5 +1,6 @@
 // 결론 배지 네 가지(위험 / 주의 / 근거 없음 / 판단 불가). 순수 함수.
-// view.decision.conclusion(demo/lib/decision.js)이 있으면 그 값을 쓰고, 없으면(예전 스냅샷) 헤드라인 톤과 유형으로 정한다.
+// 결론은 view.decision.conclusion(demo/lib/decision.js)을 그대로 쓴다.
+// decision이 없는 예전 응답에서만 헤드라인 톤과 유형으로 대신 정한다(같은 규칙).
 
 export const CONCLUSIONS = {
   risk:         { label: "위험",      tone: "danger",  desc: "사기 유형으로 판정" },

@@ -64,7 +64,8 @@ function TradeBody({ data }) {
     setPlaying(p => !p);
   };
 
-  const network = useMemo(() => buildNetwork(rows, report.trust.wallet_scores, cursor), [rows, report, cursor]);
+  const ownerAddress = view.decision?.ownerAddress ?? null;
+  const network = useMemo(() => buildNetwork(rows, report.trust.wallet_scores, cursor, { ownerAddress }), [rows, report, cursor, ownerAddress]);
   const selectedNode = network.nodes.find(n => n.id === selectedId) ?? null;
   const walletScore = selectedId ? report.trust.wallet_scores.find(w => w.address.toLowerCase() === selectedId) : null;
   const span = Math.max(1, range.max - range.min);

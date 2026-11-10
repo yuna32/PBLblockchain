@@ -44,11 +44,15 @@ test("같은 입력이면 같은 출력 (두 번 내보내기), 증명 파일이
   const r = await exportSnapshot({ outDir: a, attestationsFile: path.join(tmp, "none.json"), sourceCommit: "abc1234", log: m => logs.push(m) });
   await exportSnapshot({ outDir: b, attestationsFile: path.join(tmp, "none.json"), sourceCommit: "abc1234", log: quiet });
   assert.deepEqual(digest(a), digest(b));
-  assert.equal(r.files.length, 31);
+  assert.equal(r.files.length, 36);
   assert.deepEqual(r.scenarios.map(s => s.attestStatus), ["B", "B", "B", "B", "B"]);
   assert.ok(logs.some(l => l.includes("증명 파일 없음")));
   for (const name of ["normal", "ponzi", "rugpull", "laundering", "pumpdump"]) {
-    assert.deepEqual(fs.readdirSync(path.join(a, name)).sort(), ["canonical.json", "envelope.json", "ontology.json", "report.json", "timeseries.json", "viewmodel.json"]);
+    assert.deepEqual(fs.readdirSync(path.join(a, name)).sort(), ["canonical.json", "envelope.json", "ontology.json", "report.json", "source.json", "timeseries.json", "viewmodel.json"]);
+    const source = JSON.parse(fs.readFileSync(path.join(a, name, "source.json"), "utf8"));
+    const envelope = JSON.parse(fs.readFileSync(path.join(a, name, "envelope.json"), "utf8"));
+    assert.equal(source.file, envelope.input.sol.file);
+    assert.equal(source.matchesEnvelope, true, `${name}: 컨트랙트 소스 해시가 분석 시점(envelope)과 같다`);
     const fixtureReport = JSON.parse(fs.readFileSync(path.join(ROOT, "demo/fixtures", name, "report.json"), "utf8"));
     const report = JSON.parse(fs.readFileSync(path.join(a, name, "report.json"), "utf8"));
     assert.equal(report.timestamp, fixtureReport.timestamp); // 실행 시각 대신 fixture 값으로 고정

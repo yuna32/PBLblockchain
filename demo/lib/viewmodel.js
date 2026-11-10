@@ -4,6 +4,7 @@
 import { computeOnset, isFraudHint } from "./onset.js";
 import { computeCombination } from "./combination.js";
 import { glossaryLabel } from "./glossary.js";
+import { buildDecision } from "./decision.js";
 
 // analysis/trust_scorer.js:143의 과도 수익 기준(profit_ratio > 1.3)과 같은 값
 export const EXTRACTOR_PROFIT_RATIO = 1.3;
@@ -226,6 +227,7 @@ export function buildViewModel({ report, envelope, rows }) {
   const warns  = warnings(report);
   const pats   = patterns(report);
   const combination = computeCombination({ codeAssessment: code, walletAssessment: wallet });
+  const headline = buildHeadline({ report, code, wallet, warns, pats, onset, combination });
   return {
     scenario:   envelope?.scenario ?? null,
     contract:   report.contract,
@@ -237,7 +239,9 @@ export function buildViewModel({ report, envelope, rows }) {
     patterns:  pats,
     phase:     { onset, events },
     disclaimer: DISCLAIMER,
-    headline:  buildHeadline({ report, code, wallet, warns, pats, onset, combination }),
-    combination
+    headline,
+    combination,
+    // 화면 개편용 판정 근거(판정 사슬·수치·문구). 기존 필드는 그대로 두고 추가만 한다.
+    decision:  buildDecision({ report, rows, onset, normalClean: headline.tone === "safe" })
   };
 }

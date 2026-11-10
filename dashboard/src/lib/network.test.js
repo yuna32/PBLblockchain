@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { buildNetwork, detectContract, walletRoles, OWNER_ADDRESS } from "./network.js";
+import { buildNetwork, detectContract, walletRoles } from "./network.js";
 import { SCENARIO_IDS, loadFixture } from "./testFixtures.js";
+import { buildViewModel } from "../../../demo/lib/viewmodel.js";
+
+// 운영자 주소는 화면과 같은 경로(view.decision.ownerAddress)로 받는다
+const ownerOf = name => ({ ownerAddress: buildViewModel(loadFixture(name)).decision.ownerAddress });
 
 // fixture별 기대값: 노드 수(컨트랙트 포함), 링크 수(보낸 주소 → 받은 주소 쌍), 역할별 수
 const EXPECTED = {
@@ -15,7 +19,7 @@ describe("buildNetwork (fixture 5개)", () => {
   for (const name of SCENARIO_IDS) {
     it(`${name}: 노드·링크 수, 역할, 누적 금액`, () => {
       const { report, rows } = loadFixture(name);
-      const net = buildNetwork(rows, report.trust.wallet_scores);
+      const net = buildNetwork(rows, report.trust.wallet_scores, Infinity, ownerOf(name));
       const exp = EXPECTED[name];
       expect(net.nodes.length).toBe(exp.nodes);
       expect(net.links.length).toBe(exp.links);
@@ -43,9 +47,9 @@ describe("buildNetwork (fixture 5개)", () => {
 
   it("ponzi: drainer는 운영자, 받은 금액 6.7", () => {
     const { report, rows } = loadFixture("ponzi");
-    const net = buildNetwork(rows, report.trust.wallet_scores);
+    const net = buildNetwork(rows, report.trust.wallet_scores, Infinity, ownerOf("ponzi"));
     const drainer = net.nodes.find(n => n.role === "drainer");
-    expect(drainer.id).toBe(OWNER_ADDRESS);
+    expect(drainer.id).toBe(ownerOf("ponzi").ownerAddress);
     expect(drainer.received).toBeCloseTo(6.7, 6);
   });
 
@@ -63,6 +67,12 @@ describe("buildNetwork (fixture 5개)", () => {
     expect(early.links.length).toBe(3);
     expect(early.totals).toEqual({ deposit: 3, withdraw: 0 });
     expect(buildNetwork(rows, report.trust.wallet_scores, 0).nodes).toEqual([]);
+  });
+
+  it("운영자 주소를 주지 않으면 운영자 역할을 붙이지 않는다 (주소를 따로 들고 있지 않음)", () => {
+    const { report, rows } = loadFixture("normal");
+    expect(buildNetwork(rows, report.trust.wallet_scores).nodes.some(n => n.role === "owner")).toBe(false);
+    expect(buildNetwork(rows, report.trust.wallet_scores, Infinity, ownerOf("normal")).nodes.filter(n => n.role === "owner").length).toBe(1);
   });
 
   it("detectContract·walletRoles", () => {

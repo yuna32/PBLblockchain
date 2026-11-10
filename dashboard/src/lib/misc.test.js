@@ -135,6 +135,13 @@ describe("용어·포맷", () => {
     expect(conclusionOf({ patterns: { fraudTypeHint: "normal_staking" }, headline: { tone: "caution" } })).toBe("caution");
     expect(conclusionOf({ decision: { conclusion: "caution" }, patterns: { fraudTypeHint: "rug_pull" } })).toBe("caution");
     expect(conclusionOf(null)).toBe(null);
+    // 결론은 decision.conclusion에서 읽고, decision이 없을 때의 대체 규칙과도 같다
+    for (const n of SCENARIO_IDS) {
+      const view = buildViewModel(loadFixture(n));
+      expect(conclusionOf(view)).toBe(view.decision.conclusion);
+      const { decision, ...withoutDecision } = view;
+      expect(conclusionOf(withoutDecision)).toBe(decision.conclusion);
+    }
     expect(Object.keys(CONCLUSIONS)).toEqual(CONCLUSION_ORDER);
   });
 

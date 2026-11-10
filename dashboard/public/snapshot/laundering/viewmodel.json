@@ -26,6 +26,303 @@
     "walletRisk": "high"
   },
   "contract": "MoneyLaundering",
+  "decision": {
+    "chain": [
+      {
+        "answer": "아니요",
+        "conditions": [
+          {
+            "id": "mixed_withdrawals",
+            "label": "성공한 출금과 실패한 출금이 섞여 있음",
+            "met": false,
+            "status": "unmet",
+            "unmetText": "실패한 출금이 없음",
+            "valueText": "성공 1건 · 실패 0건"
+          },
+          {
+            "id": "insider_exit",
+            "label": "넣은 돈보다 더 받아 간 출금이 있음",
+            "met": true,
+            "status": "met",
+            "unmetText": "넣은 돈보다 더 받아 간 출금이 없음",
+            "valueText": "있음"
+          },
+          {
+            "id": "balance_at_failure_zero",
+            "label": "출금이 실패한 시점의 잔고가 0",
+            "met": true,
+            "status": "no_data",
+            "unmetText": "출금이 실패한 시점에도 잔고 0 ETH가 남아 있음",
+            "valueText": "실패한 출금 없음"
+          }
+        ],
+        "label": "펌프앤덤프",
+        "matched": false,
+        "no": 1,
+        "question": "먼저 빠져나간 사람 뒤로 출금이 막혔나?",
+        "type": "pump_and_dump"
+      },
+      {
+        "answer": "예",
+        "conditions": [
+          {
+            "bar": {
+              "direction": "above",
+              "max": 1,
+              "threshold": 0.7,
+              "unit": "ratio",
+              "value": 1
+            },
+            "id": "single_large_outflow",
+            "label": "한 번에 빠진 돈이 최고 잔고의 70% 이상",
+            "met": true,
+            "status": "met",
+            "unmetText": "한 번에 빠진 돈이 최고 잔고의 100%로 기준(70%)에 못 미침",
+            "valueText": "최고 잔고의 100%"
+          },
+          {
+            "bar": {
+              "direction": "above",
+              "max": 19,
+              "threshold": 5,
+              "unit": "count",
+              "value": 19
+            },
+            "id": "distributed_inflow",
+            "label": "입금한 지갑이 5개 이상",
+            "met": true,
+            "status": "met",
+            "unmetText": "입금한 지갑이 19개로 기준(5개)보다 적음",
+            "valueText": "19개"
+          },
+          {
+            "id": "recipient_is_depositor",
+            "label": "그 돈을 받은 주소가 입금자 중 하나",
+            "met": true,
+            "status": "met",
+            "unmetText": "큰 출금을 받은 주소가 입금한 적 없는 주소",
+            "valueText": "예"
+          }
+        ],
+        "label": "자금세탁",
+        "matched": true,
+        "no": 2,
+        "question": "여러 지갑의 돈을 입금자 지갑 하나로 모아 뺐나?",
+        "type": "money_laundering"
+      }
+    ],
+    "chainSummary": "1번 아니요, 2번 예 → 자금세탁 의심 → 위험",
+    "conclusion": "risk",
+    "conclusionLabel": "위험",
+    "copy": {
+      "callouts": [
+        {
+          "block": 39,
+          "detail": "이후 새로 들어온 돈 없음",
+          "kind": "last_deposit",
+          "title": "마지막 입금"
+        },
+        {
+          "block": 43,
+          "detail": "한 번에 3.78 ETH",
+          "kind": "drain",
+          "title": "한 지갑이 모인 돈을 전부 인출"
+        }
+      ],
+      "chartNotes": [
+        "19개 지갑의 입금이 컨트랙트 한곳에 모였습니다",
+        "모인 3.78 ETH가 한 지갑으로 한 번에 빠져나갔습니다",
+        "모은 지갑 1개를 뺀 18개 지갑은 원금을 돌려받지 못했습니다"
+      ],
+      "headline": "여러 지갑의 소액 입금을 한 지갑으로 모아 내보냈습니다",
+      "note": null,
+      "reasons": [
+        "19개 지갑이 평균 0.199 ETH씩 나눠 입금했습니다",
+        "최고 잔고의 100%가 한 번에 빠져나갔습니다",
+        "그 돈을 받은 지갑도 입금했던 지갑 중 하나입니다"
+      ],
+      "summary": {
+        "analyzed": "입금 19건 · 출금 1건",
+        "firstAnomaly": "19번째 입금 뒤 첫 출금 (블록 43)"
+      }
+    },
+    "decisive": {
+      "block": 43,
+      "label": "한 지갑이 인출한 시점"
+    },
+    "facts": {
+      "balanceAtFailureEth": 0,
+      "depositCount": 19,
+      "distributedInflow": true,
+      "finalBalanceEth": 0,
+      "firstDepositBlock": 3,
+      "firstWithdrawBlock": 43,
+      "hasStakePattern": false,
+      "insiderExit": true,
+      "largestWithdraw": {
+        "action": "owner_withdraw_all",
+        "amountEth": 3.78,
+        "balanceAfterEth": 0,
+        "block": 43,
+        "to": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "toIsOwner": false
+      },
+      "lastBlock": 43,
+      "lastDepositBlock": 39,
+      "maxSingleWithdrawEth": 3.78,
+      "maxSingleWithdrawRatio": 1,
+      "midExitCount": 0,
+      "nonOwnerSuccessCount": 1,
+      "nonOwnerSuccessRate": 1,
+      "nonOwnerWithdrawCount": 1,
+      "ownerDepositEth": 0,
+      "ownerIsDepositor": false,
+      "ownerWithdrawAll": false,
+      "participantDepositCount": 19,
+      "participantMidExit": false,
+      "peakBalanceEth": 3.78,
+      "rowCount": 20,
+      "signals": {
+        "BALANCE_DROP": true,
+        "FLOW_SPIKE": true,
+        "OSCILLATING_BALANCE": false
+      },
+      "singleLargeOutflow": true,
+      "someWithdrawalsFail": false,
+      "someWithdrawalsSucceed": true,
+      "totalInEth": 3.7800000000000002,
+      "uniqueDepositorCount": 19,
+      "withdrawCount": 1,
+      "withdrawFailCount": 0,
+      "withdrawSuccessCount": 1,
+      "withdrawSuccessRate": 1,
+      "zeroWithdrawBlock": false
+    },
+    "flow": {
+      "outs": [
+        {
+          "count": 1,
+          "eth": 3.78,
+          "ethText": "3.78",
+          "kind": "collector",
+          "ratio": 0.9999999999999999,
+          "ratioText": "100%"
+        },
+        {
+          "count": 18,
+          "eth": 0,
+          "ethText": "0",
+          "kind": "participants",
+          "ratio": 0,
+          "ratioText": "0%",
+          "receivedCount": 0
+        },
+        {
+          "count": 0,
+          "eth": 0,
+          "ethText": "0",
+          "kind": "remaining",
+          "ratio": 0,
+          "ratioText": "0%"
+        }
+      ],
+      "sources": [
+        {
+          "count": 19,
+          "eth": 3.7800000000000002,
+          "ethText": "3.78",
+          "kind": "participants"
+        }
+      ],
+      "totalInEth": 3.7800000000000002,
+      "totalInText": "3.78"
+    },
+    "hint": "money_laundering",
+    "matchedStep": 2,
+    "ownerAddress": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+    "principal": {
+      "collector": {
+        "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "count": 1,
+        "depositEth": 0.21,
+        "fullCount": 1,
+        "noneCount": 0,
+        "partialCount": 0,
+        "receivedCount": 1,
+        "receivedEth": 3.78,
+        "unrecoveredCount": 0
+      },
+      "insiders": null,
+      "late": null,
+      "ownerReceivedEth": 0,
+      "participantWalletCount": 19,
+      "participants": {
+        "count": 18,
+        "depositEth": 3.5700000000000003,
+        "fullCount": 0,
+        "noneCount": 18,
+        "partialCount": 0,
+        "receivedCount": 0,
+        "receivedEth": 0,
+        "unrecoveredCount": 18
+      }
+    },
+    "segments": [
+      {
+        "from": 3,
+        "key": "deposit",
+        "label": "참여자 입금 19회",
+        "to": 39
+      },
+      {
+        "from": 39,
+        "key": "wait",
+        "label": "대기",
+        "to": 43
+      },
+      {
+        "from": 43,
+        "key": "event1",
+        "label": "한 지갑 인출 이후",
+        "to": 43
+      }
+    ],
+    "thresholds": {
+      "distributedInflowMin": 5,
+      "flowSpikeRatio": 0.5,
+      "nonOwnerSuccessMax": 0.05,
+      "pumpBalanceAtFailureMax": 0,
+      "singleLargeOutflowRatio": 0.7
+    },
+    "typeLabel": "자금세탁",
+    "version": 1,
+    "whyNot": [
+      {
+        "checked": true,
+        "label": "펌프앤덤프",
+        "reason": "실패한 출금이 없음",
+        "type": "pump_and_dump"
+      },
+      {
+        "checked": false,
+        "label": "러그풀",
+        "reason": "큰 출금을 받은 주소가 입금자 중 하나",
+        "type": "rug_pull"
+      },
+      {
+        "checked": false,
+        "label": "폰지",
+        "reason": "참여자 중도 출금이 없음",
+        "type": "ponzi_scheme"
+      },
+      {
+        "checked": false,
+        "label": "출금 차단 경고",
+        "reason": "운영자 외 출금 성공률이 100%로 기준(5% 이하)보다 높음",
+        "type": "unclassified_warning"
+      }
+    ]
+  },
   "disclaimer": "본 결과는 시뮬레이션 거래 로그와 컨트랙트 소스 코드에 대한 휴리스틱 분석 결과이며, 실제 사기 여부를 확정하지 않는다. 판정 규칙과 임계값은 연구 단계의 잠정값이라 오탐과 미탐이 있을 수 있다. 본 결과는 투자 판단의 근거가 될 수 없으며, 이를 근거로 한 결정의 책임은 이용자에게 있다.",
   "headline": {
     "reasons": [

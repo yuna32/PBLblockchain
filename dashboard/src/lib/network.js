@@ -2,8 +2,7 @@
 // 노드: 컨트랙트와 지갑(from/to 주소). 링크: (보낸 주소 → 받은 주소) 쌍마다 하나, 금액은 누적.
 import { DEPOSIT_ACTIONS, WITHDRAW_ACTIONS } from "./series.js";
 
-// analysis/dynamic_analyzer.js의 OWNER_ADDRESS와 같은 값 (hardhat 기본 계정 0)
-export const OWNER_ADDRESS = "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266";
+// 운영자 주소는 여기서 정하지 않는다: 뷰모델의 view.decision.ownerAddress(demo/lib/decision.js의 설정 한 곳)를 받는다.
 // demo/lib/viewmodel.js EXTRACTOR_PROFIT_RATIO와 같은 기준
 export const EXTRACTOR_PROFIT_RATIO = 1.3;
 
@@ -33,7 +32,9 @@ export function walletRoles(walletScores = []) {
 }
 
 // upToBlock 이하 블록의 거래만 쓴다 (슬라이더 위치)
-export function buildNetwork(rows, walletScores = [], upToBlock = Infinity) {
+// ownerAddress: view.decision.ownerAddress (없으면 운영자 역할을 붙이지 않는다)
+export function buildNetwork(rows, walletScores = [], upToBlock = Infinity, { ownerAddress = null } = {}) {
+  const owner = ownerAddress ? ownerAddress.toLowerCase() : null;
   const contract = detectContract(rows);
   const roles = walletRoles(walletScores);
   const nodes = new Map();
@@ -71,7 +72,7 @@ export function buildNetwork(rows, walletScores = [], upToBlock = Infinity) {
   }
 
   for (const n of nodes.values()) {
-    n.role = n.id === contract ? "contract" : roles.get(n.id) ?? (n.id === OWNER_ADDRESS ? "owner" : "wallet");
+    n.role = n.id === contract ? "contract" : roles.get(n.id) ?? (owner && n.id === owner ? "owner" : "wallet");
     n.deposited = round(n.deposited);
     n.received = round(n.received);
   }
