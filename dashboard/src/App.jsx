@@ -5,6 +5,7 @@ import { StaticAttestProvider } from "./state/StaticAttest.jsx";
 import { STATIC_MODE } from "./mode.js";
 import Bootstrap from "./state/Bootstrap.jsx";
 import Layout from "./components/Layout.jsx";
+import Hero from "./pages/Hero.jsx";
 import Overview from "./pages/Overview.jsx";
 import Trade from "./pages/Trade.jsx";
 import Trust from "./pages/Trust.jsx";
@@ -29,8 +30,7 @@ export default function App() {
           <Bootstrap />
           <Layout>
             <Routes>
-              {/* 임시: 히어로(S6) 완성 전까지 첫 화면은 러그풀 예시의 개요 */}
-              <Route path="/" element={<Navigate to="/overview?scenario=rugpull" replace />} />
+              <Route path="/" element={<Hero />} />
               <Route path="/overview" element={<Overview />} />
               <Route path="/trade" element={<Trade />} />
               <Route path="/trust" element={<Trust />} />

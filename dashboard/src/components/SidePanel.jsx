@@ -56,7 +56,7 @@ export function ScenarioPanel() {
                   </span>
                   {isOpen && (
                     <span className="row-badges">
-                      <ConclusionBadge conclusion={conclusionOf(openView)} title="이 예시의 결론 (휴리스틱 판정)" />
+                      <ConclusionBadge conclusion={conclusionOf(openView)} />
                     </span>
                   )}
                 </button>

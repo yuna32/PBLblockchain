@@ -19,7 +19,24 @@ function isNarrow() {
   }
 }
 
+// 탭을 눌렀을 때 선택된 예시가 없으면 이 예시로 간다
+export const DEFAULT_SCENARIO = "rugpull";
+
 export default function Layout({ children }) {
+  const { pathname } = useLocation();
+  // 히어로(/): 상단 메뉴바만, 오른쪽 패널·레일 없음. 문서 전체가 스크롤된다.
+  if (pathname === "/") {
+    return (
+      <div className="hero-shell">
+        <TopBar />
+        <main className="hero-main">{children}</main>
+      </div>
+    );
+  }
+  return <AppFrame>{children}</AppFrame>;
+}
+
+function AppFrame({ children }) {
   const { current } = useApp();
   const [panel, setPanel] = useState("scenarios");
   const [open, setOpen] = useState(() => !isNarrow());
@@ -73,8 +90,7 @@ function RailButton({ icon: Icon, label, active, onClick }) {
 
 export function TopBar() {
   const { health, selected } = useApp();
-  const { search } = useLocation();
-  const query = selected ? `?scenario=${selected}` : search;
+  const query = `?scenario=${selected ?? DEFAULT_SCENARIO}`;
   const up = health.state === "up";
   const tip = health.state === "checking" ? "서버 확인 중"
     : up ? `시연 API 연결됨 · ${health.data.hardhatUsable ? "hardhat 사용 가능 (실시간 시뮬레이션)" : "hardhat 사용 불가 (사전 생성본으로 폴백)"}`
