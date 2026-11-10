@@ -315,6 +315,76 @@ button.row:disabled { cursor: default; opacity: 0.6; }
   background: var(--danger); border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--danger); pointer-events: none;
 }
 
+/* ── 개요 ── */
+.overview-top { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(280px, 1fr); gap: var(--gap); align-items: stretch; }
+.overview-side { display: flex; flex-direction: column; gap: var(--gap); min-width: 0; }
+.verdict { padding: 24px 28px; border-left: 4px solid var(--border-strong); }
+.verdict-danger { border-left-color: var(--danger); }
+.verdict-caution { border-left-color: var(--caution); }
+.verdict-safe { border-left-color: var(--safe); }
+.verdict-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.verdict-type { font-size: 14px; color: var(--text-2); }
+.verdict-headline { margin: 14px 0 16px; font-size: 26px; line-height: 1.35; font-weight: 700; letter-spacing: -0.4px; color: var(--text-1); word-break: keep-all; }
+.verdict-reasons { list-style: none; margin: 0; padding: 0; }
+.verdict-reasons li { display: flex; gap: 10px; align-items: flex-start; padding: 11px 0; border-top: 1px solid var(--fill-2); font-size: 15px; line-height: 1.5; color: var(--text-1); }
+.verdict-reason-icon { flex: none; margin-top: 3px; color: var(--text-3); }
+.verdict-danger .verdict-reason-icon { color: var(--danger); }
+.verdict-caution .verdict-reason-icon { color: var(--caution); }
+.action-card { padding: 18px 20px; }
+.ladder-title { font-size: var(--fs-label); color: var(--text-3); margin-bottom: 8px; }
+.ladder { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.ladder-step { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--radius-ctl); background: var(--fill-1); color: var(--text-3); font-size: 14px; }
+.ladder-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-4); }
+.ladder-step.on { font-weight: 700; }
+.ladder-step.ladder-danger { background: var(--danger-weak); color: var(--danger); box-shadow: inset 0 0 0 1px var(--danger); }
+.ladder-step.ladder-caution { background: var(--caution-weak); color: var(--caution); box-shadow: inset 0 0 0 1px var(--caution); }
+.ladder-step.ladder-safe { background: var(--safe-weak); color: var(--safe); box-shadow: inset 0 0 0 1px var(--safe); }
+.ladder-step.on .ladder-dot { background: currentColor; }
+.ladder-none { margin: 8px 0 0; font-size: var(--fs-label); color: var(--text-3); }
+.action-divider { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
+.action-body { display: flex; gap: 12px; align-items: flex-start; }
+.hand-icon { flex: none; fill: none; stroke: var(--text-1); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.action-danger .hand-icon { stroke: var(--danger); }
+.action-title { font-size: 16px; font-weight: 700; color: var(--text-1); }
+.action-guide { margin: 4px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--text-2); }
+.summary-box { padding: 14px 20px; background: var(--fill-1); border-color: var(--fill-1); box-shadow: none; }
+.summary-list { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.summary-list > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.summary-list dt { font-size: 13.5px; color: var(--text-2); white-space: nowrap; }
+.summary-list dd { margin: 0; font-size: 13.5px; font-weight: 700; color: var(--text-1); text-align: right; }
+.summary-list dd.text-muted { color: var(--text-3); }
+.summary-list dd.text-safe { color: var(--safe); }
+.summary-list dd.text-danger { color: var(--danger); }
+.summary-list dd.text-caution { color: var(--caution); }
+.integrity { display: inline-flex; align-items: center; gap: 2px; }
+.summary-link { display: inline-flex; color: var(--text-3); }
+.section-title { margin: 8px 0 -4px; font-size: 16px; font-weight: 700; color: var(--text-1); }
+.judge-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap); }
+.judge-card { padding: 18px 20px; display: flex; flex-direction: column; gap: 8px; }
+.judge-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.judge-title { display: inline-flex; align-items: center; gap: 8px; font-size: 15.5px; font-weight: 700; }
+.judge-text { margin: 4px 0 0; font-size: 15px; line-height: 1.5; color: var(--text-1); }
+.judge-sub { margin: 0; font-size: 13px; line-height: 1.55; color: var(--text-3); }
+.judge-action { margin-top: auto; padding-top: 4px; }
+.judge-action .link, .judge-action .link-btn { margin-top: 0; }
+.judge-notice { margin: 8px 0 0; font-size: var(--fs-label); color: var(--text-2); }
+.story-mini { margin: 4px 0; }
+.detail-link-list { list-style: none; margin: 0; padding: 0 var(--pad-card) 16px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.detail-link { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-radius: var(--radius-ctl); background: var(--fill-1); color: var(--text-1); text-decoration: none; font-weight: 600; }
+.detail-link:hover { background: var(--fill-2); }
+/* 개요 폭 기준(오른쪽 패널을 편 중간 폭 화면 포함): 좁으면 세로로 쌓는다 */
+.overview { container-type: inline-size; }
+@container (max-width: 780px) {
+  .overview-top, .judge-grid { grid-template-columns: minmax(0, 1fr); }
+  .detail-link-list { grid-template-columns: 1fr 1fr; }
+}
+@container (max-width: 480px) {
+  .detail-link-list { grid-template-columns: minmax(0, 1fr); }
+  .verdict-headline { font-size: 21px; }
+  .summary-list > div { flex-direction: column; align-items: flex-start; gap: 2px; }
+  .summary-list dd { text-align: left; }
+}
+
 /* ── 거래 분석: 쉬운 차트 ── */
 .story { position: relative; }
 .story-svg { display: block; overflow: visible; }
@@ -553,7 +623,11 @@ button.row:disabled { cursor: default; opacity: 0.6; }
   .panel-scrim { display: block; position: fixed; z-index: 29; inset: var(--header-h) var(--rail-w) 0 0; background: rgba(25, 31, 40, 0.24); }
   .rail { grid-column: 2; }
   .main { padding: 16px 16px 32px; }
-  .grid-2, .grid-side, .grid-flow { grid-template-columns: minmax(0, 1fr); }
+  .grid-2, .grid-side, .grid-flow, .overview-top { grid-template-columns: minmax(0, 1fr); }
+  .judge-grid { grid-template-columns: minmax(0, 1fr); }
+  .detail-link-list { grid-template-columns: 1fr 1fr; }
+  .verdict { padding: 20px; }
+  .verdict-headline { font-size: 22px; }
   .player { flex-wrap: wrap; }
   .player-track { flex-basis: 100%; order: 5; }
   .player-note { min-width: 0; text-align: left; }

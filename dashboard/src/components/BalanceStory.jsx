@@ -9,34 +9,36 @@ const PAD = { left: 52, right: 16, top: 12, bottom: 8 };
 const decisive0 = decision => decision.decisive ?? null;
 const BOX_W = 196, LANE_H = 62;
 
-function useWidth() {
+function useWidth(minWidth) {
   const ref = useRef(null);
   const [w, setW] = useState(720);
   useEffect(() => {
-    const ro = new ResizeObserver(([e]) => setW(Math.max(280, Math.floor(e.contentRect.width))));
+    const ro = new ResizeObserver(([e]) => setW(Math.max(minWidth, Math.floor(e.contentRect.width))));
     if (ref.current) ro.observe(ref.current);
     return () => ro.disconnect();
   }, []);
   return [ref, w];
 }
 
-export default function BalanceStory({ points, decision, cursor, normalRows }) {
-  const [ref, width] = useWidth();
-  const compact = width < 560;
+// mini: 개요 "돈의 흐름" 카드용 축약형 (말풍선·구간 라벨·축 글자·점선 없음, 선과 위험 구간만)
+export default function BalanceStory({ points, decision, cursor, normalRows, mini = false }) {
+  const [ref, width] = useWidth(mini ? 120 : 280);
+  const compact = !mini && width < 560;
   const segments = decision.segments;
   const domain = useMemo(() => storyDomain(points, segments), [points, segments]);
   const peak = Math.max(0, ...points.map(p => p.balance));
-  const showNormal = decision.hint !== "normal_staking";
+  const showNormal = !mini && decision.hint !== "normal_staking";
   const overlay = useMemo(() => (showNormal ? normalOverlay(normalRows, points, domain) : []), [showNormal, normalRows, points, domain]);
 
-  const plotH = compact ? 200 : 240;
-  const innerW = width - PAD.left - PAD.right;
-  const x = b => PAD.left + ((b - domain.min) / Math.max(1e-9, domain.end - domain.min)) * innerW;
-  const xIn = b => x(b) - PAD.left; // 말풍선 상자 기준(플롯 왼쪽 = 0)
-  const callouts = calloutLanes(decision.copy.callouts, xIn, { boxWidth: BOX_W, width: innerW });
+  const P = mini ? { left: 4, right: 4, top: 6, bottom: 4 } : PAD;
+  const plotH = mini ? 72 : compact ? 200 : 240;
+  const innerW = width - P.left - P.right;
+  const x = b => P.left + ((b - domain.min) / Math.max(1e-9, domain.end - domain.min)) * innerW;
+  const xIn = b => x(b) - P.left; // 말풍선 상자 기준(플롯 왼쪽 = 0)
+  const callouts = mini ? [] : calloutLanes(decision.copy.callouts, xIn, { boxWidth: BOX_W, width: innerW });
   const lanes = compact ? 0 : Math.max(0, ...callouts.map(c => c.lane + 1));
-  const top = PAD.top + lanes * LANE_H;
-  const height = top + plotH + PAD.bottom;
+  const top = P.top + lanes * LANE_H;
+  const height = top + plotH + P.bottom;
   const y = v => top + plotH - (v / Math.max(1e-9, peak * 1.04)) * plotH;
   const base = y(0);
 
@@ -55,7 +57,7 @@ export default function BalanceStory({ points, decision, cursor, normalRows }) {
   const dangerFrom = decisive?.block ?? Infinity;
 
   return (
-    <div className="story" ref={ref}>
+    <div className={`story ${mini ? "story-mini" : ""}`} ref={ref}>
       <svg width={width} height={height} className="story-svg" role="img"
         aria-label={`컨트랙트 잔고 변화. 최고 ${fmtEth(peak, 3)}, 마지막 ${fmtEth(lastPoint?.balance ?? 0, 3)}.${decisive ? ` ${decisive.label}: 블록 ${decisive.block}.` : ""}`}>
         {bands.map((b, i) => (
@@ -64,10 +66,14 @@ export default function BalanceStory({ points, decision, cursor, normalRows }) {
             {i > 0 && <line x1={x(b.x1)} x2={x(b.x1)} y1={top} y2={base + 6} className="story-divider" />}
           </g>
         ))}
-        <line x1={PAD.left} x2={width - PAD.right} y1={base} y2={base} className="story-axis" />
-        <text x={PAD.left - 8} y={y(peak)} className="story-ylabel" dy="0.35em" textAnchor="end">최고</text>
-        <text x={PAD.left - 8} y={base} className="story-ylabel" dy="0.35em" textAnchor="end">0</text>
-        <line x1={PAD.left} x2={width - PAD.right} y1={y(peak)} y2={y(peak)} className="story-peakline" />
+        <line x1={P.left} x2={width - P.right} y1={base} y2={base} className="story-axis" />
+        {!mini && (
+          <>
+            <text x={P.left - 8} y={y(peak)} className="story-ylabel" dy="0.35em" textAnchor="end">최고</text>
+            <text x={P.left - 8} y={base} className="story-ylabel" dy="0.35em" textAnchor="end">0</text>
+            <line x1={P.left} x2={width - P.right} y1={y(peak)} y2={y(peak)} className="story-peakline" />
+          </>
+        )}
 
         {overlay.length > 1 && (
           <g className="story-normal">
@@ -106,7 +112,7 @@ export default function BalanceStory({ points, decision, cursor, normalRows }) {
         </div>
       )))}
 
-      <div className="story-segments" style={{ marginLeft: 0 }}>
+      {!mini && <div className="story-segments" style={{ marginLeft: 0 }}>
         {bands.map(b => {
           const w = Math.max(0, x(b.x2) - x(b.x1));
           // 너무 좁은 띠는 글자를 숨기고 툴팁으로만 (겹침 방지)
@@ -117,7 +123,7 @@ export default function BalanceStory({ points, decision, cursor, normalRows }) {
             </span>
           );
         })}
-      </div>
+      </div>}
 
       {compact && (
         <ol className="story-callout-list">
