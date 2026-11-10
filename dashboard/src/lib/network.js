@@ -10,7 +10,7 @@ export const ROLE_LABELS = {
   contract:  "컨트랙트",
   owner:     "운영자",
   wallet:    "일반 지갑",
-  drainer:   "운영자 전액 인출 지갑",
+  drainer:   "잔고 전액 인출 지갑",   // 자금세탁에서는 운영자가 아니라 모은 지갑이라 "운영자"를 빼고 부른다
   extractor: "과도 수익 지갑"
 };
 
