@@ -6,7 +6,8 @@ import { api } from "../api/client.js";
 import { STATIC_MODE } from "../mode.js";
 import { useApp } from "../state/AppContext.jsx";
 import { useAttest } from "../state/AttestContext.jsx";
-import { Badge, Card, Collapsible, EstimateTag, ICON, ReportGate, Segmented, StatusView, Term } from "../components/ui.jsx";
+import { Badge, Card, Collapsible, EstimateTag, ICON, ReportGate, RowHelp, Segmented, StatusView, Term } from "../components/ui.jsx";
+import { REPORT_HELP } from "../lib/reportHelp.js";
 import { SourceBadge } from "../components/SidePanel.jsx";
 import { CopyValue, HashLine, TamperPanel, VerifyResult } from "../components/AttestParts.jsx";
 import { StaticIntegrityCard, StaticProofCard } from "./ReportStatic.jsx";
@@ -34,24 +35,31 @@ function ReportBody({ data }) {
 
   return (
     <div className="page">
+      <header className="page-head">
+        <h1 className="page-title">리포트 변조 확인</h1>
+      </header>
       <Card title={<Term id="report_hash">리포트 해시</Term>} aside={<SourceBadge source={envelope.source} />}>
         {canon.status === "loading" && <StatusView kind="loading" title="해시를 계산하는 중입니다" />}
         {canon.status === "error" && <StatusView kind="error" title="canonical을 불러오지 못했습니다" detail={canon.error?.message} />}
         {canon.data && (
           <>
             <HashLine value={canon.data.hash} large />
+            <p className="row-help row-help-block">{REPORT_HELP.report_hash}</p>
             <ul className="rows rows-static">
               <li className="row">
                 <span className="row-title">분석 시점에 기록한 해시(envelope)와 비교</span>
                 <span className="row-value">{matches ? <Badge tone="safe">일치</Badge> : <Badge tone="danger">불일치</Badge>}</span>
+                <RowHelp>{REPORT_HELP.envelope}</RowHelp>
               </li>
               <li className="row">
                 <span className="row-title">직렬화 규칙</span>
                 <span className="row-value mono small">{envelope.canonical_version}</span>
+                <RowHelp>{REPORT_HELP.canonical_version}</RowHelp>
               </li>
               <li className="row">
                 <span className="row-title">해시에서 뺀 필드</span>
                 <span className="row-value mono small">{envelope.report_hash_excluded.join(", ")}</span>
+                <RowHelp>{REPORT_HELP.hash_excluded}</RowHelp>
               </li>
             </ul>
           </>
@@ -91,6 +99,7 @@ function ReportBody({ data }) {
       <Collapsible title={<Term id="canonical">canonical JSON 보기</Term>} summary={canon.data ? `${canon.data.canonical.length.toLocaleString("ko-KR")}자` : ""}>
         {canon.data && (
           <>
+            <p className="row-help row-help-block">{REPORT_HELP.canonical}</p>
             <p className="muted small">아래 문자열 그대로(공백 없는 한 줄)를 SHA-256으로 해시합니다. 읽기 쉽게 줄을 나눈 사본입니다.</p>
             <pre className="code-block">{JSON.stringify(JSON.parse(canon.data.canonical), null, 2)}</pre>
           </>
@@ -219,6 +228,7 @@ function RecordDetails({ record, reused }) {
               <li key={r.key} className="row">
                 <span className="row-title">{r.label}</span>
                 <span className="row-value">{r.hex ? <CopyValue value={r.value} /> : <span className="num">{r.value}</span>}</span>
+                <RowHelp>{REPORT_HELP[r.key]}</RowHelp>
               </li>
             ))}
             <li className="row">

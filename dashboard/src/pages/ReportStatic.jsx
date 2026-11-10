@@ -6,7 +6,8 @@ import { useMemo, useState } from "react";
 import { ExternalLink, Info, LoaderCircle, SearchCheck, ShieldCheck } from "lucide-react";
 import { useApp } from "../state/AppContext.jsx";
 import { useAttest } from "../state/AttestContext.jsx";
-import { Badge, Card, ICON, StatusView } from "../components/ui.jsx";
+import { Badge, Card, ICON, RowHelp, StatusView } from "../components/ui.jsx";
+import { REPORT_HELP } from "../lib/reportHelp.js";
 import { CopyValue, TamperPanel, VerifyResult } from "../components/AttestParts.jsx";
 import { PHASE_LABELS, tamperPresets, verifyView } from "../lib/attest.js";
 import { CONFIGURED_RPC, integrityResult, onchainResult, verifyIntegrity, verifyOnchain } from "../lib/verifyBrowser.js";
@@ -54,8 +55,8 @@ export function StaticProofCard({ scenario, data, canonical }) {
       {phase === "attested" && att && (
         <>
           <ul className="rows rows-static">
-            <li className="row"><span className="row-title">UID</span><span className="row-value"><CopyValue value={att.uid} /></span></li>
-            <li className="row"><span className="row-title">트랜잭션 해시</span><span className="row-value"><CopyValue value={att.txHash} /></span></li>
+            <li className="row"><span className="row-title">UID</span><span className="row-value"><CopyValue value={att.uid} /></span><RowHelp>{REPORT_HELP.uid}</RowHelp></li>
+            <li className="row"><span className="row-title">트랜잭션 해시</span><span className="row-value"><CopyValue value={att.txHash} /></span><RowHelp>{REPORT_HELP.txHash}</RowHelp></li>
             <li className="row"><span className="row-title">체인</span><span className="row-value num">Sepolia ({att.chainId})</span></li>
             <li className="row"><span className="row-title">기록자 주소</span><span className="row-value"><CopyValue value={att.attester} /></span></li>
             <li className="row"><span className="row-title">EAS 컨트랙트</span><span className="row-value"><CopyValue value={att.contract} /></span></li>

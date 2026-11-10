@@ -234,6 +234,18 @@ button.row:disabled { cursor: default; opacity: 0.6; }
 /* 범례 */
 .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; list-style: none; margin: 12px 0 0; padding: 0; font-size: var(--fs-label); color: var(--text-2); }
 .legend li { display: inline-flex; align-items: center; gap: 6px; }
+.legend-vertical { flex-direction: column; flex-wrap: nowrap; gap: 8px; margin: 4px 0 0; }
+.legend-group { margin: 16px 0 4px; font-size: var(--fs-label); font-weight: 600; color: var(--text-3); }
+.legend-group:first-child { margin-top: 0; }
+
+/* 페이지 머리말, 행 아래 한 줄 설명 */
+.page-head { display: flex; flex-direction: column; gap: 6px; }
+.page-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.3px; color: var(--text-1); }
+.page-desc { margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--text-2); }
+.row:has(> .row-help) { flex-wrap: wrap; row-gap: 2px; }
+.row-help { flex-basis: 100%; font-size: var(--fs-label); line-height: 1.5; color: var(--text-3); }
+.row-help-block { display: block; margin: 6px 0 4px; }
+.card-subrow { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 12px; padding: 8px var(--pad-card) 0; }
 
 /* ── 개요 ── */
 .strip {
@@ -341,6 +353,23 @@ button.row:disabled { cursor: default; opacity: 0.6; }
 }
 .notice svg { color: var(--primary); flex: none; margin-top: 2px; }
 .notice strong { display: block; font-weight: 600; margin-bottom: 2px; }
+.notice:has(.notice-details) { align-items: flex-start; }
+.notice-body { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+.notice-details summary { cursor: pointer; width: fit-content; font-size: var(--fs-label); color: var(--primary-strong); }
+.notice-dev { margin-top: 8px; font-size: 13px; line-height: 1.6; color: var(--text-2); }
+
+/* 온톨로지 상세 분석: 상세 내용 영역 폭 900px 이상이면 그래프 | (노드 설명 + 세로 범례),
+   그보다 좁으면 그래프 전체 폭 + 아래에 노드 설명·범례 나란히 */
+.detail-body { container-type: inline-size; }
+.onto-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: var(--gap); align-items: start; }
+.onto-side { display: flex; flex-direction: column; gap: var(--gap); min-width: 0; }
+@container (max-width: 899px) {
+  .onto-layout { grid-template-columns: minmax(0, 1fr); }
+  .onto-side { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+}
+@container (max-width: 560px) {
+  .onto-side { grid-template-columns: minmax(0, 1fr); }
+}
 
 /* ── 온체인 리포트 ── */
 .hash { display: flex; align-items: center; gap: 6px; min-width: 0; }
