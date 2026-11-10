@@ -8,7 +8,7 @@ import { api } from "../api/client.js";
 import { STATIC_MODE } from "../mode.js";
 import { Badge, ICON } from "../components/ui.jsx";
 import ConclusionBadge from "../components/ConclusionBadge.jsx";
-import FraudArt from "../components/HeroArt.jsx";
+import FraudArt, { BalanceMotif, BandCurve, NetworkMotif } from "../components/HeroArt.jsx";
 import { CONCLUSIONS, CONCLUSION_ORDER } from "../lib/conclusion.js";
 import { activeStep, ADDRESS_NOTICE, CHECK_CARDS, checkScene, FRAUD_CARDS, HERO_EXAMPLE_SCENARIO, HERO_EXAMPLES, heroSteps, VALUE_LINES } from "../lib/hero.js";
 import { useMedia, useScrollProgress, useSeen } from "../lib/useScroll.js";
@@ -36,6 +36,7 @@ export default function Hero() {
   const fade = !reduced;                // 페이드인
   const inputRef = useRef(null);
   const decision = useExampleDecision();
+  useHeaderOverBand();
   return (
     <div className={`hero ${pinned ? "hero-pinned" : "hero-flat"} ${fade ? "hero-fade" : "hero-static"}`}>
       <HeroIntro inputRef={inputRef} />
@@ -43,9 +44,29 @@ export default function Hero() {
       <StepsScene pinned={pinned} fade={fade} steps={heroSteps(decision)} />
       <FraudScene fade={fade} />
       <ValueScene fade={fade} reduced={reduced} inputRef={inputRef} />
-      <footer className="hero-footer">결과는 휴리스틱 분석이며 사기 여부를 확정하지 않습니다. 투자 판단의 근거로 쓰지 마세요.</footer>
+      <footer className="hero-wrap hero-footer">결과는 휴리스틱 분석이며 사기 여부를 확정하지 않습니다. 투자 판단의 근거로 쓰지 마세요.</footer>
     </div>
   );
+}
+
+// 상단 메뉴바: 첫 화면 맨 위(스크롤 전)에서만 투명 + 흰 글씨(<html data-hero-top>), 스크롤하면 기본 솔리드로 전환.
+// (파란 구간 위에서 계속 투명하면 입력창·버튼이 메뉴 글자 밑으로 지나가 겹쳐 보이므로 스크롤 즉시 솔리드)
+// passive scroll + rAF, 히어로를 떠나면 속성을 지운다.
+const TOP_EPSILON = 4;
+function useHeaderOverBand() {
+  useEffect(() => {
+    const root = document.documentElement;
+    let raf = 0;
+    const update = () => { raf = 0; root.toggleAttribute("data-hero-top", window.scrollY <= TOP_EPSILON); };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+      root.removeAttribute("data-hero-top");
+    };
+  }, []);
 }
 
 // ① 첫 화면: 주소 입력(시연판은 안내만) + 예시 버튼 5개
@@ -59,7 +80,10 @@ function HeroIntro({ inputRef }) {
     setNotice(true);
   };
   return (
-    <section className="hero-intro" aria-labelledby="hero-title">
+    <section className="hero-band hero-band-top" aria-labelledby="hero-title">
+      <NetworkMotif className="hero-motif-top" />
+      <BalanceMotif className="hero-motif-top" />
+      <div className="hero-wrap hero-intro">
       <h1 id="hero-title" className="hero-title">이 컨트랙트에 돈을 넣어도 될까요?</h1>
       <p className="hero-sub">거래 기록으로 사기 여부를 판정하고, 왜 그렇게 판단했는지 근거까지 보여줍니다</p>
       <form className="hero-form" onSubmit={submit} role="search">
@@ -80,6 +104,8 @@ function HeroIntro({ inputRef }) {
           <button key={x.id} type="button" className="hero-chip" onClick={() => navigate(`/overview?scenario=${x.id}`)}>{x.label}</button>
         ))}
       </div>
+      </div>
+      <BandCurve position="bottom" />
     </section>
   );
 }
@@ -97,6 +123,7 @@ function CheckScene({ pinned, fade }) {
   const p = useScrollProgress(ref, pinned);
   const { shown, gathered } = checkScene(pinned ? p : 1);
   const body = (
+    <div className="hero-wrap">
     <div className={`check ${gathered ? "gathered" : ""}`}>
       <div className="check-cards">
         <h2 className="hero-h2">세 가지를 확인합니다</h2>
@@ -120,6 +147,7 @@ function CheckScene({ pinned, fade }) {
         </div>
       </div>
       <ConclusionPanel visible={!pinned || gathered} fade={!pinned && fade} />
+    </div>
     </div>
   );
   if (!pinned) return <section className="hero-scene" aria-label="세 가지를 확인합니다">{body}</section>;
@@ -151,7 +179,7 @@ function StepsScene({ pinned, fade, steps }) {
   const p = useScrollProgress(ref, pinned);
   const active = pinned ? activeStep(p, steps.length) : steps.length - 1;
   const body = (
-    <div className="steps">
+    <div className="hero-wrap steps">
       <h2 className="hero-h2">이렇게 판단합니다 <span className="hero-h2-sub">러그풀 예시</span></h2>
       <ol className="steps-flow" aria-hidden="true">
         {steps.map((s, i) => (
@@ -193,6 +221,7 @@ function StepsScene({ pinned, fade, steps }) {
 function FraudScene({ fade }) {
   return (
     <section className="hero-scene hero-frauds" aria-labelledby="hero-frauds-title">
+      <div className="hero-wrap">
       <h2 id="hero-frauds-title" className="hero-h2">찾아내는 사기 네 가지</h2>
       <div className="fraud-grid">
         {FRAUD_CARDS.map((c, i) => (
@@ -202,6 +231,7 @@ function FraudScene({ fade }) {
             <span className="fraud-desc">{c.desc}</span>
           </Reveal>
         ))}
+      </div>
       </div>
     </section>
   );
@@ -214,7 +244,11 @@ function ValueScene({ fade, reduced, inputRef }) {
     inputRef.current?.focus({ preventScroll: true });
   };
   return (
-    <section className="hero-scene hero-values" aria-labelledby="hero-values-title">
+    <section className="hero-band hero-band-end" aria-labelledby="hero-values-title">
+      <BandCurve position="top" />
+      <BalanceMotif className="hero-motif-end" />
+      <NetworkMotif className="hero-motif-end" />
+      <div className="hero-wrap hero-values">
       <h2 id="hero-values-title" className="hero-h2">이렇게 쓸 수 있습니다</h2>
       <ul className="value-list">
         {VALUE_LINES.map((v, i) => (
@@ -224,7 +258,8 @@ function ValueScene({ fade, reduced, inputRef }) {
           </Reveal>
         ))}
       </ul>
-      <button type="button" className="btn btn-primary hero-cta" onClick={toTop}>주소 입력하러 가기</button>
+      <button type="button" className="btn hero-cta" onClick={toTop}>주소 입력하러 가기</button>
+      </div>
     </section>
   );
 }

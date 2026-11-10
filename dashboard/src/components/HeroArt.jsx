@@ -58,6 +58,56 @@ function PumpDump() {
 
 const ART = { ponzi: Ponzi, rugpull: RugPull, laundering: Laundering, pumpdump: PumpDump };
 
+// ── 파란 구간(첫 화면·CTA) 배경 모티프: 모두 장식용 선 그림 (aria-hidden), 색은 --hero-line 계열 ──
+
+// "남은 돈" 차트 모티프: 잔고가 계단처럼 쌓이다 한순간 뚝 떨어진다. 떨어지는 지점에만 작은 빨간 점 하나.
+export function BalanceMotif({ className = "" }) {
+  const steps = [180, 166, 150, 136, 120, 104, 88, 72, 58];
+  let d = "M0 192";
+  steps.forEach((y, i) => { d += ` H${i * 92 + 40} V${y}`; });
+  const dropX = 8 * 92 + 40 + 150;
+  d += ` H${dropX} V194 H1200`;
+  // 선은 화면 폭에 맞춰 늘이고(preserveAspectRatio none), 빨간 점은 찌그러지지 않게 SVG 밖의 원으로 같은 위치에 둔다
+  return (
+    <div className={`hero-motif-balance ${className}`} aria-hidden="true">
+      <svg viewBox="0 0 1200 200" preserveAspectRatio="none" focusable="false">
+        <path d={d} fill="none" stroke="var(--hero-line)" strokeWidth="1.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
+        <path d={`M${dropX} 58 H1200`} fill="none" stroke="var(--hero-line-soft)" strokeWidth="1.5" strokeDasharray="4 6" vectorEffect="non-scaling-stroke" />
+      </svg>
+      <span className="hero-motif-dot" style={{ left: `${(dropX / 1200) * 100}%`, top: `${(126 / 200) * 100}%` }} />
+    </div>
+  );
+}
+
+// 거래 관계도 모티프: 컨트랙트 노드 하나와 둘레의 지갑 노드
+export function NetworkMotif({ className = "" }) {
+  const n = 9, cx = 150, cy = 130, R = 96;
+  const nodes = Array.from({ length: n }, (_, i) => {
+    const a = (Math.PI * 2 * i) / n - Math.PI / 2;
+    return { x: cx + R * Math.cos(a) * (i % 2 ? 1.08 : 0.92), y: cy + R * Math.sin(a) * (i % 2 ? 0.92 : 1.06) };
+  });
+  return (
+    <svg className={`hero-motif-network ${className}`} viewBox="0 0 300 260" aria-hidden="true" focusable="false"
+      fill="none" stroke="var(--hero-line)" strokeWidth="1.5">
+      {nodes.map((p, i) => <line key={`l${i}`} x1={p.x} y1={p.y} x2={cx} y2={cy} stroke="var(--hero-line-soft)" />)}
+      {nodes.map((p, i) => <circle key={`c${i}`} cx={p.x} cy={p.y} r="7" />)}
+      <rect x={cx - 13} y={cy - 13} width="26" height="26" rx="5" />
+    </svg>
+  );
+}
+
+// 파란 구간과 라이트 배경 사이의 완만한 곡선 (딱딱한 경계선 대신). position: "bottom" | "top"
+export function BandCurve({ position = "bottom" }) {
+  const d = position === "bottom"
+    ? "M0 0 C 360 70 1080 70 1440 18 L1440 80 L0 80 Z"
+    : "M0 80 C 360 10 1080 10 1440 62 L1440 0 L0 0 Z";
+  return (
+    <svg className={`hero-curve hero-curve-${position}`} viewBox="0 0 1440 80" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+      <path d={d} fill="var(--bg)" />
+    </svg>
+  );
+}
+
 export default function FraudArt({ kind }) {
   const A = ART[kind];
   return A ? <A /> : null;

@@ -249,10 +249,50 @@ button.row:disabled { cursor: default; opacity: 0.6; }
 
 /* ── 히어로 (첫 화면) ── */
 .hero-shell { min-height: 100%; background: var(--bg); }
-.hero-shell .topbar { position: sticky; top: 0; z-index: 20; height: var(--header-h); }
-.hero-main { padding: 0 24px 40px; }
-.hero { max-width: 1120px; margin: 0 auto; }
-.hero-intro { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 96px 0 72px; min-height: calc(100svh - var(--header-h)); justify-content: center; }
+.hero-shell .topbar { position: sticky; top: 0; z-index: 20; height: var(--header-h); transition: background-color 0.25s ease, border-color 0.25s ease; }
+.hero-main { padding: 0 0 40px; }
+.hero-wrap { position: relative; z-index: 1; max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+.hero-intro { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 72px 24px 132px; min-height: calc(100svh - var(--header-h)); justify-content: center; }
+
+/* 파란 구간 (첫 화면·마지막 CTA): 남색 → 포인트 파랑 그라데이션 + 선 모티프 */
+.hero-band { position: relative; overflow: hidden; background: var(--hero-gradient); color: var(--hero-on); }
+.hero-band-top { margin-top: calc(-1 * var(--header-h)); padding-top: var(--header-h); }
+.hero-band .hero-title { color: var(--hero-on); }
+.hero-band .hero-sub, .hero-band .hero-examples-label { color: var(--hero-on-muted); }
+.hero-band .hero-h2 { color: var(--hero-on); }
+.hero-band :focus-visible { outline-color: var(--hero-on); }
+.hero-curve { position: absolute; left: 0; width: 100%; height: 64px; display: block; pointer-events: none; z-index: 1; }
+.hero-curve-bottom { bottom: -1px; }
+.hero-curve-top { top: -1px; }
+.hero-motif-balance, .hero-motif-network { position: absolute; pointer-events: none; z-index: 0; }
+.hero-motif-balance svg { display: block; width: 100%; height: 100%; }
+.hero-motif-dot { position: absolute; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: var(--hero-alert); }
+.hero-motif-balance.hero-motif-top { left: 0; bottom: 56px; width: 100%; height: 30%; }
+.hero-motif-network.hero-motif-top { right: max(24px, calc(50% - 640px)); top: calc(var(--header-h) + 36px); width: 280px; height: auto; }
+.hero-motif-balance.hero-motif-end { left: 0; bottom: 0; width: 100%; height: 46%; }
+.hero-motif-network.hero-motif-end { right: max(24px, calc(50% - 600px)); top: 96px; width: 220px; height: auto; }
+.hero-band .hero-form { position: relative; }
+.hero-band .hero-form::before { content: ""; position: absolute; inset: -48px -72px; z-index: -1; pointer-events: none; background: radial-gradient(closest-side, var(--hero-glow), transparent); }
+.hero-band .hero-input { border-color: transparent; box-shadow: 0 1px 2px rgba(10, 26, 63, 0.2); }
+.hero-band .hero-input:focus-within { border-color: var(--hero-on); box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35); }
+.hero-band .hero-input input::placeholder { color: var(--hero-placeholder); }
+.hero-band .hero-submit { background: var(--hero-blue); border: 1px solid rgba(255, 255, 255, 0.28); color: var(--hero-on); }
+.hero-band .hero-submit:hover { background: var(--hero-navy-700); }
+.hero-band .hero-notice { color: var(--hero-on); font-weight: 600; }
+.hero-band .hero-chip { background: transparent; border-color: rgba(255, 255, 255, 0.55); color: var(--hero-on); }
+.hero-band .hero-chip:hover { background: var(--hero-tint); }
+.hero-band-end { margin-top: 24px; padding: 112px 0 104px; }
+.hero-band .value-line { color: var(--hero-on); }
+.hero-band .value-title .badge { background: var(--hero-tint); color: var(--hero-on); }
+.hero-band .hero-cta { background: var(--hero-on); color: var(--hero-blue); border: 0; }
+.hero-band .hero-cta:hover { background: var(--primary-weak); }
+/* 메뉴바: 첫 화면 파란 구간 위에서는 투명 + 흰 글씨 (Hero.jsx가 <html data-hero-top>을 켜고 끈다) */
+html[data-hero-top] .hero-shell .topbar { background: transparent; border-bottom-color: transparent; }
+html[data-hero-top] .hero-shell .topbar .brand,
+html[data-hero-top] .hero-shell .topbar .topnav a { color: var(--hero-on); }
+html[data-hero-top] .hero-shell .topbar .topnav a:hover { background: var(--hero-tint); }
+html[data-hero-top] .hero-shell .topbar .badge-primary { background: var(--hero-tint); color: var(--hero-on); }
+html[data-hero-top] .hero-shell .topbar :focus-visible { outline-color: var(--hero-on); }
 .hero-title { margin: 0; font-size: 48px; line-height: 1.2; font-weight: 800; letter-spacing: -1px; color: var(--text-1); word-break: keep-all; }
 .hero-sub { margin: 18px 0 36px; font-size: 18px; line-height: 1.6; color: var(--text-2); word-break: keep-all; }
 .hero-form { display: flex; gap: 10px; width: min(720px, 100%); }
@@ -337,12 +377,21 @@ button.row:disabled { cursor: default; opacity: 0.6; }
 .value-title .badge { font-size: 12px; font-weight: 600; }
 .hero-cta { height: 52px; padding: 0 28px; border-radius: 12px; font-size: 16px; font-weight: 700; }
 
+@media (max-width: 900px) {
+  .hero-motif-network { display: none; }
+}
 @media (max-width: 719px) {
-  .hero-main { padding: 0 16px 32px; }
-  .hero-intro { padding: 48px 0 40px; min-height: 0; }
+  .hero-main { padding: 0 0 32px; }
+  .hero-wrap { padding: 0 16px; }
+  .hero-intro { padding: 48px 16px 92px; min-height: 0; }
+  .hero-curve { height: 36px; }
+  .hero-motif-balance.hero-motif-top { bottom: 26px; height: 12%; }
+  .hero-motif-balance.hero-motif-end { height: 26%; }
+  .hero-band-end { padding: 72px 0 64px; }
   .hero-title { font-size: 30px; }
   .hero-sub { font-size: 16px; margin: 12px 0 24px; }
   .hero-form { flex-direction: column; }
+  .hero-input { flex: none; }  /* 세로 배치에서 flex: 1이면 높이가 줄어든다 */
   .hero-submit { width: 100%; }
   .hero-scene { padding: 36px 0; }
   .hero-h2 { font-size: 22px; }
@@ -353,7 +402,7 @@ button.row:disabled { cursor: default; opacity: 0.6; }
   .value-line { grid-template-columns: minmax(0, 1fr); gap: 2px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .reveal, .check-card, .conclusion-panel, .steps-item, .steps-node-dot { transition: none; }
+  .reveal, .check-card, .conclusion-panel, .steps-item, .steps-node-dot, .hero-shell .topbar { transition: none; }
 }
 @media (min-width: 720px) and (max-width: 1000px) {
   .fraud-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
