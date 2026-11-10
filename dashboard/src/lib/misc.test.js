@@ -3,7 +3,8 @@ import { sortWallets, lowestWallet, radarData, walletRole, TRUST_AXES } from "./
 import { nodeState, stateGroup, highlightSets, playbackSteps, visibleAtStep, edgeKey, countGraph } from "./ontology.js";
 import { flowSteps, stageSteps } from "./flow.js";
 import { QUADRANT_LABELS, matrixCells } from "./combination.js";
-import { term, pagePath } from "./terms.js";
+import { term, pagePath, PAGES, DETAIL_PAGES } from "./terms.js";
+import { conclusionOf, CONCLUSIONS, CONCLUSION_ORDER } from "./conclusion.js";
 import { shortAddr, shortHash, fmtEth } from "./format.js";
 import { COMBINATION_RULES } from "../../../demo/lib/combination.js";
 import { buildOntologyGraph } from "../../../demo/lib/ontologygraph.js";
@@ -115,6 +116,26 @@ describe("용어·포맷", () => {
     expect(term(GLOSSARY, "NOPE")).toEqual({ id: "NOPE", label: "NOPE", desc: "", known: false });
     expect(pagePath("trust")).toBe("/trust");
     expect(pagePath("x")).toBe("/overview");
+  });
+
+  it("pagePath: 예전 키(ontology·report)는 상세 분석 아래 새 위치, 상단 탭은 4개", () => {
+    expect(pagePath("ontology")).toBe("/detail/graph");
+    expect(pagePath("report")).toBe("/detail/report");
+    expect(pagePath("raw")).toBe("/detail/raw");
+    expect(PAGES.map(p => p.label)).toEqual(["개요", "거래 분석", "만든 사람", "상세 분석"]);
+    expect(DETAIL_PAGES.map(p => p.label)).toEqual(["판정 조건", "추론 그래프", "리포트 변조 확인", "원자료"]);
+  });
+
+  it("conclusionOf: 시나리오 5개의 결론 배지와 예외 입력", () => {
+    const got = Object.fromEntries(SCENARIO_IDS.map(n => [n, conclusionOf(buildViewModel(loadFixture(n)))]));
+    expect(got).toEqual({ normal: "no_evidence", ponzi: "risk", rugpull: "risk", laundering: "risk", pumpdump: "risk" });
+    expect(conclusionOf({ patterns: { fraudTypeHint: "unclassified_warning" } })).toBe("caution");
+    expect(conclusionOf({ patterns: { fraudTypeHint: "unknown" } })).toBe("undetermined");
+    expect(conclusionOf({ patterns: { fraudTypeHint: "flash_loan", fraudClassified: true } })).toBe("undetermined");
+    expect(conclusionOf({ patterns: { fraudTypeHint: "normal_staking" }, headline: { tone: "caution" } })).toBe("caution");
+    expect(conclusionOf({ decision: { conclusion: "caution" }, patterns: { fraudTypeHint: "rug_pull" } })).toBe("caution");
+    expect(conclusionOf(null)).toBe(null);
+    expect(Object.keys(CONCLUSIONS)).toEqual(CONCLUSION_ORDER);
   });
 
   it("포맷", () => {

@@ -1,4 +1,5 @@
-// 오른쪽 패널: 시나리오 목록·분석 실행, 이번 세션의 실행 기록.
+// 오른쪽 패널: 예시 컨트랙트(시나리오) 목록·분석 실행, 이번 세션의 실행 기록.
+// 결론 배지는 지금 열린(선택된) 예시에만 붙인다.
 import { useLocation, useNavigate } from "react-router-dom";
 import { Check, CircleDashed, LoaderCircle, Minus, Play, X } from "lucide-react";
 import { useApp } from "../state/AppContext.jsx";
@@ -8,9 +9,10 @@ import { stageSteps } from "../lib/flow.js";
 import { OnchainMark } from "./Onchain.jsx";
 import { fmtTime, shortHash } from "../lib/format.js";
 import { Badge, ICON, StatusView } from "./ui.jsx";
+import ConclusionBadge from "./ConclusionBadge.jsx";
+import { conclusionOf } from "../lib/conclusion.js";
 
 const STAGE_ICON = { done: Check, running: LoaderCircle, error: X, skipped: Minus };
-const COMBO_TONE = { "high-high": "danger", "high-low": "caution", "low-high": "caution", "low-low": "safe" };
 
 export function SourceBadge({ source, reason }) {
   if (!source) return null;
@@ -19,7 +21,8 @@ export function SourceBadge({ source, reason }) {
 }
 
 export function ScenarioPanel() {
-  const { scenarios, selected, selectScenario, lastByScenario, useFixture, setUseFixture, analyze, job, health } = useApp();
+  const { scenarios, selected, selectScenario, current, useFixture, setUseFixture, analyze, job, health } = useApp();
+  const openView = current.data?.view ?? null;
   const { scenarioMarks, backendId } = useAttest();
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -33,27 +36,27 @@ export function ScenarioPanel() {
   return (
     <div className="panel">
       <div className="panel-head">
-        <h2 className="panel-title">시나리오</h2>
-        <span className="panel-sub">{STATIC_MODE ? "시나리오를 고르면 저장된 결과를 보여 줍니다" : "시뮬레이션할 거래 유형을 고르세요"}</span>
+        <h2 className="panel-title">예시 컨트랙트</h2>
+        <span className="panel-sub">{STATIC_MODE ? "고르면 미리 분석해 둔 결과를 보여 줍니다" : "시뮬레이션할 거래 유형을 고르세요"}</span>
       </div>
       {health.state === "down" && !scenarios.length ? (
         <StatusView kind="down" title="서버에 연결할 수 없습니다" detail="npm run demo:server" />
       ) : (
         <ul className="rows">
           {scenarios.map(s => {
-            const last = lastByScenario[s.id];
+            const isOpen = selected === s.id && openView?.scenario === s.id;
             return (
               <li key={s.id}>
-                <button type="button" className={`row row-scenario ${selected === s.id ? "on" : ""}`} onClick={() => pick(s.id)}>
+                <button type="button" className={`row row-scenario ${selected === s.id ? "on" : ""}`} onClick={() => pick(s.id)}
+                  aria-current={selected === s.id ? "true" : undefined}>
                   <span className="row-main">
                     <span className="row-title">{s.label}</span>
                     <span className="row-desc">{s.description}</span>
                     <OnchainMark mark={scenarioMarks[s.id]} backend={backendId} />
                   </span>
-                  {last && (
+                  {isOpen && (
                     <span className="row-badges">
-                      <Badge tone="neutral" title="마지막 분석의 유형 힌트 (휴리스틱 추정)">{last.typeLabel}</Badge>
-                      <Badge tone={COMBO_TONE[last.comboKey] ?? "neutral"} title="마지막 분석의 조합 판정 (시연용 임시 기준)">{last.comboLabel}</Badge>
+                      <ConclusionBadge conclusion={conclusionOf(openView)} title="이 예시의 결론 (휴리스틱 판정)" />
                     </span>
                   )}
                 </button>
@@ -65,7 +68,7 @@ export function ScenarioPanel() {
       {STATIC_MODE ? (
         <div className="panel-foot">
           <p className="muted small static-note">
-            정적 데모: 시나리오별로 미리 계산해 둔 결과를 보여 줍니다. 분석 실행은 로컬 서버 모드에서 사용 가능합니다.
+            시연판입니다. 실제 주소 분석은 로컬 서버 모드에서 사용할 수 있습니다.
           </p>
         </div>
       ) : (

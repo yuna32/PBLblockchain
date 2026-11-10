@@ -6,14 +6,26 @@ export function term(glossary, id) {
 
 export const TONE_LABELS = { danger: "위험", caution: "주의", safe: "안전" };
 
+// 상단 탭. 신뢰 시트(Trust.jsx)는 이번 개편 범위 밖이라 경로는 그대로 두고 라벨만 임시로 "만든 사람".
 export const PAGES = [
   { key: "overview", path: "/overview", label: "개요" },
   { key: "trade", path: "/trade", label: "거래 분석" },
-  { key: "trust", path: "/trust", label: "신뢰 시트" },
-  { key: "ontology", path: "/ontology", label: "온톨로지" },
-  { key: "report", path: "/report", label: "온체인 리포트" }
+  { key: "trust", path: "/trust", label: "만든 사람" },
+  { key: "detail", path: "/detail", label: "상세 분석" }
 ];
 
+// 상세 분석 하위 메뉴 (왼쪽 세로 메뉴)
+export const DETAIL_PAGES = [
+  { key: "conditions", path: "/detail/conditions", label: "판정 조건" },
+  { key: "graph", path: "/detail/graph", label: "추론 그래프" },
+  { key: "report", path: "/detail/report", label: "리포트 변조 확인" },
+  { key: "raw", path: "/detail/raw", label: "원자료" }
+];
+
+// 예전 페이지 키(viewmodel headline.reasons[].page 등) → 새 위치
+const PAGE_ALIASES = { ontology: "graph" };
+
 export function pagePath(page) {
-  return PAGES.find(p => p.key === page)?.path ?? "/overview";
+  const key = PAGE_ALIASES[page] ?? page;
+  return PAGES.find(p => p.key === key)?.path ?? DETAIL_PAGES.find(p => p.key === key)?.path ?? "/overview";
 }
