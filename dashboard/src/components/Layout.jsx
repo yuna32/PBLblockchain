@@ -6,6 +6,7 @@ import { History, LayoutList, PanelRightClose, PanelRightOpen } from "lucide-rea
 import { useApp } from "../state/AppContext.jsx";
 import { STATIC_MODE } from "../mode.js";
 import { PAGES } from "../lib/terms.js";
+import { DEFAULT_SCENARIO } from "../lib/scenarioNav.js";
 import { ScenarioPanel, HistoryPanel } from "./SidePanel.jsx";
 import { Badge, ICON } from "./ui.jsx";
 
@@ -19,8 +20,7 @@ function isNarrow() {
   }
 }
 
-// 탭을 눌렀을 때 선택된 예시가 없으면 이 예시로 간다
-export const DEFAULT_SCENARIO = "rugpull";
+// 탭을 눌렀을 때 선택된 예시가 없으면 기본 예시(lib/scenarioNav.js DEFAULT_SCENARIO)로 간다
 
 export default function Layout({ children }) {
   const { pathname } = useLocation();

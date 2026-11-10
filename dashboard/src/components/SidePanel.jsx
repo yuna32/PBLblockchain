@@ -11,6 +11,7 @@ import { fmtTime, shortHash } from "../lib/format.js";
 import { Badge, ICON, StatusView } from "./ui.jsx";
 import ConclusionBadge from "./ConclusionBadge.jsx";
 import { conclusionOf } from "../lib/conclusion.js";
+import { pickNavigation } from "../lib/scenarioNav.js";
 
 const STAGE_ICON = { done: Check, running: LoaderCircle, error: X, skipped: Minus };
 
@@ -28,9 +29,11 @@ export function ScenarioPanel() {
   const { pathname } = useLocation();
   const running = job && (job.status === "queued" || job.status === "running");
 
+  // 정적 모드: ?scenario=만 바꾸고 Bootstrap이 새 예시를 연다. 서버 모드: 예전처럼 선택만 표시(분석 실행은 버튼으로).
   const pick = id => {
-    selectScenario(id);
-    navigate(`${pathname}?scenario=${id}`, { replace: true });
+    const { to, markSelected } = pickNavigation({ staticMode: STATIC_MODE, pathname, id });
+    if (markSelected) selectScenario(id);
+    navigate(to, { replace: true });
   };
 
   return (
