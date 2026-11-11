@@ -92,13 +92,13 @@ export function SummaryBox({ summary, integrity, reportAction = null }) {
   );
 }
 
-// "이렇게 판단했습니다" 카드 하나
-export function JudgeCard({ icon: Icon, title, conclusion, badgeText, text, sub, children, action }) {
+// "이렇게 판단했습니다" 카드 하나. badge를 주면 결론 배지 대신 그 배지(배포자 카드의 수준 배지)를 쓴다.
+export function JudgeCard({ icon: Icon, title, conclusion, badge, badgeText, text, sub, children, action }) {
   return (
     <section className="card judge-card" data-conclusion={conclusion ?? "none"}>
       <header className="judge-head">
         <span className="judge-title"><Icon {...ICON} size={18} />{title}</span>
-        {badgeText ? <Badge tone="neutral">{badgeText}</Badge> : <ConclusionBadge conclusion={conclusion} />}
+        {badge ?? (badgeText ? <Badge tone="neutral">{badgeText}</Badge> : <ConclusionBadge conclusion={conclusion} />)}
       </header>
       <p className="judge-text">{text}</p>
       {sub && <p className="judge-sub">{sub}</p>}

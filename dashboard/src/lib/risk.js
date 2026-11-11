@@ -90,6 +90,23 @@ export function levelBasis(risk) {
 
 const emptyIndicators = () => INDICATORS.map(d => ({ key: d.key, label: d.label, extension: Boolean(d.extension), status: "nodata", points: null, cap: null }));
 
+// 개요 "배포자" 카드 문구. 시뮬레이션 데이터 없음은 예전 카드 문구를 그대로 쓴다.
+export const DEPLOYER_CARD_COPY = {
+  simulatedText: "시뮬레이션이라 배포자 이력이 없습니다",
+  simulatedSub: "실제 주소를 분석할 때 배포자의 이력을 보여 줄 자리입니다."
+};
+export function deployerCard(risk) {
+  if (risk?.status === "loading") return { level: null, text: RISK_LOADING_COPY, sub: null };
+  if (risk?.status === "error") return { level: "nodata", text: RISK_ERROR_COPY[risk.error?.kind] ?? RISK_ERROR_COPY.format, sub: null };
+  if (risk?.level === "nodata" && risk.target?.simulated) return { level: "nodata", text: DEPLOYER_CARD_COPY.simulatedText, sub: DEPLOYER_CARD_COPY.simulatedSub };
+  return { level: RISK_LEVELS[risk?.level] ? risk.level : "nodata", text: riskSummary(risk), sub: null };
+}
+
+// 배포자 위험도 화면 주소: 시나리오만 넘긴다(미리보기 키 등 다른 쿼리는 붙이지 않는다).
+export function deployerPath(scenario) {
+  return scenario ? `/trust?scenario=${encodeURIComponent(scenario)}` : "/trust";
+}
+
 // ── 정규화 ─────────────────────────────────────────────────────────────────
 // 팀 결과 파일의 필드 이름은 아직 정해지지 않아 후보 이름을 여기 한 곳에만 둔다(형식이 정해지면 이 표만 고친다).
 const FIELDS = {

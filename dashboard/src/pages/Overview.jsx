@@ -12,6 +12,8 @@ import { HeadlineCard, JudgeCard, RiskActionCard, SummaryBox } from "../componen
 import { buildBlockSeries } from "../lib/series.js";
 import { codeConclusion, codeLines, flowLine } from "../lib/overview.js";
 import { DETAIL_PAGES, pagePath, term } from "../lib/terms.js";
+import { deployerCard, deployerPath, riskForScenario } from "../lib/risk.js";
+import { RiskBadge } from "../components/RiskParts.jsx";
 
 export default function Overview() {
   return <ReportGate>{data => <OverviewBody key={data.envelope.report_sha256 + data.view.scenario} data={data} />}</ReportGate>;
@@ -30,6 +32,8 @@ function OverviewBody({ data }) {
   const code = view.codeAssessment;
   const codeC = codeConclusion(code, view.warnings);
   const codeText = codeLines(code, codeC, term(glossary, code.preventionRiskLevel).label);
+  // 배포자 수준은 riskForScenario 한 곳에서만 읽는다(실제 데이터가 연결되면 그 함수만 바뀐다)
+  const deployer = useMemo(() => deployerCard(riskForScenario(view, timeseries)), [view, timeseries]);
 
   return (
     <div className="page overview">
@@ -57,9 +61,10 @@ function OverviewBody({ data }) {
               {codeNotice && <p id="code-notice" className="judge-notice" role="status">코드 점검 화면은 준비 중입니다.</p>}
             </>
           } />
-        <JudgeCard icon={UserSearch} title="배포자" badgeText="데이터 없음"
-          text="시뮬레이션이라 배포자 이력이 없습니다"
-          sub="실제 주소를 분석할 때 배포자의 이력을 보여 줄 자리입니다." />
+        <JudgeCard icon={UserSearch} title="배포자"
+          badge={deployer.level ? <RiskBadge level={deployer.level} /> : null}
+          text={deployer.text} sub={deployer.sub}
+          action={<Link className="link" to={deployerPath(selected ?? view.scenario)}>배포자 위험도 보기 <ChevronRight {...ICON} size={15} /></Link>} />
       </div>
 
       <DetailLinks query={query} />

@@ -83,6 +83,51 @@ describe("배포자 위험도: 시나리오 기본값(데이터 없음)", () => 
   });
 });
 
+// ── S8c: 개요 "배포자" 카드 ──
+import { JudgeCard } from "../components/OverviewParts.jsx";
+import { RiskBadge } from "../components/RiskParts.jsx";
+import { DEPLOYER_CARD_COPY, deployerCard, deployerPath } from "./risk.js";
+
+describe("개요 배포자 카드", () => {
+  const card = c => renderToStaticMarkup(h(JudgeCard, {
+    icon: () => null, title: "배포자", badge: c.level ? h(RiskBadge, { level: c.level }) : null, text: c.text, sub: c.sub
+  }));
+
+  it("5개 시나리오: riskForScenario → 데이터 없음 배지(회색)와 기존 안내 문구", () => {
+    for (const n of SCENARIO_IDS) {
+      const c = deployerCard(scenario(n).risk);
+      expect(c).toEqual({ level: "nodata", text: DEPLOYER_CARD_COPY.simulatedText, sub: DEPLOYER_CARD_COPY.simulatedSub });
+      const html = card(c);
+      expect(html).toContain('badge-neutral">데이터 없음');
+      expect(html).toContain("시뮬레이션이라 배포자 이력이 없습니다");
+    }
+  });
+
+  it("수준별 배지: 라벨은 수준 이름, 색은 거래 판정 팔레트, '위험' 단어 없음", () => {
+    const expected = { strong: ["danger", "강한 근거"], some: ["caution", "근거 있음"], none: ["safe", "근거 없음"], nodata: ["neutral", "데이터 없음"], partial: ["caution", "근거 있음"] };
+    for (const [k, [tone, label]] of Object.entries(expected)) {
+      const html = card(deployerCard(previewRisk(k)));
+      expect(html).toContain(`badge-${tone}">${label}`);
+      expect(html).not.toMatch(/badge-[a-z]+"[^>]*>위험</);
+    }
+    // 오류는 데이터 없음 배지 + 오류 안내, 로딩은 배지 없이 안내만
+    expect(deployerCard(previewRisk("error-missing"))).toEqual({ level: "nodata", text: RISK_ERROR_COPY.missing, sub: null });
+    expect(deployerCard(previewRisk("error-format")).level).toBe("nodata");
+    expect(deployerCard(RISK_LOADING)).toEqual({ level: null, text: RISK_LOADING_COPY, sub: null });
+    expect(card(deployerCard(RISK_LOADING))).not.toContain("badge");
+  });
+
+  it("배포자 위험도 링크: 시나리오만 넘기고 미리보기 키는 붙이지 않는다", () => {
+    expect(deployerPath("rugpull")).toBe("/trust?scenario=rugpull");
+    expect(deployerPath(null)).toBe("/trust");
+    for (const n of SCENARIO_IDS) expect(deployerPath(n)).not.toContain("preview");
+    const overview = fs.readFileSync(path.resolve(__dirname, "../pages/Overview.jsx"), "utf8");
+    expect(overview).toContain("deployerCard(riskForScenario(view, timeseries))");
+    expect(overview).toContain("to={deployerPath(");
+    expect(overview).not.toMatch(/preview/);
+  });
+});
+
 // ── S8b: 정규화·미리보기·상태별 렌더 ──
 const ind = (r, key) => r.indicators.find(i => i.key === key);
 const render = (risk, opts = {}) => renderToStaticMarkup(h(DeployerRiskView, { risk, code: null, preview: true, ...opts }));
