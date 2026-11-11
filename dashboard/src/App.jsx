@@ -11,7 +11,9 @@ import Trade from "./pages/Trade.jsx";
 import Trust from "./pages/Trust.jsx";
 import Ontology from "./pages/Ontology.jsx";
 import Report from "./pages/Report.jsx";
-import DetailLayout, { DetailPending } from "./pages/detail/DetailLayout.jsx";
+import DetailLayout from "./pages/detail/DetailLayout.jsx";
+import Conditions from "./pages/detail/Conditions.jsx";
+import RawData from "./pages/detail/RawData.jsx";
 
 // 정적 모드는 증명 상태를 스냅샷(index.json·attestation.json)에서 읽는다
 const Attest = STATIC_MODE ? StaticAttestProvider : AttestProvider;
@@ -36,10 +38,10 @@ export default function App() {
               <Route path="/trust" element={<Trust />} />
               <Route path="/detail" element={<DetailLayout />}>
                 <Route index element={<Moved to="/detail/conditions" />} />
-                <Route path="conditions" element={<DetailPending title="판정 조건" />} />
+                <Route path="conditions" element={<Conditions />} />
                 <Route path="graph" element={<Ontology />} />
                 <Route path="report" element={<Report />} />
-                <Route path="raw" element={<DetailPending title="원자료" />} />
+                <Route path="raw" element={<RawData />} />
               </Route>
               <Route path="/ontology" element={<Moved to="/detail/graph" />} />
               <Route path="/report" element={<Moved to="/detail/report" />} />

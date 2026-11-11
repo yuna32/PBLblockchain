@@ -1,34 +1,20 @@
 // 개요: 판정 카드(헤드라인·근거·결론 배지) | 위험 단계·확인 권고 + 요약 박스 → "이렇게 판단했습니다" 3카드 → 상세 분석 접이식 줄.
 // 문구·숫자는 view.decision. 종합 등급(overall_grade)은 어디에도 표시하지 않는다.
 // 예전 분석 수치 블록(요약 띠·매트릭스·핵심 수치·패턴·경고)은 components/AnalysisNumbers.jsx에 보존했다(S7에서 원자료로 옮김).
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { ArrowLeftRight, ChevronDown, ChevronRight, FileCode, UserSearch } from "lucide-react";
-import { api } from "../api/client.js";
 import { useApp } from "../state/AppContext.jsx";
+import { useIntegrity } from "../state/useIntegrity.js";
 import { ICON, ReportGate } from "../components/ui.jsx";
 import BalanceStory from "../components/BalanceStory.jsx";
 import { HeadlineCard, JudgeCard, RiskActionCard, SummaryBox } from "../components/OverviewParts.jsx";
-import { verifyIntegrity } from "../lib/verifyBrowser.js";
 import { buildBlockSeries } from "../lib/series.js";
-import { codeConclusion, codeLines, flowLine, integrityStatus, startIntegrityCheck } from "../lib/overview.js";
+import { codeConclusion, codeLines, flowLine } from "../lib/overview.js";
 import { DETAIL_PAGES, pagePath, term } from "../lib/terms.js";
 
 export default function Overview() {
   return <ReportGate>{data => <OverviewBody key={data.envelope.report_sha256 + data.view.scenario} data={data} />}</ReportGate>;
-}
-
-// 리포트 변조 확인: 배포된 리포트를 브라우저에서 다시 해시해 분석 시점 해시(envelope)와 비교 (리포트 변조 확인 화면과 같은 함수)
-// 시나리오가 바뀌면(OverviewBody가 key로 새로 만들어지거나 deps가 바뀌면) 이전 검사는 취소되어 결과가 반영되지 않는다.
-function useIntegrity(data, reportId) {
-  const [state, setState] = useState({ status: "checking" });
-  useEffect(() => startIntegrityCheck({
-    snapshot: { report: data.report, envelope: data.envelope },
-    loadCanonical: () => api.canonical(reportId),
-    verify: verifyIntegrity,
-    onState: setState
-  }), [data, reportId]);
-  return integrityStatus(state);
 }
 
 function OverviewBody({ data }) {

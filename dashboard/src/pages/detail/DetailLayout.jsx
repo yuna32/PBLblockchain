@@ -4,7 +4,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { FileText, GitFork, ListChecks, ShieldCheck } from "lucide-react";
 import { useApp } from "../../state/AppContext.jsx";
 import { DETAIL_PAGES } from "../../lib/terms.js";
-import { ICON, StatusView } from "../../components/ui.jsx";
+import { ICON } from "../../components/ui.jsx";
 
 const DETAIL_ICONS = { conditions: ListChecks, graph: GitFork, report: ShieldCheck, raw: FileText };
 
@@ -29,15 +29,6 @@ export default function DetailLayout() {
       <div className="detail-body">
         <Outlet />
       </div>
-    </div>
-  );
-}
-
-// 아직 만들지 않은 하위 화면 자리 (S7에서 채운다)
-export function DetailPending({ title }) {
-  return (
-    <div className="page">
-      <StatusView kind="empty" title={`${title} 화면은 준비 중입니다`} />
     </div>
   );
 }
