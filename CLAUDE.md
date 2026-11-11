@@ -1011,3 +1011,81 @@ v3_patched 재생성은 이번 세션에서 미실행(승인 대기). 다음 세
 재확인 후 진행할 것 — 경로가 세션 간 바뀌었을 가능성 있음.
 
 확인 완료, 추가 조치는 팀 논의 후 결정
+
+## 대시보드 UI 개편 (feat/ui-redesign, 2026-11-10~11)
+
+React 대시보드(`dashboard/`)를 새 시안(`docs/ui_mock/`) 기준으로 개편했다. 분석 로직(`analysis/`, `ontology/`, `evaluation/`, `contracts/`, `scripts/regression/`)은 바꾸지 않았다(`git diff --stat main..HEAD -- analysis ontology evaluation contracts scripts/regression` 출력 없음).
+
+### 화면 구조
+- 히어로(`/`): 주소 입력(시연판은 예시 5개만 안내), 세 가지 확인 → 결론 하나, 5단계 판단 과정(러그풀 예시), 사기 네 가지, 예방·완화·대응. 오른쪽 패널 없음.
+- 개요: 판정 카드, 위험 단계·확인 권고, 요약(이상이 처음 보인 때·분석한 거래·리포트 변조 확인), 판단 근거 3카드(돈의 흐름·코드·배포자).
+- 거래 분석: 남은 돈 차트(구간·말풍선·"정상이라면" 점선) → 재생 바 → 흐름도+이 그림에서 볼 것 → 블록별 입출금 상세 → 거래 관계도 → 선택한 노드.
+- 배포자 위험도: 배포한 지갑의 이력(`pages/Deployer.jsx`, 예전 신뢰 시트 `pages/Trust.jsx`는 삭제). 아래 "배포자 위험도" 참고.
+- 상세 분석: 판정 조건(기본) / 추론 그래프(온톨로지) / 리포트 변조 확인 / 원자료.
+
+| 경로 | 화면 |
+|---|---|
+| `/` | 히어로 |
+| `/overview?scenario=` | 개요 |
+| `/trade?scenario=&block=` | 거래 분석 |
+| `/trust?scenario=` | 배포자 위험도 |
+| `/detail` → `/detail/conditions` | 판정 조건 |
+| `/detail/graph` (예전 `/ontology`, 리다이렉트) | 추론 그래프 |
+| `/detail/report` (예전 `/report`, 리다이렉트) | 리포트 변조 확인 |
+| `/detail/raw` | 원자료 |
+
+예시 전환은 주소의 `?scenario=`가 기준이다(`dashboard/src/lib/scenarioNav.js`). 정적 모드의 패널 클릭은 `?scenario=`만 바꾸고 `state/Bootstrap.jsx`가 스냅샷을 연다. 서버 모드는 선택만 표시하고 "분석 실행" 버튼으로 돌린다.
+
+### view.decision (`demo/lib/decision.js`)
+분석기 판정(`analysis/dynamic_analyzer.js` `hintFraudType`)을 거래 행으로 다시 계산한 화면용 근거. 분석기는 수정하지 않고, 5개 fixture에서 재계산 유형 = `report.dynamic.fraud_type_hint`, 수치 = `reasoning_steps`를 `demo/test/decision.test.js`로 고정했다(어긋나면 decision.js를 억지로 맞추지 말고 원인 확인).
+- `hint`, `conclusion`(risk/caution/no_evidence/undetermined), `conclusionLabel`, `typeLabel`, `ownerAddress`(운영자 주소는 `DEFAULT_DECISION_CONFIG` 한 곳, 대시보드 `lib/network.js`는 이 값을 받음)
+- `thresholds`(0.7 / 5 / 0.05 / 0 / FLOW_SPIKE 0.5), `facts`(분석기 조건 값), `principal`(원금 회수: 출금 합계 < 입금 합계면 미회수(정의 A), 자금세탁은 모은 지갑 제외, 펌프앤덤프는 내부자/후발 참여자)
+- `chain`(판정 순서 질문·조건·임계값 막대), `matchedStep`, `chainSummary`, `whyNot`, `flow`(흐름도), `segments`·`decisive`(차트 구간·핵심 시점)
+- `copy`(headline, reasons, chartNotes, callouts, note, summary): 숫자는 facts에서 `formatPercent`·`formatEth`(half-up)로만 만든다. 플래시론은 화면에 내지 않는다(그 경우 판단 불가).
+- 결론 배지 설명의 단일 출처는 `dashboard/src/lib/conclusion.js` `CONCLUSIONS.desc`.
+- 스냅샷에는 `<시나리오>/source.json`(컨트랙트 소스)이 추가됐고 서버에는 `GET /api/report/:id/source`(읽기 전용)가 있다.
+- 주의: 분석기 판정 규칙(`analysis/dynamic_analyzer.js` 판정 구간 373–443행 등)이나 임계값을 바꾸면 `demo/lib/decision.js`를 같이 갱신하고 `npm run demo:export`로 스냅샷을 재생성해야 한다. `demo/test/decision.test.js`가 재계산 유형과 `report.dynamic.fraud_type_hint`의 불일치를 잡아 준다.
+
+### 배포자 위험도 (`/trust`, S8)
+- `normalizeRisk`의 입력 형식은 팀 확정 전 추정이며, 형식이 정해지면 `dashboard/src/lib/risk.js`(`FIELDS`)만 고친다.
+- 예시 미리보기는 `?preview=`로만 열리고 실제 분석이 아니다(`lib/riskFixtures.js`, "예시 값이며 실제 분석이 아닙니다" 배너).
+- 시연 시나리오 5개는 데이터 없음이다(`riskForScenario`).
+- 결합 규칙(코드 위험 × 배포자 위험)은 미정이라 "준비 중" 자리만 있다.
+
+### 시연판 한계
+- 정적 모드: 예시 5개만 볼 수 있고 실제 주소 분석은 없다. 온체인 기록은 모두 상태 B(대기).
+- 서버 모드에서는 거래 분석의 "정상이라면" 점선과 히어로 ③의 러그풀 숫자가 생략된다(오류 문구 없이 숫자 없는 문구·점선 없음). 읽기 전용 fixture 엔드포인트(`GET /api/fixtures/:scenario/(report|timeseries)`)로 풀 수 있으나 미구현.
+- 배포자 위험도(배포자 이력) 데이터 없음, 코드 점검 화면 미구현("코드 점검 보기"는 준비 중 안내만), 대응 계층(새 패턴을 판단 기준에 반영) 미연결.
+- 서버 모드는 개편 후 실행 확인을 하지 못했다(아래 체크리스트).
+- 원자료 › 분석 수치의 옛 지갑 신뢰 점수(높을수록 안전, A~F)와 코드×지갑 조합 매트릭스는 배포자 위험도 점수(높을수록 위험)와 방향이 반대라 `SHOW_LEGACY_WALLET_SCORES = false`(`components/AnalysisNumbers.jsx`)로 숨겼다. 코드와 viewmodel 필드(`walletAssessment`, `combination`)는 남아 있어 플래그만 켜면 다시 보인다.
+- 모바일 390px에서 상단 탭이 가로 스크롤이라 마지막 탭(상세 분석)이 화면 밖에 있다. 탭 줄을 옆으로 밀어야 보인다.
+
+### 서버 모드 직접 확인 체크리스트
+- [ ] `npm run demo:server` + `npm run demo:ui`로 `/`(히어로) 진입, ③에 숫자 없는 대체 문구가 나오는지
+- [ ] 오른쪽 패널에서 예시를 고른 뒤 "분석 실행"을 눌러야 분석이 돌고, 자동 실행되지 않는지
+- [ ] 개요·판정 조건의 리포트 변조 확인(`api.canonical`)이 "분석 당시와 같음"으로 나오는지
+- [ ] 원자료 컨트랙트 소스(`GET /api/report/:id/source`)가 열리고 "분석 시점 소스와 같음"인지
+- [ ] 거래 분석에서 "정상이라면" 점선이 오류 문구 없이 생략되는지
+- [ ] 리포트 변조 확인 화면의 기록·검증(로컬 체인)과 실행 기록 패널이 예전처럼 동작하는지
+- [ ] 서버 테스트 전체(`node --test server/test/`, hardhat 실행 포함)를 저장소 밖 복사본에서 돌렸을 때 통과하는지
+
+### 커밋 (main 대비, push 전)
+| 커밋 | 내용 |
+|---|---|
+| `4316bae` | S1 공통 레이아웃(진행 바 제거, 탭 4개, 상세 분석 틀) |
+| `0e40508` | S2 상세 분석 하위 화면 정리(온톨로지·리포트 변조 확인) |
+| `ece12f5` | S3 판정 근거(decision) 뷰모델 필드와 컨트랙트 소스, 스냅샷 재생성 |
+| `a4a9025` | S4 거래 분석(남은 돈 차트, 흐름도, 관계도 정리) |
+| `e923450` | S5 개요(판정 카드, 위험 단계·확인 권고, 판단 근거 3카드) |
+| `568ffd1` | S6 히어로와 스크롤 장면 |
+| `4cd36b8` | fix 정적 모드 패널 예시 전환 |
+| `0dedf17` | S6b 히어로 시각 디자인 |
+| `ca05cb5` | S7 판정 조건·원자료 화면, 관계도 모바일 라벨 |
+| `7e84227` | S8a 배포자 위험도 화면 틀과 이름 변경 |
+| `937030a` | S8b 배포자 위험도 정규화와 미리보기 |
+| `4cb65be` | S8c 개요 배포자 카드 수준 배지와 배포자 위험도 링크 |
+
+### 작업 환경 메모
+- 대시보드 시험·빌드는 WSL에서 nvm Node 22로(`dashboard/node_modules`에 리눅스 바이너리): `npm --prefix dashboard test`, `npm --prefix dashboard run build`, `npm --prefix dashboard run build:static`, `node --test demo/test/*.test.js`.
+- 화면 확인은 `npm --prefix dashboard run preview:static`(127.0.0.1:4173) 후 `#/`, `#/overview?scenario=rugpull` 등.
+- 저장소와 작업 트리는 LF다(`core.autocrlf=true`). 스크립트로 고칠 때 줄바꿈이 바뀌지 않게 주의하고(Git Bash `sed -i`는 쓰지 않는다), 줄바꿈은 `git ls-files --eol`로 확인한다.
