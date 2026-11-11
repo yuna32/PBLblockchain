@@ -106,7 +106,7 @@ test("잘못된 입력 400, 없는 id 404, 그 밖의 오류 형식", async () =
   }
   const missingJob = await api(base, "GET", "/api/jobs/00000000-0000-0000-0000-000000000000");
   assert.deepEqual([missingJob.status, missingJob.body.code], [404, "job_not_found"]);
-  for (const p of ["/api/report/nope", "/api/report/nope/timeseries", "/api/report/nope/canonical", "/api/report/nope/ontology"]) {
+  for (const p of ["/api/report/nope", "/api/report/nope/timeseries", "/api/report/nope/canonical", "/api/report/nope/ontology", "/api/report/nope/source"]) {
     const r = await api(base, "GET", p);
     assert.deepEqual([r.status, r.body.code], [404, "report_not_found"], p);
   }
@@ -201,7 +201,8 @@ test("report / timeseries / canonical 응답 구조", async () => {
   assert.equal(r.body.report.contract, "PumpDump");
   assert.ok("overall_grade" in r.body.report, "원본 리포트는 그대로");
   assert.ok(!("overall_grade" in r.body.view));
-  assert.deepEqual(Object.keys(r.body.view), ["scenario", "contract", "source", "reportHash", "codeAssessment", "walletAssessment", "warnings", "patterns", "phase", "disclaimer", "headline", "combination"]);
+  assert.deepEqual(Object.keys(r.body.view), ["scenario", "contract", "source", "reportHash", "codeAssessment", "walletAssessment", "warnings", "patterns", "phase", "disclaimer", "headline", "combination", "decision"]);
+  assert.equal(r.body.view.decision.hint, r.body.report.dynamic.fraud_type_hint);
   assert.deepEqual(Object.keys(r.body.view.headline), ["tone", "text", "reasons"]);
   assert.deepEqual(Object.keys(r.body.view.combination), ["codeRisk", "walletRisk", "quadrant", "label", "basis", "criteriaNote"]);
   assert.equal(r.body.view.walletAssessment.extractorCount, 3);
@@ -221,6 +222,14 @@ test("report / timeseries / canonical 응답 구조", async () => {
   assert.equal(c.body.hash, r.body.envelope.report_sha256);
   assert.equal(crypto.createHash("sha256").update(c.body.canonical).digest("hex"), c.body.hash);
   assert.ok(!c.body.canonical.includes('"timestamp":"20'), "리포트 timestamp는 canonical에서 빠짐");
+
+  const s = await api(base, "GET", `/api/report/${fixtureReportId}/source`);
+  assert.equal(s.status, 200);
+  assert.deepEqual(Object.keys(s.body), ["file", "normalization", "sha256", "matchesEnvelope", "text"]);
+  assert.equal(s.body.file, r.body.envelope.input.sol.file);
+  assert.equal(s.body.sha256, r.body.envelope.input.sol.sha256);
+  assert.equal(s.body.matchesEnvelope, true);
+  assert.ok(s.body.text.includes("contract PumpDump") && !s.body.text.includes("\r"));
 });
 
 test("GET /api/glossary: fixture 5개의 모든 ID 포함", async () => {

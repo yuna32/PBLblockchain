@@ -7,6 +7,7 @@
 //   GET  /api/report/:id/timeseries   거래 행 배열
 //   GET  /api/report/:id/canonical    { canonical, hash }
 //   GET  /api/report/:id/ontology     { nodes, links, highlight, meta }
+//   GET  /api/report/:id/source       { file, normalization, sha256, matchesEnvelope, text } (컨트랙트 소스, 읽기 전용)
 //   GET  /api/glossary                { [id]: { ko, desc, category } }
 //   GET  /api/attest/backends         [{ id, label, available, reason?, mode?, chainId?, explorerBase?, prerecorded?, ... }]
 //   POST /api/report/:id/attest       { backend: "local" | "eas-sepolia", force? } → 202 { attestJobId }
@@ -27,6 +28,7 @@ import { toTimeseries } from "../demo/lib/timeseries.js";
 import { buildViewModel } from "../demo/lib/viewmodel.js";
 import { GLOSSARY } from "../demo/lib/glossary.js";
 import { buildOntologyGraph } from "../demo/lib/ontologygraph.js";
+import { contractSource } from "../demo/lib/source.js";
 import { SCENARIO_LIST } from "./scenarios.js";
 import { JobQueue, publicJob } from "./jobs.js";
 import { AttestError, createAttestManager } from "./attest.js";
@@ -234,6 +236,8 @@ export function createApp(options = {}) {
         return sendJson(res, 200, { canonical, hash: sha256Hex(canonical) });
       }
       if (sub === "ontology") return sendJson(res, 200, buildOntologyGraph(report, { owlResults }));
+      // 읽기 전용: 원자료 화면용 컨트랙트 소스 (정적 스냅샷의 source.json과 같은 모양)
+      if (sub === "source") return sendJson(res, 200, contractSource(envelope));
     }
 
     throw new ApiError(404, "not_found", `경로 없음: ${url.pathname}`);

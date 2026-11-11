@@ -36,6 +36,380 @@
     "walletRisk": "high"
   },
   "contract": "PonziLab",
+  "decision": {
+    "chain": [
+      {
+        "answer": "아니요",
+        "conditions": [
+          {
+            "id": "mixed_withdrawals",
+            "label": "성공한 출금과 실패한 출금이 섞여 있음",
+            "met": false,
+            "status": "unmet",
+            "unmetText": "실패한 출금이 없음",
+            "valueText": "성공 4건 · 실패 0건"
+          },
+          {
+            "id": "insider_exit",
+            "label": "넣은 돈보다 더 받아 간 출금이 있음",
+            "met": true,
+            "status": "met",
+            "unmetText": "넣은 돈보다 더 받아 간 출금이 없음",
+            "valueText": "있음"
+          },
+          {
+            "id": "balance_at_failure_zero",
+            "label": "출금이 실패한 시점의 잔고가 0",
+            "met": true,
+            "status": "no_data",
+            "unmetText": "출금이 실패한 시점에도 잔고 0 ETH가 남아 있음",
+            "valueText": "실패한 출금 없음"
+          }
+        ],
+        "label": "펌프앤덤프",
+        "matched": false,
+        "no": 1,
+        "question": "먼저 빠져나간 사람 뒤로 출금이 막혔나?",
+        "type": "pump_and_dump"
+      },
+      {
+        "answer": "아니요",
+        "conditions": [
+          {
+            "bar": {
+              "direction": "above",
+              "max": 1,
+              "threshold": 0.7,
+              "unit": "ratio",
+              "value": 0.67
+            },
+            "id": "single_large_outflow",
+            "label": "한 번에 빠진 돈이 최고 잔고의 70% 이상",
+            "met": false,
+            "status": "unmet",
+            "unmetText": "한 번에 빠진 돈이 최고 잔고의 67%로 기준(70%)에 못 미침",
+            "valueText": "최고 잔고의 67%"
+          },
+          {
+            "bar": {
+              "direction": "above",
+              "max": 10,
+              "threshold": 5,
+              "unit": "count",
+              "value": 10
+            },
+            "id": "distributed_inflow",
+            "label": "입금한 지갑이 5개 이상",
+            "met": true,
+            "status": "met",
+            "unmetText": "입금한 지갑이 10개로 기준(5개)보다 적음",
+            "valueText": "10개"
+          },
+          {
+            "id": "recipient_is_depositor",
+            "label": "그 돈을 받은 주소가 입금자 중 하나",
+            "met": false,
+            "status": "unmet",
+            "unmetText": "큰 출금을 받은 주소가 입금한 적 없는 주소",
+            "valueText": "아니요"
+          }
+        ],
+        "label": "자금세탁",
+        "matched": false,
+        "no": 2,
+        "question": "여러 지갑의 돈을 입금자 지갑 하나로 모아 뺐나?",
+        "type": "money_laundering"
+      },
+      {
+        "answer": "아니요",
+        "conditions": [
+          {
+            "bar": {
+              "direction": "above",
+              "max": 1,
+              "threshold": 0.7,
+              "unit": "ratio",
+              "value": 0.67
+            },
+            "id": "single_large_outflow",
+            "label": "한 번에 빠진 돈이 최고 잔고의 70% 이상",
+            "met": false,
+            "status": "unmet",
+            "unmetText": "한 번에 빠진 돈이 최고 잔고의 67%로 기준(70%)에 못 미침",
+            "valueText": "최고 잔고의 67%"
+          },
+          {
+            "id": "recipient_not_depositor",
+            "label": "그 돈을 받은 주소가 입금한 적 없는 주소",
+            "met": true,
+            "status": "met",
+            "unmetText": "큰 출금을 받은 주소가 입금자 중 하나",
+            "valueText": "예"
+          },
+          {
+            "id": "no_mid_exit",
+            "label": "참여자 중도 출금이 없음",
+            "met": false,
+            "status": "unmet",
+            "unmetText": "참여자 중도 출금이 3건 있음",
+            "valueText": "3건"
+          }
+        ],
+        "label": "러그풀",
+        "matched": false,
+        "no": 3,
+        "question": "운영자가 모인 돈의 대부분을 한 번에 가져갔나?",
+        "type": "rug_pull"
+      },
+      {
+        "answer": "예",
+        "conditions": [
+          {
+            "id": "balance_drop",
+            "label": "잔고 급락 신호",
+            "met": true,
+            "status": "met",
+            "unmetText": "잔고 급락 신호가 없음",
+            "valueText": "있음"
+          },
+          {
+            "id": "flow_spike",
+            "label": "대량 유출 신호 (누적 출금이 입금의 50% 이상)",
+            "met": true,
+            "status": "met",
+            "unmetText": "대량 유출 신호가 없음",
+            "valueText": "있음"
+          },
+          {
+            "id": "mid_exit",
+            "label": "참여자 중도 출금이 있음",
+            "met": true,
+            "status": "met",
+            "unmetText": "참여자 중도 출금이 없음",
+            "valueText": "3건"
+          }
+        ],
+        "label": "폰지",
+        "matched": true,
+        "no": 4,
+        "question": "새로 들어온 돈으로 앞사람에게 돌려줬나?",
+        "type": "ponzi_scheme"
+      }
+    ],
+    "chainSummary": "1~3번 아니요, 4번 예 → 폰지 의심 → 위험",
+    "conclusion": "risk",
+    "conclusionLabel": "위험",
+    "copy": {
+      "callouts": [
+        {
+          "block": 31,
+          "detail": "이후 새로 들어온 돈 없음",
+          "kind": "last_deposit",
+          "title": "마지막 입금"
+        },
+        {
+          "block": 33,
+          "detail": "중도 출금 3건, 3.3 ETH",
+          "kind": "mid_exit",
+          "title": "앞사람이 먼저 돈을 받음"
+        },
+        {
+          "block": 41,
+          "detail": "6.7 ETH",
+          "kind": "owner_drain",
+          "title": "운영자가 남은 잔고를 인출"
+        }
+      ],
+      "chartNotes": [
+        "먼저 들어온 참여자 3명이 중간에 3.3 ETH를 받았습니다",
+        "받은 3.3 ETH 중 원금을 넘는 0.3 ETH는 다른 참여자의 입금에서 나왔습니다",
+        "남은 6.7 ETH는 운영자가 가져갔고, 참여자 7명은 원금을 돌려받지 못했습니다"
+      ],
+      "headline": "새 입금으로 앞사람에게 수익을 주는 폰지 구조로 보입니다",
+      "note": null,
+      "reasons": [
+        "잔고 급락과 대량 유출 신호가 함께 나타났습니다",
+        "참여자 중도 출금이 3건 있었습니다",
+        "참여자 10명 중 3명만 원금 이상을 돌려받았습니다"
+      ],
+      "summary": {
+        "analyzed": "입금 10건 · 출금 4건",
+        "firstAnomaly": "10번째 입금 뒤 첫 출금 (블록 33)"
+      }
+    },
+    "decisive": {
+      "block": 41,
+      "label": "운영자 인출 시점"
+    },
+    "facts": {
+      "balanceAtFailureEth": 0,
+      "depositCount": 10,
+      "distributedInflow": true,
+      "finalBalanceEth": 0,
+      "firstDepositBlock": 4,
+      "firstWithdrawBlock": 33,
+      "hasStakePattern": false,
+      "insiderExit": true,
+      "largestWithdraw": {
+        "action": "owner_withdraw_all",
+        "amountEth": 6.7,
+        "balanceAfterEth": 0,
+        "block": 41,
+        "to": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+        "toIsOwner": true
+      },
+      "lastBlock": 41,
+      "lastDepositBlock": 31,
+      "maxSingleWithdrawEth": 6.7,
+      "maxSingleWithdrawRatio": 0.67,
+      "midExitCount": 3,
+      "nonOwnerSuccessCount": 3,
+      "nonOwnerSuccessRate": 1,
+      "nonOwnerWithdrawCount": 3,
+      "ownerDepositEth": 0,
+      "ownerIsDepositor": false,
+      "ownerWithdrawAll": true,
+      "participantDepositCount": 10,
+      "participantMidExit": true,
+      "peakBalanceEth": 10,
+      "rowCount": 14,
+      "signals": {
+        "BALANCE_DROP": true,
+        "FLOW_SPIKE": true,
+        "OSCILLATING_BALANCE": false
+      },
+      "singleLargeOutflow": false,
+      "someWithdrawalsFail": false,
+      "someWithdrawalsSucceed": true,
+      "totalInEth": 10,
+      "uniqueDepositorCount": 10,
+      "withdrawCount": 4,
+      "withdrawFailCount": 0,
+      "withdrawSuccessCount": 4,
+      "withdrawSuccessRate": 1,
+      "zeroWithdrawBlock": false
+    },
+    "flow": {
+      "outs": [
+        {
+          "count": 1,
+          "eth": 6.7,
+          "ethText": "6.7",
+          "kind": "owner",
+          "ratio": 0.67,
+          "ratioText": "67%"
+        },
+        {
+          "count": 10,
+          "eth": 3.3000000000000003,
+          "ethText": "3.3",
+          "kind": "participants",
+          "ratio": 0.33,
+          "ratioText": "33%",
+          "receivedCount": 3
+        },
+        {
+          "count": 0,
+          "eth": 0,
+          "ethText": "0",
+          "kind": "remaining",
+          "ratio": 0,
+          "ratioText": "0%"
+        }
+      ],
+      "sources": [
+        {
+          "count": 10,
+          "eth": 10,
+          "ethText": "10",
+          "kind": "participants"
+        }
+      ],
+      "totalInEth": 10,
+      "totalInText": "10"
+    },
+    "hint": "ponzi_scheme",
+    "matchedStep": 4,
+    "ownerAddress": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+    "principal": {
+      "collector": null,
+      "insiders": null,
+      "late": null,
+      "ownerReceivedEth": 6.7,
+      "participantWalletCount": 10,
+      "participants": {
+        "count": 10,
+        "depositEth": 10,
+        "fullCount": 3,
+        "noneCount": 7,
+        "partialCount": 0,
+        "receivedCount": 3,
+        "receivedEth": 3.3000000000000003,
+        "unrecoveredCount": 7
+      }
+    },
+    "segments": [
+      {
+        "from": 4,
+        "key": "deposit",
+        "label": "참여자 입금 10회",
+        "to": 31
+      },
+      {
+        "from": 31,
+        "key": "wait",
+        "label": "대기",
+        "to": 33
+      },
+      {
+        "from": 33,
+        "key": "event1",
+        "label": "중도 출금",
+        "to": 41
+      },
+      {
+        "from": 41,
+        "key": "event2",
+        "label": "운영자 인출 이후",
+        "to": 41
+      }
+    ],
+    "thresholds": {
+      "distributedInflowMin": 5,
+      "flowSpikeRatio": 0.5,
+      "nonOwnerSuccessMax": 0.05,
+      "pumpBalanceAtFailureMax": 0,
+      "singleLargeOutflowRatio": 0.7
+    },
+    "typeLabel": "폰지",
+    "version": 1,
+    "whyNot": [
+      {
+        "checked": true,
+        "label": "펌프앤덤프",
+        "reason": "실패한 출금이 없음",
+        "type": "pump_and_dump"
+      },
+      {
+        "checked": true,
+        "label": "자금세탁",
+        "reason": "한 번에 빠진 돈이 최고 잔고의 67%로 기준(70%)에 못 미침",
+        "type": "money_laundering"
+      },
+      {
+        "checked": true,
+        "label": "러그풀",
+        "reason": "한 번에 빠진 돈이 최고 잔고의 67%로 기준(70%)에 못 미침",
+        "type": "rug_pull"
+      },
+      {
+        "checked": false,
+        "label": "출금 차단 경고",
+        "reason": "운영자 외 출금 성공률이 100%로 기준(5% 이하)보다 높음",
+        "type": "unclassified_warning"
+      }
+    ]
+  },
   "disclaimer": "본 결과는 시뮬레이션 거래 로그와 컨트랙트 소스 코드에 대한 휴리스틱 분석 결과이며, 실제 사기 여부를 확정하지 않는다. 판정 규칙과 임계값은 연구 단계의 잠정값이라 오탐과 미탐이 있을 수 있다. 본 결과는 투자 판단의 근거가 될 수 없으며, 이를 근거로 한 결정의 책임은 이용자에게 있다.",
   "headline": {
     "reasons": [

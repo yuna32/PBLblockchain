@@ -49,6 +49,7 @@ export const serverApi = {
   timeseries: id => request(`/report/${encodeURIComponent(id)}/timeseries`),
   ontology:   id => request(`/report/${encodeURIComponent(id)}/ontology`),
   canonical:  id => request(`/report/${encodeURIComponent(id)}/canonical`),
+  source:     id => request(`/report/${encodeURIComponent(id)}/source`),
 
   // 온체인 기록·검증 (server/attest.js). backend: "local" | "eas-sepolia"
   attestBackends:      () => request("/attest/backends"),

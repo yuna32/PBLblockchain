@@ -43,7 +43,6 @@
 
   /* 크기와 간격 */
   --header-h: 56px;
-  --flow-h: 44px;
   --panel-w: 320px;
   --rail-w: 64px;
   --radius-card: 14px;
@@ -51,4 +50,19 @@
   --gap: 16px;
   --pad-card: 20px;
   --shadow: 0 1px 2px rgba(25, 31, 40, 0.04);
+
+  /* 히어로 전용 (첫 화면·마지막 CTA 구간만). 포인트 파랑(--primary-strong)과 같은 색상 계열의 남색에서 파생.
+     #3182f6(--primary) 위의 흰 글자는 3.71:1이라 그라데이션 끝은 --primary-strong(5.41:1)에서 멈춘다. */
+  --hero-navy-900: #0a1a3f;
+  --hero-navy-700: #113584;
+  --hero-blue: var(--primary-strong);
+  --hero-gradient: linear-gradient(170deg, var(--hero-navy-900) 0%, var(--hero-navy-700) 58%, var(--hero-blue) 100%);
+  --hero-on: #ffffff;                       /* 파란 배경 위 글자 */
+  --hero-on-muted: rgba(255, 255, 255, 0.92); /* 보조 글자: #1b64da 위에서도 4.85:1 */
+  --hero-line: rgba(255, 255, 255, 0.22);   /* 선 모티프 */
+  --hero-line-soft: rgba(255, 255, 255, 0.12);
+  --hero-alert: #ff6b75;                    /* 잔고가 떨어지는 지점의 빨간 점 (--danger 계열을 밝힌 색) */
+  --hero-tint: rgba(10, 26, 63, 0.35);      /* 파란 배경 위 배지·눌림 배경 */
+  --hero-glow: rgba(255, 255, 255, 0.10);   /* 입력창 주변 은은한 빛 */
+  --hero-placeholder: #6b7684;              /* 흰 입력창 안내 글자 4.62:1 (기본 --text-3는 3.04:1) */
 }

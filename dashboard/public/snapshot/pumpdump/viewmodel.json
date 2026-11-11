@@ -27,6 +27,269 @@
     "walletRisk": "high"
   },
   "contract": "PumpDump",
+  "decision": {
+    "chain": [
+      {
+        "answer": "예",
+        "conditions": [
+          {
+            "id": "mixed_withdrawals",
+            "label": "성공한 출금과 실패한 출금이 섞여 있음",
+            "met": true,
+            "status": "met",
+            "unmetText": "성공한 출금이 없음",
+            "valueText": "성공 3건 · 실패 5건"
+          },
+          {
+            "id": "insider_exit",
+            "label": "넣은 돈보다 더 받아 간 출금이 있음",
+            "met": true,
+            "status": "met",
+            "unmetText": "넣은 돈보다 더 받아 간 출금이 없음",
+            "valueText": "있음"
+          },
+          {
+            "id": "balance_at_failure_zero",
+            "label": "출금이 실패한 시점의 잔고가 0",
+            "met": true,
+            "status": "met",
+            "unmetText": "출금이 실패한 시점에도 잔고 0 ETH가 남아 있음",
+            "valueText": "0 ETH"
+          }
+        ],
+        "label": "펌프앤덤프",
+        "matched": true,
+        "no": 1,
+        "question": "먼저 빠져나간 사람 뒤로 출금이 막혔나?",
+        "type": "pump_and_dump"
+      }
+    ],
+    "chainSummary": "1번 예 → 펌프앤덤프 의심 → 위험",
+    "conclusion": "risk",
+    "conclusionLabel": "위험",
+    "copy": {
+      "callouts": [
+        {
+          "block": 23,
+          "detail": "3개 지갑, 19.5 ETH",
+          "kind": "insider_exit",
+          "title": "내부자가 먼저 빼 감"
+        },
+        {
+          "block": 29,
+          "detail": "5건 실패, 잔고 0 ETH",
+          "kind": "failed_withdraw",
+          "title": "후발 참여자 출금 실패"
+        }
+      ],
+      "chartNotes": [
+        "내부자 3개 지갑이 먼저 19.5 ETH를 빼 갔습니다",
+        "그 뒤 잔고가 0 ETH가 됐습니다",
+        "후발 참여자 5명의 출금 5건은 모두 실패했습니다"
+      ],
+      "headline": "내부자가 먼저 빼가고 뒤에 들어온 사람의 출금이 막혔습니다",
+      "note": null,
+      "reasons": [
+        "출금 8건 중 3건만 성공했습니다 (37.5%)",
+        "출금이 실패한 시점의 잔고는 0 ETH였습니다",
+        "넣은 돈보다 더 받아 간 내부자 지갑이 3개 있습니다"
+      ],
+      "summary": {
+        "analyzed": "입금 8건 · 출금 시도 8건 (성공 3건)",
+        "firstAnomaly": "8번째 입금 뒤 첫 출금 (블록 23)"
+      }
+    },
+    "decisive": {
+      "block": 29,
+      "label": "후발 참여자 출금이 막힌 시점"
+    },
+    "facts": {
+      "balanceAtFailureEth": 0,
+      "depositCount": 8,
+      "distributedInflow": true,
+      "finalBalanceEth": 0,
+      "firstDepositBlock": 6,
+      "firstWithdrawBlock": 23,
+      "hasStakePattern": false,
+      "insiderExit": true,
+      "largestWithdraw": {
+        "action": "withdraw",
+        "amountEth": 6.5,
+        "balanceAfterEth": 13,
+        "block": 23,
+        "to": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "toIsOwner": false
+      },
+      "lastBlock": 37,
+      "lastDepositBlock": 20,
+      "maxSingleWithdrawEth": 6.5,
+      "maxSingleWithdrawRatio": 0.3333333333333333,
+      "midExitCount": 3,
+      "nonOwnerSuccessCount": 3,
+      "nonOwnerSuccessRate": 0.375,
+      "nonOwnerWithdrawCount": 8,
+      "ownerDepositEth": 0,
+      "ownerIsDepositor": false,
+      "ownerWithdrawAll": false,
+      "participantDepositCount": 8,
+      "participantMidExit": true,
+      "peakBalanceEth": 19.5,
+      "rowCount": 16,
+      "signals": {
+        "BALANCE_DROP": true,
+        "FLOW_SPIKE": true,
+        "OSCILLATING_BALANCE": false
+      },
+      "singleLargeOutflow": false,
+      "someWithdrawalsFail": true,
+      "someWithdrawalsSucceed": true,
+      "totalInEth": 19.5,
+      "uniqueDepositorCount": 8,
+      "withdrawCount": 8,
+      "withdrawFailCount": 5,
+      "withdrawSuccessCount": 3,
+      "withdrawSuccessRate": 0.375,
+      "zeroWithdrawBlock": false
+    },
+    "flow": {
+      "outs": [
+        {
+          "count": 3,
+          "eth": 19.5,
+          "ethText": "19.5",
+          "kind": "insiders",
+          "ratio": 1,
+          "ratioText": "100%"
+        },
+        {
+          "count": 5,
+          "eth": 0,
+          "ethText": "0",
+          "kind": "late",
+          "ratio": 0,
+          "ratioText": "0%"
+        },
+        {
+          "count": 0,
+          "eth": 0,
+          "ethText": "0",
+          "kind": "remaining",
+          "ratio": 0,
+          "ratioText": "0%"
+        }
+      ],
+      "sources": [
+        {
+          "count": 8,
+          "eth": 19.5,
+          "ethText": "19.5",
+          "kind": "participants"
+        }
+      ],
+      "totalInEth": 19.5,
+      "totalInText": "19.5"
+    },
+    "hint": "pump_and_dump",
+    "matchedStep": 1,
+    "ownerAddress": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+    "principal": {
+      "collector": null,
+      "insiders": {
+        "count": 3,
+        "depositEth": 12,
+        "fullCount": 3,
+        "noneCount": 0,
+        "partialCount": 0,
+        "receivedCount": 3,
+        "receivedEth": 19.5,
+        "unrecoveredCount": 0
+      },
+      "late": {
+        "count": 5,
+        "depositEth": 7.5,
+        "failedWithdrawCount": 5,
+        "fullCount": 0,
+        "noneCount": 5,
+        "partialCount": 0,
+        "receivedCount": 0,
+        "receivedEth": 0,
+        "unrecoveredCount": 5
+      },
+      "ownerReceivedEth": 0,
+      "participantWalletCount": 8,
+      "participants": {
+        "count": 8,
+        "depositEth": 19.5,
+        "fullCount": 3,
+        "noneCount": 5,
+        "partialCount": 0,
+        "receivedCount": 3,
+        "receivedEth": 19.5,
+        "unrecoveredCount": 5
+      }
+    },
+    "segments": [
+      {
+        "from": 6,
+        "key": "deposit",
+        "label": "참여자 입금 8회",
+        "to": 20
+      },
+      {
+        "from": 20,
+        "key": "wait",
+        "label": "대기",
+        "to": 23
+      },
+      {
+        "from": 23,
+        "key": "event1",
+        "label": "내부자 출금",
+        "to": 29
+      },
+      {
+        "from": 29,
+        "key": "event2",
+        "label": "출금 실패 이후",
+        "to": 37
+      }
+    ],
+    "thresholds": {
+      "distributedInflowMin": 5,
+      "flowSpikeRatio": 0.5,
+      "nonOwnerSuccessMax": 0.05,
+      "pumpBalanceAtFailureMax": 0,
+      "singleLargeOutflowRatio": 0.7
+    },
+    "typeLabel": "펌프앤덤프",
+    "version": 1,
+    "whyNot": [
+      {
+        "checked": false,
+        "label": "자금세탁",
+        "reason": "한 번에 빠진 돈이 최고 잔고의 33.3%로 기준(70%)에 못 미침",
+        "type": "money_laundering"
+      },
+      {
+        "checked": false,
+        "label": "러그풀",
+        "reason": "한 번에 빠진 돈이 최고 잔고의 33.3%로 기준(70%)에 못 미침",
+        "type": "rug_pull"
+      },
+      {
+        "checked": false,
+        "label": "폰지",
+        "reason": "폰지 조건도 일부 맞지만, 판정 순서상 앞선 펌프앤덤프 조건이 먼저 충족돼 펌프앤덤프로 판정했습니다",
+        "type": "ponzi_scheme"
+      },
+      {
+        "checked": false,
+        "label": "출금 차단 경고",
+        "reason": "운영자 외 출금 성공률이 37.5%로 기준(5% 이하)보다 높음",
+        "type": "unclassified_warning"
+      }
+    ]
+  },
   "disclaimer": "본 결과는 시뮬레이션 거래 로그와 컨트랙트 소스 코드에 대한 휴리스틱 분석 결과이며, 실제 사기 여부를 확정하지 않는다. 판정 규칙과 임계값은 연구 단계의 잠정값이라 오탐과 미탐이 있을 수 있다. 본 결과는 투자 판단의 근거가 될 수 없으며, 이를 근거로 한 결정의 책임은 이용자에게 있다.",
   "headline": {
     "reasons": [

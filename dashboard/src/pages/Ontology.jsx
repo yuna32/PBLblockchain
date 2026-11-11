@@ -81,22 +81,30 @@ function OntologyBody({ data }) {
 
   return (
     <div className="page">
-      <div className="notice">
-        <Info {...ICON} />
-        <MappingNote text={graph.meta.mappingNote} meta={graph.meta} />
+      <header className="page-head">
+        <h1 className="page-title">온톨로지 상세 분석</h1>
+        <p className="page-desc">온톨로지: 사기 유형별 판단 기준을 정리해둔 지식 체계예요. 아래 그래프는 이 기준으로 어떻게 판정했는지 보여줍니다.</p>
+      </header>
+      <div className="notice notice-sm">
+        <Info {...ICON} size={16} />
+        <div className="notice-body">
+          <span>그래프의 일부 연결은 판정 규칙을 그림으로 옮기려고 시연용으로 이어 둔 것이라, 온톨로지 원래 정의와 다를 수 있습니다.</span>
+          <details className="notice-details">
+            <summary>개발자용 설명 보기</summary>
+            <MappingNote text={graph.meta.mappingNote} meta={graph.meta} />
+          </details>
+        </div>
       </div>
-      <div className="grid-side">
-        <Card title="온톨로지 추론 그래프" pad={false}
-          aside={
-            <div className="card-aside-row">
-              <span className="muted small num">노드 {counts.nodes} (활성 {counts.activeNodes}) · 링크 {counts.links} · 추론 경로 {graph.highlight.path.length}</span>
-              <button type="button" className="btn btn-secondary" disabled={steps.length === 0}
-                onClick={() => setStep(playing ? null : 0)}>
-                {playing ? <Pause {...ICON} size={16} /> : <Play {...ICON} size={16} />}
-                {playing ? "멈춤" : "추론 경로 재생"}
-              </button>
-            </div>
-          }>
+      <div className="onto-layout">
+        <Card title="온톨로지 추론 그래프" pad={false} className="onto-graph">
+          <div className="card-subrow">
+            <span className="muted small num">노드 {counts.nodes} (활성 {counts.activeNodes}) · 링크 {counts.links} · 추론 경로 {graph.highlight.path.length}</span>
+            <button type="button" className="btn btn-secondary" disabled={steps.length === 0}
+              onClick={() => setStep(playing ? null : 0)}>
+              {playing ? <Pause {...ICON} size={16} /> : <Play {...ICON} size={16} />}
+              {playing ? "멈춤" : "추론 경로 재생"}
+            </button>
+          </div>
           <ForceGraph nodes={graph.nodes} links={graph.links} nodeStyle={nodeStyle} linkStyle={linkStyle}
             selectedId={selectedId} onNodeClick={n => setSelectedId(n.id)} height={540} linkDistance={78} charge={-260} collidePadding={18}
             renderTooltip={n => (
@@ -105,28 +113,35 @@ function OntologyBody({ data }) {
                 <div className="small muted">{KIND_LABELS[n.kind]} · {STATE_LABELS[nodeState(n)]}{n.approx ? " · 근사" : ""}</div>
               </div>
             )} />
-          <div className="card-body card-body-tight">
-            <Legend items={LEGEND} />
-            {!graph.meta.scenarioFraudClass && (
+          {!graph.meta.scenarioFraudClass && (
+            <div className="card-body card-body-tight">
               <p className="muted small">사기로 분류되지 않아 후보 사기 유형과 조건이 비활성(회색)으로 표시됩니다.</p>
-            )}
-          </div>
+            </div>
+          )}
         </Card>
-        <Card title="노드 설명">
-          {selected ? <NodeDetail node={selected} /> : <p className="muted">그래프에서 노드를 누르면 설명이 나옵니다.</p>}
-        </Card>
+        <div className="onto-side">
+          <Card title="노드 설명">
+            {selected ? <NodeDetail node={selected} /> : <p className="muted">그래프에서 노드를 누르면 설명이 나옵니다.</p>}
+          </Card>
+          <Card title="노드 범례">
+            <h3 className="legend-group">노드 종류</h3>
+            <Legend items={LEGEND_KINDS} vertical />
+            <h3 className="legend-group">상태와 경로</h3>
+            <Legend items={LEGEND_STATES} vertical />
+          </Card>
+        </div>
       </div>
     </div>
   );
 }
 
-// meta.mappingNote: 첫 문장("시연용 매핑, 온톨로지 정의 아님")을 크게, 나머지 설명은 작게
+// meta.mappingNote(개발자용, 접힌 영역): 첫 문장을 굵게, 나머지 설명은 작게. 문구는 그대로 쓴다.
 function MappingNote({ text, meta }) {
   const cut = text.indexOf(". ");
   const head = cut === -1 ? text : text.slice(0, cut);
   const rest = cut === -1 ? "" : text.slice(cut + 2);
   return (
-    <div>
+    <div className="notice-dev">
       <strong>{head}</strong>
       {rest && <div className="small">{rest}</div>}
       <OwlNote meta={meta} />
@@ -167,10 +182,11 @@ function NodeDetail({ node }) {
   );
 }
 
-const LEGEND = [
-  ...Object.entries(KIND_STYLE).map(([kind, s]) => ({
-    key: kind, label: KIND_LABELS[kind], swatch: <NodeShape {...s} r={Math.min(s.r, 6)} fill="var(--fill-2)" stroke="var(--text-2)" />
-  })),
+const LEGEND_KINDS = Object.entries(KIND_STYLE).map(([kind, s]) => ({
+  key: kind, label: KIND_LABELS[kind], swatch: <NodeShape {...s} r={Math.min(s.r, 6)} fill="var(--fill-2)" stroke="var(--text-2)" />
+}));
+
+const LEGEND_STATES = [
   { key: "on", label: "충족·활성", swatch: <NodeShape shape="circle" r={5} fill="var(--primary)" stroke="var(--primary-strong)" /> },
   { key: "unmet", label: "미충족 (−)", swatch: <><NodeShape shape="circle" r={5} fill="var(--surface)" stroke="var(--text-3)" /><text className="fg-glyph" dy="0.35em" fontSize="8">−</text></> },
   { key: "nodata", label: "근거 데이터 없음 (?)", swatch: <><NodeShape shape="circle" r={5} fill="var(--surface)" stroke="var(--text-3)" dash="2 1.5" /><text className="fg-glyph" dy="0.35em" fontSize="7">?</text></> },

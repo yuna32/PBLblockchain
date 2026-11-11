@@ -34,7 +34,8 @@ export default function ForceGraph({
   const [hover, setHover] = useState(null);
 
   useEffect(() => {
-    const ro = new ResizeObserver(([entry]) => setWidth(Math.max(320, Math.floor(entry.contentRect.width))));
+    // 최소 폭이 카드보다 넓으면 오른쪽이 잘린다(모바일 390px 카드 안쪽 ≈ 290px) → 최소 240
+    const ro = new ResizeObserver(([entry]) => setWidth(Math.max(240, Math.floor(entry.contentRect.width))));
     ro.observe(wrapRef.current);
     return () => ro.disconnect();
   }, []);
@@ -82,9 +83,10 @@ export default function ForceGraph({
     const ns = s.nodes();
     if (!ns.length) return;
     const xs = ns.map(n => n.x), ys = ns.map(n => n.y);
-    const pad = 48;
-    const minX = Math.min(...xs) - pad, maxX = Math.max(...xs) + pad;
-    const minY = Math.min(...ys) - pad, maxY = Math.max(...ys) + pad + 16;
+    // 노드 라벨이 좌우로 퍼지므로 가로 여백을 더 둔다 (라벨이 화면 가장자리에서 잘리지 않게)
+    const padX = 76, padY = 48;
+    const minX = Math.min(...xs) - padX, maxX = Math.max(...xs) + padX;
+    const minY = Math.min(...ys) - padY, maxY = Math.max(...ys) + padY + 16;
     const scale = Math.min(1.6, width / (maxX - minX), height / (maxY - minY));
     const t = zoomIdentity.translate(width / 2 - scale * (minX + maxX) / 2, height / 2 - scale * (minY + maxY) / 2).scale(scale);
     select(svgRef.current).call(zoomRef.current.transform, t);

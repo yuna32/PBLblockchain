@@ -117,9 +117,15 @@ export function Stat({ label, value, sub, tone, emphasis }) {
   );
 }
 
-export function Legend({ items }) {
+// 행 아래 한 줄 설명 (회색 작은 글씨). .row 안에 두면 줄을 바꿔 행 전체 폭을 쓴다.
+export function RowHelp({ children }) {
+  if (!children) return null;
+  return <span className="row-help">{children}</span>;
+}
+
+export function Legend({ items, vertical = false }) {
   return (
-    <ul className="legend">
+    <ul className={`legend ${vertical ? "legend-vertical" : ""}`}>
       {items.map(i => (
         <li key={i.key}>
           <svg width="16" height="16" viewBox="-8 -8 16 16" aria-hidden="true">{i.swatch}</svg>
