@@ -14,7 +14,7 @@ export const ADDRESS_NOTICE = "시연판에서는 예시 컨트랙트만 확인�
 export const CHECK_CARDS = [
   { key: "flow", title: "돈의 흐름", sub: "누가 넣고 누가 가져갔나", desc: "입금과 출금 기록을 따라가 모인 돈이 어디로 갔는지 봅니다." },
   { key: "code", title: "코드", sub: "출금이 막혀 있지 않나", desc: "컨트랙트 코드에 출금을 막거나 운영자만 돈을 뺄 수 있는 기능이 있는지 점검합니다." },
-  { key: "creator", title: "만든 사람", sub: "배포자의 돈은 어디서 왔나", desc: "배포자의 이력을 확인하는 자리입니다. 시연판에는 아직 데이터가 없습니다." }
+  { key: "creator", title: "배포자", sub: "배포자의 돈은 어디서 왔나", desc: "배포자의 이력을 확인하는 자리입니다. 시연판에는 아직 데이터가 없습니다." }
 ];
 
 export const FRAUD_CARDS = [

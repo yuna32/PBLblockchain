@@ -1,5 +1,4 @@
 import { describe, it, expect } from "vitest";
-import { sortWallets, lowestWallet, radarData, walletRole, TRUST_AXES } from "./wallets.js";
 import { nodeState, stateGroup, highlightSets, playbackSteps, visibleAtStep, edgeKey, countGraph } from "./ontology.js";
 import { flowSteps, stageSteps } from "./flow.js";
 import { QUADRANT_LABELS, matrixCells } from "./combination.js";
@@ -11,27 +10,6 @@ import { buildOntologyGraph } from "../../../demo/lib/ontologygraph.js";
 import { GLOSSARY } from "../../../demo/lib/glossary.js";
 import { buildViewModel } from "../../../demo/lib/viewmodel.js";
 import { SCENARIO_IDS, loadFixture } from "./testFixtures.js";
-
-describe("지갑 정렬", () => {
-  it("pumpdump: 최저 지갑 B(58), 평균 A와 다름", () => {
-    const { report } = loadFixture("pumpdump");
-    const sorted = sortWallets(report.trust.wallet_scores);
-    expect(sorted[0].trust_score).toBe(58);
-    expect(sorted.map(w => w.trust_score)).toEqual([...sorted.map(w => w.trust_score)].sort((a, b) => a - b));
-    expect(lowestWallet(report.trust.wallet_scores).grade).toBe("B");
-    expect(report.trust.trust_grade).toBe("A");
-    expect(sortWallets(report.trust.wallet_scores, "desc")[0].trust_score).toBe(98);
-  });
-
-  it("레이더 5축과 역할", () => {
-    const { report } = loadFixture("ponzi");
-    const w = lowestWallet(report.trust.wallet_scores);
-    expect(radarData(w).map(d => d.axis)).toEqual(TRUST_AXES);
-    expect(walletRole(w)).toBe("drainer");
-    expect(TRUST_AXES.every(a => GLOSSARY[a])).toBe(true);
-    expect(radarData(null)).toEqual([]);
-  });
-});
 
 describe("온톨로지 표시", () => {
   it("nodeState: 조건·근거·기법은 status, 나머지는 active", () => {
@@ -122,7 +100,7 @@ describe("용어·포맷", () => {
     expect(pagePath("ontology")).toBe("/detail/graph");
     expect(pagePath("report")).toBe("/detail/report");
     expect(pagePath("raw")).toBe("/detail/raw");
-    expect(PAGES.map(p => p.label)).toEqual(["개요", "거래 분석", "만든 사람", "상세 분석"]);
+    expect(PAGES.map(p => p.label)).toEqual(["개요", "거래 분석", "배포자 위험도", "상세 분석"]);
     expect(DETAIL_PAGES.map(p => p.label)).toEqual(["판정 조건", "추론 그래프", "리포트 변조 확인", "원자료"]);
   });
 

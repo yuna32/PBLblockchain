@@ -8,7 +8,7 @@ import Layout from "./components/Layout.jsx";
 import Hero from "./pages/Hero.jsx";
 import Overview from "./pages/Overview.jsx";
 import Trade from "./pages/Trade.jsx";
-import Trust from "./pages/Trust.jsx";
+import Deployer from "./pages/Deployer.jsx";
 import Ontology from "./pages/Ontology.jsx";
 import Report from "./pages/Report.jsx";
 import DetailLayout from "./pages/detail/DetailLayout.jsx";
@@ -35,7 +35,7 @@ export default function App() {
               <Route path="/" element={<Hero />} />
               <Route path="/overview" element={<Overview />} />
               <Route path="/trade" element={<Trade />} />
-              <Route path="/trust" element={<Trust />} />
+              <Route path="/trust" element={<Deployer />} />
               <Route path="/detail" element={<DetailLayout />}>
                 <Route index element={<Moved to="/detail/conditions" />} />
                 <Route path="conditions" element={<Conditions />} />

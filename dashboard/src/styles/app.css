@@ -229,7 +229,6 @@ button.row:disabled { cursor: default; opacity: 0.6; }
 .stat-value { font-size: var(--fs-num); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.25; }
 .stat-sub { font-size: var(--fs-label); color: var(--text-3); }
 .stats-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
 
 /* 범례 */
 .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; list-style: none; margin: 12px 0 0; padding: 0; font-size: var(--fs-label); color: var(--text-2); }
@@ -756,8 +755,7 @@ html[data-hero-top] .hero-shell .topbar :focus-visible { outline-color: var(--he
 .node-detail-badges { display: flex; gap: 6px; margin-bottom: 10px; }
 .node-detail-desc { margin: 0 0 10px; color: var(--text-2); font-size: 13px; }
 
-/* ── 신뢰 시트 ── */
-.radar-caption { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 13px; color: var(--text-2); }
+/* ── 표 (공통) ── */
 .table-wrap { max-height: 360px; overflow: auto; padding: 8px 12px 12px; }
 .table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .table th { position: sticky; top: 0; background: var(--surface); text-align: left; font-weight: 500; color: var(--text-3); font-size: var(--fs-label); padding: 8px; border-bottom: 1px solid var(--border); }
@@ -902,7 +900,7 @@ html[data-hero-top] .hero-shell .topbar :focus-visible { outline-color: var(--he
 @media (max-width: 720px) {
   .topbar { gap: 12px; padding: 0 16px; }
   .topbar-right { display: none; }
-  .stats-2x2, .stats-row { grid-template-columns: minmax(0, 1fr); }
+  .stats-2x2 { grid-template-columns: minmax(0, 1fr); }
   .flow { grid-template-columns: minmax(0, 1fr); justify-items: center; }
   .flow-in { gap: 0; }
   .flow-in .flow-arrow { transform: rotate(90deg); width: 40px; margin: 12px 0; }
@@ -911,4 +909,81 @@ html[data-hero-top] .hero-shell .topbar :focus-visible { outline-color: var(--he
   .network-legend { border-right: 0; border-bottom: 1px solid var(--border); }
   .network-legend .legend-vertical { flex-direction: row; flex-wrap: wrap; gap: 6px 14px; }
   .node-stats { grid-template-columns: 1fr 1fr; }
+}
+
+/* ── 배포자 위험도 (/trust) ── */
+.risk-top, .risk-mid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: var(--gap); align-items: start; }
+.risk-verdict .risk-summary { margin: 14px 0 16px; font-size: 20px; line-height: 1.45; font-weight: 700; color: var(--text-1); word-break: keep-all; }
+.risk-target { display: grid; gap: 10px; margin: 0; padding: 14px 0; border-top: 1px solid var(--fill-2); border-bottom: 1px solid var(--fill-2); }
+.risk-target > div { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 12px; align-items: center; }
+.risk-target dt { font-size: var(--fs-label); color: var(--text-3); }
+.risk-target dd { margin: 0; min-width: 0; }
+.risk-addr { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; }
+.risk-addr code { font-size: 12.5px; word-break: break-all; color: var(--text-1); }
+.risk-copy { flex: none; width: 28px; height: 28px; }
+.risk-score { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-top: 14px; }
+.risk-score-label { font-size: var(--fs-label); color: var(--text-3); }
+.risk-score-value { font-size: 18px; color: var(--text-1); }
+.risk-score-unit { font-size: 13px; color: var(--text-3); }
+.risk-score-note { margin: 4px 0 0; font-size: var(--fs-label); color: var(--text-3); line-height: 1.55; }
+.risk-scope-list { margin: 0; }
+.risk-scope-list > div { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--fill-2); }
+.risk-scope-list > div:first-child { padding-top: 0; }
+.risk-scope-list dt { color: var(--text-2); font-size: 13.5px; }
+.risk-scope-list dd { margin: 0; text-align: right; color: var(--text-1); font-size: 13.5px; }
+.risk-reason { margin: 12px 0 0; font-size: 13.5px; line-height: 1.55; color: var(--text-1); }
+.risk-assume { margin: 6px 0 0; font-size: var(--fs-label); line-height: 1.55; color: var(--text-3); }
+.risk-inds { list-style: none; margin: 0; padding: 0; }
+.risk-ind { padding: 12px 0; border-bottom: 1px solid var(--fill-2); }
+.risk-ind:first-child { padding-top: 0; }
+.risk-ind:last-child { border-bottom: 0; padding-bottom: 0; }
+.risk-ind-head { display: flex; align-items: center; gap: 10px; }
+.risk-ind-name { flex: 1; min-width: 0; display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; font-weight: 600; color: var(--text-1); }
+.risk-ind-nodata .risk-ind-name { font-weight: 500; color: var(--text-2); }
+.risk-ext { padding: 1px 6px; border: 1px solid var(--border-strong); border-radius: 999px; font-size: 11px; font-weight: 600; color: var(--text-3); }
+.risk-ind-points { min-width: 56px; text-align: right; font-size: 13px; color: var(--text-2); }
+.risk-cap { height: 6px; margin-top: 8px; border-radius: 3px; background: var(--fill-2); overflow: hidden; }
+.risk-cap span { display: block; height: 100%; background: var(--text-3); }
+.risk-cap-caution span { background: var(--caution); }
+.risk-cap-danger span { background: var(--danger); }
+.risk-evs { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.risk-ev { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 2px 8px; align-items: baseline; font-size: 13.5px; line-height: 1.5; }
+.risk-ev-text { color: var(--text-1); }
+.risk-ev-points { color: var(--text-2); }
+.risk-ev-source { grid-column: 2 / 4; font-size: var(--fs-label); color: var(--text-3); }
+.risk-fund { display: flex; align-items: center; max-width: 520px; }
+.risk-fund-step { display: flex; align-items: center; flex: 1; min-width: 0; }
+.risk-fund-step:first-child { flex: none; }
+.risk-fund-arrow { flex: 1; min-width: 28px; }
+.risk-fund-node { flex: none; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 12px; border: 1.5px solid var(--text-1); border-radius: 10px; background: var(--surface); font-size: 13px; text-align: center; }
+.risk-fund-node span { font-size: 11.5px; color: var(--text-3); }
+.risk-fund-danger { border-color: var(--danger); }
+.risk-fund-danger strong { color: var(--danger); }
+.risk-fund-mid { border-style: dashed; border-color: var(--border-strong); }
+.risk-fund-empty .risk-fund-node { border: 1.5px dashed var(--border-strong); color: var(--text-3); }
+.risk-empty { margin: 12px 0 0; font-size: 13.5px; color: var(--text-3); }
+.card-body > .risk-empty:first-child { margin-top: 0; }
+.risk-table tbody tr { cursor: default; }
+.risk-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--gap); }
+.risk-pair-item { padding: 14px 16px; border-radius: var(--radius-ctl); background: var(--fill-1); }
+.risk-pair-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.risk-pair-title { font-weight: 700; color: var(--text-1); }
+.risk-pair-text { margin: 8px 0 0; font-size: 14px; line-height: 1.5; color: var(--text-1); }
+.risk-pair-sub { margin: 4px 0 0; font-size: 13px; line-height: 1.5; color: var(--text-3); }
+.risk-combo { margin-top: 12px; padding: 12px 16px; border: 1px dashed var(--border-strong); border-radius: var(--radius-ctl); display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.risk-combo-label { font-size: var(--fs-label); color: var(--text-3); }
+.risk-combo strong { color: var(--text-2); }
+.risk-combo p { flex-basis: 100%; margin: 0; font-size: 13px; line-height: 1.55; color: var(--text-3); }
+.risk-notes { display: flex; flex-direction: column; gap: 8px; }
+.risk-notes .threshold-note { margin: 0; }
+@media (max-width: 900px) {
+  .risk-top, .risk-mid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 720px) {
+  .risk-target > div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .risk-pair { grid-template-columns: minmax(0, 1fr); }
+  .risk-fund { flex-direction: column; align-items: center; }
+  .risk-fund-step, .risk-fund-step:first-child { flex-direction: column; flex: none; }
+  .risk-fund-arrow { flex: none; width: 36px; margin: 10px 0; transform: rotate(90deg); }
+  .risk-verdict .risk-summary { font-size: 18px; }
 }

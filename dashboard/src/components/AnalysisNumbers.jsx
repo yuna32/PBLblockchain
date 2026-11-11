@@ -12,6 +12,10 @@ import { matrixCells, RISK_LABELS } from "../lib/combination.js";
 import { pagePath, term } from "../lib/terms.js";
 import { shortHash } from "../lib/format.js";
 
+// 옛 지갑 신뢰 점수(높을수록 안전, A~F 등급)와 코드×지갑 조합 매트릭스는 배포자 위험도(높을수록 위험)와 방향이 반대라
+// 헷갈리지 않게 숨긴다. 코드는 남겨 두고 이 플래그로만 끈다(UI 개편 S8).
+export const SHOW_LEGACY_WALLET_SCORES = false;
+
 export function SummaryStrip({ view, envelope }) {
   const { scenarios, current } = useApp();
   const { currentPhase, verifyOf, backendId } = useAttest();
@@ -89,10 +93,10 @@ export function KeyNumbers({ view }) {
         <Stat label={<Term id="prevention_risk_level">코드 위험 수준</Term>}
           value={<Term id={code.preventionRiskLevel}>{term(glossary, code.preventionRiskLevel).label}</Term>}
           sub={`예방 분석 점수 ${code.preventionRiskScore ?? "-"}`} />
-        <Stat label={<Term id="trust_grade">지갑 평균 등급</Term>} value={w.trustGrade} sub={`신뢰 점수 ${w.trustScore}`} />
-        <Stat label={<Term id="lowest_wallet_grade">최저 지갑 등급</Term>} value={w.lowestWallet?.grade ?? "-"}
+        {SHOW_LEGACY_WALLET_SCORES && <Stat label={<Term id="trust_grade">지갑 평균 등급</Term>} value={w.trustGrade} sub={`신뢰 점수 ${w.trustScore}`} />}
+        {SHOW_LEGACY_WALLET_SCORES && <Stat label={<Term id="lowest_wallet_grade">최저 지갑 등급</Term>} value={w.lowestWallet?.grade ?? "-"}
           tone={differs ? "danger" : undefined} emphasis={differs}
-          sub={differs ? <span className="text-danger">평균({w.trustGrade})과 다름 · {w.lowestWallet.trustScore}점</span> : `${w.lowestWallet?.trustScore ?? "-"}점`} />
+          sub={differs ? <span className="text-danger">평균({w.trustGrade})과 다름 · {w.lowestWallet.trustScore}점</span> : `${w.lowestWallet?.trustScore ?? "-"}점`} />}
         <Stat label={<><Term id="drainer">전액 인출 지갑</Term> / <Term id="extractor">과도 수익 지갑</Term></>}
           value={<span className="num">{w.drainerCount} / {w.extractorCount}</span>}
           sub={`지갑 ${w.walletCount}개 중`} />

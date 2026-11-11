@@ -6,7 +6,7 @@ import { api } from "../../api/client.js";
 import { useApp } from "../../state/AppContext.jsx";
 import { Badge, Card, Collapsible, ICON, ReportGate, StatusView } from "../../components/ui.jsx";
 import { HashLine } from "../../components/AttestParts.jsx";
-import { CombinationMatrix, KeyNumbers, PatternsAndWarnings, SummaryStrip } from "../../components/AnalysisNumbers.jsx";
+import { CombinationMatrix, KeyNumbers, PatternsAndWarnings, SHOW_LEGACY_WALLET_SCORES, SummaryStrip } from "../../components/AnalysisNumbers.jsx";
 import { rawRows } from "../../lib/rawRows.js";
 import { fmtEth, shortAddr } from "../../lib/format.js";
 
@@ -78,13 +78,16 @@ function RawBody({ data }) {
         {source.data && <pre className="code-block source-block">{source.data.text}</pre>}
       </Card>
 
-      <Collapsible title="분석 수치" summary="요약 띠 · 코드 위험 × 지갑 위험 · 핵심 수치 · 감지된 패턴과 경고">
+      <Collapsible title="분석 수치"
+        summary={SHOW_LEGACY_WALLET_SCORES ? "요약 띠 · 코드 위험 × 지갑 위험 · 핵심 수치 · 감지된 패턴과 경고" : "요약 띠 · 핵심 수치 · 감지된 패턴과 경고"}>
         <div className="raw-numbers">
           <SummaryStrip view={view} envelope={envelope} />
-          <div className="grid-2">
-            <CombinationMatrix combination={view.combination} />
-            <KeyNumbers view={view} />
-          </div>
+          {SHOW_LEGACY_WALLET_SCORES ? (
+            <div className="grid-2">
+              <CombinationMatrix combination={view.combination} />
+              <KeyNumbers view={view} />
+            </div>
+          ) : <KeyNumbers view={view} />}
           <PatternsAndWarnings view={view} />
         </div>
       </Collapsible>

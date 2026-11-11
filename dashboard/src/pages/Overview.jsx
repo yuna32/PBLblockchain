@@ -57,7 +57,7 @@ function OverviewBody({ data }) {
               {codeNotice && <p id="code-notice" className="judge-notice" role="status">코드 점검 화면은 준비 중입니다.</p>}
             </>
           } />
-        <JudgeCard icon={UserSearch} title="만든 사람" badgeText="데이터 없음"
+        <JudgeCard icon={UserSearch} title="배포자" badgeText="데이터 없음"
           text="시뮬레이션이라 배포자 이력이 없습니다"
           sub="실제 주소를 분석할 때 배포자의 이력을 보여 줄 자리입니다." />
       </div>

@@ -6,11 +6,11 @@ export function term(glossary, id) {
 
 export const TONE_LABELS = { danger: "위험", caution: "주의", safe: "안전" };
 
-// 상단 탭. 신뢰 시트(Trust.jsx)는 이번 개편 범위 밖이라 경로는 그대로 두고 라벨만 임시로 "만든 사람".
+// 상단 탭. 배포자 위험도(pages/Deployer.jsx)는 예전 신뢰 시트 자리라 경로(/trust)와 key는 그대로 둔다.
 export const PAGES = [
   { key: "overview", path: "/overview", label: "개요" },
   { key: "trade", path: "/trade", label: "거래 분석" },
-  { key: "trust", path: "/trust", label: "만든 사람" },
+  { key: "trust", path: "/trust", label: "배포자 위험도" },
   { key: "detail", path: "/detail", label: "상세 분석" }
 ];
 
