@@ -974,6 +974,15 @@ html[data-hero-top] .hero-shell .topbar :focus-visible { outline-color: var(--he
 .risk-combo-label { font-size: var(--fs-label); color: var(--text-3); }
 .risk-combo strong { color: var(--text-2); }
 .risk-combo p { flex-basis: 100%; margin: 0; font-size: 13px; line-height: 1.55; color: var(--text-3); }
+.risk-preview-banner { display: flex; align-items: center; gap: 8px; margin: 0; padding: 10px 14px; border: 1px dashed var(--caution); border-radius: var(--radius-ctl); background: var(--caution-weak); color: var(--text-1); font-size: 14px; font-weight: 600; }
+.risk-preview-banner svg { flex: none; color: var(--caution); }
+.risk-basis { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: -4px 0 14px; font-size: 14px; line-height: 1.5; color: var(--text-1); }
+.risk-basis-label { font-size: var(--fs-label); color: var(--text-3); }
+.risk-partial-note { color: var(--text-2); }
+.risk-status { display: flex; align-items: flex-start; gap: 12px; color: var(--text-2); }
+.risk-status svg { flex: none; margin-top: 2px; }
+.risk-status-title { margin: 0; font-size: 17px; font-weight: 700; color: var(--text-1); }
+.risk-status-detail { margin: 4px 0 0; font-size: 13px; color: var(--text-3); }
 .risk-notes { display: flex; flex-direction: column; gap: 8px; }
 .risk-notes .threshold-note { margin: 0; }
 @media (max-width: 900px) {

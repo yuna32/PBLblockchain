@@ -1,12 +1,13 @@
 // 배포자 위험도 화면 조각. 상태(Context)를 쓰지 않는 순수 컴포넌트라 테스트에서 그대로 렌더링한다.
 // risk는 lib/risk.js의 정규화된 모양. 수준·점수·근거는 risk에 있는 값만 쓰고 화면에서 계산하지 않는다.
 import { useState } from "react";
-import { Check, Copy } from "lucide-react";
+import { Check, CircleAlert, Copy, Info, LoaderCircle } from "lucide-react";
 import { CONCLUSIONS } from "../lib/conclusion.js";
 import {
-  FUNDING_CATEGORIES, INDICATOR_STATUS, PUBLIC_LABELS, RISK_COPY, RISK_LEVELS, STRENGTH_LABELS,
-  indicatorRatio, riskSummary, scoreText, scoreValue
+  FUNDING_CATEGORIES, INDICATOR_STATUS, PREVIEW_BANNER, PUBLIC_LABELS, RISK_COPY, RISK_ERROR_COPY, RISK_LEVELS,
+  RISK_LOADING_COPY, STRENGTH_LABELS, indicatorRatio, levelBasis, partialScore, riskSummary, scoreText, scoreValue
 } from "../lib/risk.js";
+import { shortAddr } from "../lib/format.js";
 import ConclusionBadge from "./ConclusionBadge.jsx";
 import { Badge, Card, EstimateTag, ICON } from "./ui.jsx";
 
@@ -40,9 +41,38 @@ function AddressCopy({ value }) {
   );
 }
 
-// 판정 카드: 수준 배지 · 한 줄 요약 · 대상 주소 · 점수
+// 미리보기 배너 (미리보기 주소로 열었을 때만, pages/Deployer.jsx)
+export function PreviewBanner() {
+  return (
+    <p className="risk-preview-banner" role="note">
+      <Info {...ICON} size={16} aria-hidden="true" />{PREVIEW_BANNER}
+    </p>
+  );
+}
+
+// 로딩·오류일 때의 판정 카드
+function RiskStatusCard({ risk }) {
+  const loading = risk.status === "loading";
+  const Icon = loading ? LoaderCircle : CircleAlert;
+  return (
+    <section className="card verdict risk-verdict" data-state={loading ? "loading" : `error-${risk.error?.kind}`}>
+      <div className="risk-status">
+        <Icon {...ICON} size={22} className={loading ? "spin" : ""} aria-hidden="true" />
+        <div>
+          <p className="risk-status-title">{loading ? RISK_LOADING_COPY : RISK_ERROR_COPY[risk.error?.kind] ?? RISK_ERROR_COPY.format}</p>
+          {!loading && risk.error?.detail && <p className="risk-status-detail">사유: {risk.error.detail}</p>}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// 판정 카드: 수준 배지 · 한 줄 요약 · 수준을 정한 근거 · 대상 주소 · 점수(부분 합계 표시)
 export function RiskVerdictCard({ risk }) {
+  if (risk.status !== "ready") return <RiskStatusCard risk={risk} />;
   const l = levelOf(risk);
+  const basis = levelBasis(risk);
+  const partial = partialScore(risk);
   return (
     <section className={`card verdict risk-verdict verdict-${l.tone}`} data-level={risk.level}>
       <div className="verdict-top">
@@ -50,6 +80,13 @@ export function RiskVerdictCard({ risk }) {
         <EstimateTag>휴리스틱</EstimateTag>
       </div>
       <p className="risk-summary">{riskSummary(risk)}</p>
+      {basis && (
+        <p className="risk-basis">
+          <span className="risk-basis-label">수준을 정한 근거</span>
+          <Badge tone={basis.strength === "strong" ? "danger" : "caution"}>{STRENGTH_LABELS[basis.strength] ?? "근거"}</Badge>
+          <span>{basis.text}</span>
+        </p>
+      )}
       <dl className="risk-target">
         <div>
           <dt>{risk.target?.simulated ? RISK_COPY.simulatedDeployer : "배포자"}</dt>
@@ -66,7 +103,9 @@ export function RiskVerdictCard({ risk }) {
           <strong className="risk-score-value num">{scoreValue(risk)}</strong>
           <span className="risk-score-unit"> · {RISK_COPY.scoreUnit}</span>
         </span>
+        {partial && <Badge tone="neutral">부분 합계</Badge>}
       </div>
+      {partial && <p className="risk-score-note risk-partial-note">{partial.note}</p>}
       <p className="risk-score-note">{RISK_COPY.scoreNote}</p>
     </section>
   );
@@ -136,7 +175,7 @@ export function FundingDiagram({ risk }) {
   const danger = f.category === "malicious" || f.category === "mixer";
   const nodes = [
     { key: "src", label: empty ? "자금원" : FUNDING_CATEGORIES[f.category] ?? "기타", sub: empty ? "분류 —" : "첫 자금원", kind: danger ? "danger" : "source" },
-    ...(hops === 2 ? [{ key: "mid", label: "중간 지갑", sub: "1홉", kind: "mid" }] : []),
+    ...(hops === 2 ? [{ key: "mid", label: "중간 지갑", sub: null, kind: "mid" }] : []),
     { key: "dep", label: "배포자", sub: risk.target?.simulated ? "시뮬레이션(추정)" : null, kind: "deployer" }
   ];
   return (
@@ -160,7 +199,7 @@ export function FundingDiagram({ risk }) {
 
 const verdictLabel = v => (CONCLUSIONS[v]?.label ?? "미분석");
 
-// 과거 배포 목록: 공개 라벨과 우리 판정을 다른 열로. null(가져오지 않음)과 0건을 구분한다.
+// 과거 배포 목록: 공개 라벨과 그 컨트랙트의 거래 판정(기존 결론 배지)을 다른 열로. null(가져오지 않음)과 0건을 구분한다.
 export function PastDeployments({ risk }) {
   const rows = risk.pastDeployments;
   return (
@@ -171,12 +210,12 @@ export function PastDeployments({ risk }) {
         <div className="table-wrap">
           <table className="table risk-table">
             <thead>
-              <tr><th>컨트랙트</th><th>배포일</th><th>공개 라벨</th><th>우리 판정</th></tr>
+              <tr><th>컨트랙트</th><th>배포일</th><th>공개 라벨</th><th>이 컨트랙트의 거래 판정</th></tr>
             </thead>
             <tbody>
               {rows.map((r, i) => (
                 <tr key={`${r.contract}-${i}`}>
-                  <td><code className="mono" title={r.contract ?? ""}>{r.contract ?? "—"}</code></td>
+                  <td><code className="mono" title={r.contract ?? ""}>{r.contract ? shortAddr(r.contract) : "—"}</code></td>
                   <td className="num">{r.deployedAt ?? "—"}</td>
                   <td>{PUBLIC_LABELS[r.publicLabel] ?? "없음"}</td>
                   <td>{r.ourVerdict && CONCLUSIONS[r.ourVerdict] ? <ConclusionBadge conclusion={r.ourVerdict} /> : verdictLabel(r.ourVerdict)}</td>
@@ -212,19 +251,27 @@ export function ScopeCard({ risk }) {
 }
 
 // 코드 위험과 배포자 위험을 나란히(평균 내거나 합치지 않음) + 결합 결과 자리
-//   code = { conclusion, text, sub } (lib/overview.js codeConclusion·codeLines)
+//   code = { conclusion, text, sub } (lib/overview.js codeConclusion·codeLines). 미리보기에서는 null(실제 결과와 섞지 않는다).
+const PREVIEW_CODE_TEXT = "미리보기에서는 코드 점검 결과를 함께 보여 주지 않습니다";
+function deployerSide(risk) {
+  if (risk.status === "loading") return { badge: <Badge tone="neutral">불러오는 중</Badge>, text: RISK_LOADING_COPY };
+  if (risk.status === "error") return { badge: <RiskBadge level="nodata" />, text: RISK_ERROR_COPY[risk.error?.kind] ?? RISK_ERROR_COPY.format };
+  return { badge: <RiskBadge level={risk.level} />, text: riskSummary(risk) };
+}
+
 export function CodeVsDeployer({ risk, code }) {
+  const dep = deployerSide(risk);
   return (
     <Card title="코드와 배포자는 따로 봅니다">
       <div className="risk-pair">
         <div className="risk-pair-item" data-side="code">
-          <div className="risk-pair-head"><span className="risk-pair-title">코드</span><ConclusionBadge conclusion={code.conclusion} title="배포 전 코드 점검 결과" /></div>
-          <p className="risk-pair-text">{code.text}</p>
-          {code.sub && <p className="risk-pair-sub">{code.sub}</p>}
+          <div className="risk-pair-head"><span className="risk-pair-title">코드</span>{code && <ConclusionBadge conclusion={code.conclusion} title="배포 전 코드 점검 결과" />}</div>
+          <p className={`risk-pair-text ${code ? "" : "muted"}`}>{code ? code.text : PREVIEW_CODE_TEXT}</p>
+          {code?.sub && <p className="risk-pair-sub">{code.sub}</p>}
         </div>
         <div className="risk-pair-item" data-side="deployer">
-          <div className="risk-pair-head"><span className="risk-pair-title">배포자 위험도</span><RiskBadge level={risk.level} /></div>
-          <p className="risk-pair-text">{riskSummary(risk)}</p>
+          <div className="risk-pair-head"><span className="risk-pair-title">배포자 위험도</span>{dep.badge}</div>
+          <p className="risk-pair-text">{dep.text}</p>
         </div>
       </div>
       <div className="risk-combo">
@@ -246,10 +293,22 @@ export function RiskNotes() {
   );
 }
 
-// 화면 본문 전체 (페이지와 테스트가 같이 쓴다)
-export function DeployerRiskView({ risk, code }) {
+// 화면 본문 전체 (페이지와 테스트가 같이 쓴다). preview면 맨 위에 예시 배너.
+// 로딩·오류면 판정 카드(상태 안내), 코드·배포자 나란히, 면책만 보여 준다.
+export function DeployerRiskView({ risk, code, preview = false }) {
+  if (risk.status !== "ready") {
+    return (
+      <>
+        {preview && <PreviewBanner />}
+        <RiskVerdictCard risk={risk} />
+        <CodeVsDeployer risk={risk} code={code} />
+        <RiskNotes />
+      </>
+    );
+  }
   return (
     <>
+      {preview && <PreviewBanner />}
       <div className="risk-top">
         <RiskVerdictCard risk={risk} />
         <ScopeCard risk={risk} />

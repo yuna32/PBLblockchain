@@ -73,7 +73,187 @@ export function indicatorRatio(ind) {
   return Math.max(0, Math.min(1, ind.points / ind.cap));
 }
 
+// 데이터 없는 지표가 있는데 합계 점수가 있으면 "부분 합계"
+export function partialScore(risk) {
+  if (typeof risk?.score !== "number") return null;
+  const missing = (risk.indicators ?? []).filter(i => i.status === "nodata");
+  return missing.length ? { missing: missing.length, note: `데이터 없음 지표 ${missing.length}개는 합계에 들어가지 않았습니다` } : null;
+}
+
+// 수준을 정한 근거 한 줄(점수와 수준이 달라 보일 때 이유를 보여 준다). 강한 근거면 강한 근거 문장, 근거 있음이면 첫 근거.
+export function levelBasis(risk) {
+  const ev = risk?.evidence ?? [];
+  if (risk?.level === "strong") return ev.find(e => e.strength === "strong") ?? null;
+  if (risk?.level === "some") return ev[0] ?? null;
+  return null;
+}
+
 const emptyIndicators = () => INDICATORS.map(d => ({ key: d.key, label: d.label, extension: Boolean(d.extension), status: "nodata", points: null, cap: null }));
+
+// ── 정규화 ─────────────────────────────────────────────────────────────────
+// 팀 결과 파일의 필드 이름은 아직 정해지지 않아 후보 이름을 여기 한 곳에만 둔다(형식이 정해지면 이 표만 고친다).
+const FIELDS = {
+  level:       ["level", "risk_level", "riskLevel"],
+  score:       ["score", "total_score", "totalScore"],
+  scoreMax:    ["score_max", "scoreMax", "max_score", "maxScore"],
+  summary:     ["summary"],
+  target:      ["target"],
+  deployer:    ["deployer", "deployer_address", "deployerAddress"],
+  contract:    ["contract", "contract_address", "contractAddress"],
+  indicators:  ["indicators"],
+  indKey:      ["key", "indicator", "id"],
+  indStatus:   ["status"],
+  points:      ["points", "score"],
+  cap:         ["cap", "max", "max_points", "maxPoints"],
+  evidence:    ["evidence", "evidences"],
+  evIndicator: ["indicator_key", "indicatorKey", "indicator", "key"],
+  strength:    ["strength"],
+  text:        ["text", "description"],
+  source:      ["source"],
+  firstFunding:["first_funding", "firstFunding"],
+  hops:        ["hops"],
+  category:    ["category"],
+  past:        ["past_deployments", "pastDeployments"],
+  deployedAt:  ["deployed_at", "deployedAt", "date"],
+  publicLabel: ["public_label", "publicLabel"],
+  ourVerdict:  ["our_verdict", "ourVerdict", "verdict"],
+  scope:       ["scope"],
+  activityDays:["activity_days", "activityDays"],
+  txCount:     ["tx_count", "txCount"],
+  asOf:        ["as_of", "asOf"],
+  failures:    ["failures"],
+  sources:     ["sources"],
+  reason:      ["reason"]
+};
+const LEVEL_ALIASES = {
+  strong: ["strong", "strong_evidence", "강한 근거", "강한근거"],
+  some:   ["some", "some_evidence", "evidence", "근거 있음", "근거있음"],
+  none:   ["none", "no_evidence", "근거 없음", "근거없음"],
+  nodata: ["nodata", "no_data", "데이터 없음", "데이터없음"]
+};
+const STRENGTH_ALIASES = { strong: ["strong", "강한", "강한 근거"], weak: ["weak", "약한", "약한 근거"] };
+const CATEGORY_ALIASES = {
+  exchange: ["exchange", "cex", "거래소"], mixer: ["mixer", "믹서"],
+  malicious: ["malicious", "악성", "악성 주소"], other: ["other", "기타"]
+};
+const PUBLIC_ALIASES = { scam: ["scam", "fraud", "사기"], normal: ["normal", "legit", "정상"] };
+const VERDICTS = ["risk", "caution", "no_evidence", "undetermined"];
+
+const isObj = v => v !== null && typeof v === "object" && !Array.isArray(v);
+const has = (o, names) => isObj(o) && names.some(n => Object.hasOwn(o, n));
+const pick = (o, names) => {
+  if (!isObj(o)) return undefined;
+  for (const n of names) if (Object.hasOwn(o, n)) return o[n];
+  return undefined;
+};
+const alias = (table, v) => {
+  if (typeof v !== "string") return null;
+  const s = v.trim().toLowerCase();
+  return Object.keys(table).find(k => table[k].includes(s)) ?? null;
+};
+const str = v => (typeof v === "string" && v.trim() ? v.trim() : null);
+const strList = v => (Array.isArray(v) ? v.filter(x => typeof x === "string" && x.trim()).map(x => x.trim()) : []);
+
+const fail = (kind, detail) => ({
+  status: "error", error: { kind, detail }, level: null, score: null, scoreMax: null, summary: null,
+  target: { deployer: null, contract: null, simulated: false }, indicators: emptyIndicators(), evidence: [],
+  firstFunding: { hops: null, category: null }, pastDeployments: null,
+  scope: { activityDays: null, txCount: null, asOf: null, failures: [], sources: [], reason: null, assumption: null }
+});
+
+// raw: 팀 결과 파일을 파싱한 값(형식 추정). 데이터가 없으면 error.missing, 읽을 수 없으면 error.format.
+// null은 null(데이터 없음), 0은 0(확인했고 해당 없음)으로 둔다. 숫자가 아닌 값은 null로 바꾸고 scope.failures에 남긴다.
+export function normalizeRisk(raw) {
+  if (raw === null || raw === undefined || raw === "") return fail("missing", "결과 파일 없음");
+  if (!isObj(raw)) return fail("format", "객체가 아님");
+  if (!has(raw, FIELDS.level)) return fail("format", "필수 필드 없음: level");
+  const level = alias(LEVEL_ALIASES, pick(raw, FIELDS.level));
+  if (!level) return fail("format", `알 수 없는 수준 값: ${String(pick(raw, FIELDS.level))}`);
+
+  const failures = [];
+  const num = (v, label) => {
+    if (v === null || v === undefined) return null;
+    if (typeof v === "number" && Number.isFinite(v)) return v;
+    failures.push(`${label}(형식 오류)`);
+    return null;
+  };
+
+  // 지표: 배열([{key, points, cap}]) 또는 객체({first_funding: {points, cap}}) 모두 받는다. 없으면 데이터 없음.
+  const rawInd = pick(raw, FIELDS.indicators);
+  if (rawInd === undefined && level !== "nodata") return fail("format", "필수 필드 없음: indicators");
+  if (rawInd !== undefined && rawInd !== null && !Array.isArray(rawInd) && !isObj(rawInd)) return fail("format", "indicators 형식 오류");
+  const indList = Array.isArray(rawInd) ? rawInd : isObj(rawInd) ? Object.entries(rawInd).map(([k, v]) => ({ key: k, ...(isObj(v) ? v : { points: v }) })) : [];
+  const byKey = new Map(indList.filter(isObj).map(i => [pick(i, FIELDS.indKey), i]));
+  const indicators = INDICATORS.map(d => {
+    const i = byKey.get(d.key);
+    const base = { key: d.key, label: d.label, extension: Boolean(d.extension) };
+    if (!i) return { ...base, status: "nodata", points: null, cap: null };
+    const points = num(pick(i, FIELDS.points), d.label);
+    const cap = num(pick(i, FIELDS.cap), `${d.label} 상한`);
+    const explicitNoData = alias({ nodata: LEVEL_ALIASES.nodata }, pick(i, FIELDS.indStatus)) === "nodata";
+    const status = explicitNoData || points === null ? "nodata" : points > 0 ? "evidence" : "none";
+    return { ...base, status, points: status === "nodata" ? null : points, cap };
+  });
+
+  const known = new Set(INDICATORS.map(d => d.key));
+  const rawEv = pick(raw, FIELDS.evidence);
+  const evidence = (Array.isArray(rawEv) ? rawEv : []).filter(isObj).map(e => ({
+    indicatorKey: pick(e, FIELDS.evIndicator),
+    strength: alias(STRENGTH_ALIASES, pick(e, FIELDS.strength)),
+    text: str(pick(e, FIELDS.text)),
+    source: str(pick(e, FIELDS.source)),
+    points: num(pick(e, FIELDS.points), "근거 점수")
+  })).filter(e => known.has(e.indicatorKey) && e.text);
+
+  const t = pick(raw, FIELDS.target);
+  const ff = pick(raw, FIELDS.firstFunding);
+  const hops = pick(ff, FIELDS.hops);
+  const past = pick(raw, FIELDS.past);
+  const sc = pick(raw, FIELDS.scope);
+
+  return {
+    status: "ready",
+    error: null,
+    level,
+    score: num(pick(raw, FIELDS.score), "점수"),
+    scoreMax: num(pick(raw, FIELDS.scoreMax), "점수 상한"),
+    summary: str(pick(raw, FIELDS.summary)),
+    target: {
+      deployer: str(pick(t, FIELDS.deployer) ?? pick(raw, FIELDS.deployer)),
+      contract: str(pick(t, FIELDS.contract) ?? pick(raw, FIELDS.contract)),
+      simulated: false
+    },
+    indicators,
+    evidence,
+    firstFunding: { hops: hops === 1 || hops === 2 ? hops : null, category: alias(CATEGORY_ALIASES, pick(ff, FIELDS.category)) },
+    pastDeployments: Array.isArray(past)
+      ? past.filter(isObj).map(p => ({
+          contract: str(pick(p, FIELDS.contract)),
+          deployedAt: str(pick(p, FIELDS.deployedAt)),
+          publicLabel: alias(PUBLIC_ALIASES, pick(p, FIELDS.publicLabel)),
+          ourVerdict: VERDICTS.includes(pick(p, FIELDS.ourVerdict)) ? pick(p, FIELDS.ourVerdict) : null
+        }))
+      : null,
+    scope: {
+      activityDays: num(pick(sc, FIELDS.activityDays), "활동 일수"),
+      txCount: num(pick(sc, FIELDS.txCount), "거래 수"),
+      asOf: str(pick(sc, FIELDS.asOf)),
+      failures: [...strList(pick(sc, FIELDS.failures)), ...failures],
+      sources: strList(pick(sc, FIELDS.sources)),
+      reason: str(pick(sc, FIELDS.reason)),
+      assumption: null
+    }
+  };
+}
+
+export const RISK_LOADING = { status: "loading" };
+
+export const RISK_ERROR_COPY = {
+  missing: "배포자 분석 결과 파일이 없습니다",
+  format: "배포자 분석 결과의 형식을 읽을 수 없습니다(형식 확정 전)"
+};
+export const RISK_LOADING_COPY = "배포자 분석 결과를 불러오는 중입니다";
+export const PREVIEW_BANNER = "예시 값이며 실제 분석이 아닙니다(화면 틀 확인용)";
 
 // 시연 시나리오 5개의 기본값: 시뮬레이션 배포자는 이력이 없어 평가하지 않는다(데이터 없음).
 // 배포자는 decision.ownerAddress(시뮬레이션 기본 계정)로 가정하고, 컨트랙트는 첫 입금을 받은 주소.
