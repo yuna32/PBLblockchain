@@ -16,7 +16,7 @@ export const SCENARIO_LIST = [
     id: "rugpull",
     label: "러그풀",
     expectedType: "rug_pull",
-    description: "참여자 10명이 점점 큰 금액을 입금한 뒤 운영자가 잔고 전액을 한 번에 인출한다."
+    description: "참여자 10명이 점점 큰 금액을 입금한 뒤, 입금한 적 없는 운영자 한쪽이 원금을 넘는 잔고를 몰아 가져간다."
   },
   {
     id: "laundering",

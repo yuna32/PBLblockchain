@@ -22,6 +22,8 @@ export const TECHNIQUE_MAPPING_NOTE =
   "SmurfingDeposit은 분산 입금 신호(reasoning_steps.distributedInflow)로 판정한다. " +
   "중첩 pipeline의 CONCENTRATION_DRAIN 규칙은 의미가 달라 따르지 않음";
 export const OWL_NOTE = "저장소의 예전 로그 기준 결과로 현재 fixture와 값이 다를 수 있음";
+// OWL에는 판정 순서가 없어 자금세탁 인스턴스가 RugPull 규칙도 만족한다(알려진 한계). 판정은 JS 판정 순서(자금세탁 우선)가 정한다.
+export const OWL_ORDER_NOTE = "OWL에는 판정 순서가 없어 여러 유형이 함께 추론될 수 있습니다. 화면의 판정은 판정 순서(펌프앤덤프 → 자금세탁 → 러그풀 → 폰지)로 정합니다";
 
 // 같은 클래스의 다른 표기 → fraud_ontology.js fraudTypes 키
 export const CLASS_ALIASES = { PumpAndDump: "PumpDump" };
@@ -57,6 +59,13 @@ function reasoningFlag(report, key) {
   return value === "true" ? true : value === "false" ? false : null;
 }
 
+// dynamic.rugpull_axiom에서 값을 읽는다 (필드가 없거나 지갑별 기록이 없으면 null = 근거 데이터 없음)
+function rugAxis(report, pick) {
+  const a = report.dynamic?.rugpull_axiom;
+  if (!a || a.scope?.ledger === "aggregated") return null;
+  return pick(a);
+}
+
 // "withdrawSuccessRate: 37.5% (3/8 succeeded)" → { succeeded, total }
 function withdrawAttempts(report) {
   const steps = report.dynamic?.reasoning_steps;
@@ -79,9 +88,19 @@ export const CONDITION_EVIDENCE = [
   { condition: "MidWithdrawalsExist", evidenceLabelKey: "participantMidExit", approx: false,
     test: r => reasoningFlag(r, "participantMidExit"),
     note: "dynamic.reasoning_steps의 participantMidExit가 true." },
-  { condition: "NoMidWithdrawals", evidenceLabelKey: "participantNoMidExit", approx: false,
-    test: r => { const v = reasoningFlag(r, "participantMidExit"); return v === null ? null : !v; },
-    note: "dynamic.reasoning_steps의 participantMidExit가 false." },
+  // 러그풀 교차공리 (2026-11): 조건 ← 데이터 속성. 근거는 분석기 결과 dynamic.rugpull_axiom.
+  { condition: "HasFlow", evidenceLabelKey: "hasFlow", approx: false,
+    test: r => rugAxis(r, a => a.scope.hasFlow),
+    note: "dynamic.rugpull_axiom.scope.hasFlow가 true." },
+  { condition: "NotPassThrough", evidenceLabelKey: "passThrough", approx: false,
+    test: r => rugAxis(r, a => !a.scope.passThrough),
+    note: "dynamic.rugpull_axiom.scope.passThrough가 false (반복 중계 아님)." },
+  { condition: "NetDrain", evidenceLabelKey: "netDrainRatio", approx: false,
+    test: r => rugAxis(r, a => (a.netDrain.value === null ? null : a.netDrain.met)),
+    note: "dynamic.rugpull_axiom.netDrain.met (순유출 비율이 기준 이상)." },
+  { condition: "NotSharedProfit", evidenceLabelKey: "profitSharerCount", approx: false,
+    test: r => rugAxis(r, a => (a.sharedProfit.count === null ? null : !a.sharedProfit.met)),
+    note: "dynamic.rugpull_axiom.sharedProfit.met가 false (수익자 수가 기준 미만)." },
   { condition: "UniqueParticipants", evidenceLabelKey: "distributedInflow", approx: true,
     test: r => reasoningFlag(r, "distributedInflow"),
     note: "근사: 근거 기준은 고유 입금자 5명 이상이고, 온톨로지 임계값은 비율 0.3(UNIQUE_PARTICIPANTS)이다." },
@@ -316,7 +335,8 @@ export function buildOntologyGraph(report, options = {}) {
       })),
       owlInferred,
       owlNote: owl ? OWL_NOTE : "owl_results.json에 이 컨트랙트 항목이 없음",
-      owlMismatch
+      owlMismatch,
+      owlOrderNote: owlMismatch ? OWL_ORDER_NOTE : null
     }
   };
 }

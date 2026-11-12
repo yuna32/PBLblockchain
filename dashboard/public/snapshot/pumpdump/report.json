@@ -41,9 +41,119 @@
       "withdrawSuccessRate: 37.5% (3/8 succeeded)",
       "nonPrivilegedSuccessRate: 37.5% (owner 0xf39fd6e5... 제외 8건 중 성공)",
       "balanceAtFailure: 0.000 ETH (amount_eth=0 시점 잔고 최댓값, n=5)",
+      "rugpullScope: true (reason none, contract assumed, hasFlow true, passThrough false 0/3)",
+      "netDrain: false (7.500 / peak 19.500 = 38.5%, threshold 70%)",
+      "sharedProfit: true (3 wallets received >= 105% of deposit, threshold 2)",
       "→ pump_and_dump (mixed withdrawal outcomes + insider profit extraction, balanceAtFailure 0.000 ETH <= ε)"
     ],
     "rows_analyzed": 16,
+    "rugpull_axiom": {
+      "netDrain": {
+        "met": false,
+        "netOutflowEth": 7.5,
+        "peakBalanceEth": 19.5,
+        "threshold": 0.7,
+        "value": 0.384615
+      },
+      "scope": {
+        "hasFlow": true,
+        "inScope": true,
+        "isContract": true,
+        "isContractSource": "assumed",
+        "ledger": "per_wallet",
+        "passThrough": false,
+        "passThroughDetail": {
+          "matched": 0,
+          "withdrawals": 3
+        },
+        "reason": null
+      },
+      "sharedProfit": {
+        "count": 3,
+        "met": true,
+        "threshold": 2,
+        "wallets": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ]
+      },
+      "thresholds": {
+        "netDrain": 0.7,
+        "passThroughMatchShare": 0.5,
+        "passThroughMinWithdrawals": 5,
+        "profitRatio": 1.05,
+        "profitSharers": 2
+      },
+      "verdict": false,
+      "version": 1,
+      "wallets": [
+        {
+          "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "deposited": 4,
+          "drainContributor": true,
+          "netGain": 2.5,
+          "profitSharer": true,
+          "received": 6.5
+        },
+        {
+          "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "deposited": 4,
+          "drainContributor": true,
+          "netGain": 2.5,
+          "profitSharer": true,
+          "received": 6.5
+        },
+        {
+          "address": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+          "deposited": 4,
+          "drainContributor": true,
+          "netGain": 2.5,
+          "profitSharer": true,
+          "received": 6.5
+        },
+        {
+          "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+          "deposited": 1.5,
+          "drainContributor": false,
+          "netGain": -1.5,
+          "profitSharer": false,
+          "received": 0
+        },
+        {
+          "address": "0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc",
+          "deposited": 1.5,
+          "drainContributor": false,
+          "netGain": -1.5,
+          "profitSharer": false,
+          "received": 0
+        },
+        {
+          "address": "0x976ea74026e726554db657fa54763abd0c3a0aa9",
+          "deposited": 1.5,
+          "drainContributor": false,
+          "netGain": -1.5,
+          "profitSharer": false,
+          "received": 0
+        },
+        {
+          "address": "0x14dc79964da2c08b23698b3d3cc7ca32193d9955",
+          "deposited": 1.5,
+          "drainContributor": false,
+          "netGain": -1.5,
+          "profitSharer": false,
+          "received": 0
+        },
+        {
+          "address": "0x23618e81e3f5cdf7f54c3d65f7fbc0abf5b21e8f",
+          "deposited": 1.5,
+          "drainContributor": false,
+          "netGain": -1.5,
+          "profitSharer": false,
+          "received": 0
+        }
+      ]
+    },
     "triggered_rules": [
       {
         "description": "출금 발생 후 잔고 급락 — 하락폭에 비례한 연속 점수 (러그풀/폰지 탈출)",
@@ -205,7 +315,7 @@
     ],
     "verdict": "MEDIUM_RISK"
   },
-  "timestamp": "2026-10-24T14:18:57.910Z",
+  "timestamp": "2026-11-12T09:57:16.037Z",
   "trust": {
     "csv": "pumpdump_log.csv",
     "overall_trust_score": 73,

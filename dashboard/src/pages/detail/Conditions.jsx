@@ -4,8 +4,9 @@ import { Link, useLocation } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import { useApp } from "../../state/AppContext.jsx";
 import { useIntegrity } from "../../state/useIntegrity.js";
-import { ICON, ReportGate } from "../../components/ui.jsx";
+import { Card, ICON, ReportGate } from "../../components/ui.jsx";
 import { ChainCard, DecisionGraph, GraphLegend, IntegrityBand, WhyNotCard } from "../../components/ConditionsParts.jsx";
+import { RugVsPonzi } from "../../components/RugAxisParts.jsx";
 import { pagePath } from "../../lib/terms.js";
 
 export default function Conditions() {
@@ -25,6 +26,11 @@ function ConditionsBody({ data }) {
         <ChainCard decision={decision} />
         <WhyNotCard decision={decision} />
       </div>
+      {decision.rugpull && (
+        <Card title="러그풀과 폰지가 갈리는 지점" aside={<span className="muted small">이 예시의 값</span>}>
+          <RugVsPonzi decision={decision} />
+        </Card>
+      )}
       <section className="card">
         <header className="card-head">
           <h2 className="card-title">추론 그래프 · 판정 경로만 표시</h2>

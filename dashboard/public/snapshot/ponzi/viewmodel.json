@@ -124,41 +124,48 @@
         "answer": "아니요",
         "conditions": [
           {
+            "id": "rug_scope",
+            "label": "① 판단할 수 있는 거래 기록인가",
+            "met": true,
+            "status": "met",
+            "unmetText": "이 기록으로는 러그풀 여부를 판단할 수 없음",
+            "valueText": "판단할 수 있음"
+          },
+          {
             "bar": {
               "direction": "above",
               "max": 1,
               "threshold": 0.7,
               "unit": "ratio",
-              "value": 0.67
+              "value": 0.7
             },
-            "id": "single_large_outflow",
-            "label": "한 번에 빠진 돈이 최고 잔고의 70% 이상",
-            "met": false,
-            "status": "unmet",
-            "unmetText": "한 번에 빠진 돈이 최고 잔고의 67%로 기준(70%)에 못 미침",
-            "valueText": "최고 잔고의 67%"
-          },
-          {
-            "id": "recipient_not_depositor",
-            "label": "그 돈을 받은 주소가 입금한 적 없는 주소",
+            "id": "net_drain",
+            "label": "② 원금을 넘는 돈이 빠져나갔나 (최고 잔고의 70% 이상)",
             "met": true,
             "status": "met",
-            "unmetText": "큰 출금을 받은 주소가 입금자 중 하나",
-            "valueText": "예"
+            "unmetText": "원금을 넘어 빠져나간 돈이 최고 잔고의 70%로 기준(70%)에 못 미침",
+            "valueText": "최고 잔고의 70%"
           },
           {
-            "id": "no_mid_exit",
-            "label": "참여자 중도 출금이 없음",
+            "bar": {
+              "direction": "below",
+              "max": 4,
+              "threshold": 2,
+              "unit": "count",
+              "value": 3
+            },
+            "id": "not_shared_profit",
+            "label": "③ 한쪽이 몰아 가져갔나 (원금의 105% 이상 돌려받은 참여자 2명 미만)",
             "met": false,
             "status": "unmet",
-            "unmetText": "참여자 중도 출금이 3건 있음",
-            "valueText": "3건"
+            "unmetText": "원금의 105% 이상 돌려받은 참여자가 3명이라 여럿이 나눠 가진 모양",
+            "valueText": "3명"
           }
         ],
         "label": "러그풀",
         "matched": false,
         "no": 3,
-        "question": "운영자가 모인 돈의 대부분을 한 번에 가져갔나?",
+        "question": "넣은 돈보다 많은 돈을 한쪽이 몰아 가져갔나?",
         "type": "rug_pull"
       },
       {
@@ -348,6 +355,151 @@
         "unrecoveredCount": 7
       }
     },
+    "rugpull": {
+      "display": {
+        "netDrain": "70%",
+        "netDrainThreshold": "70%",
+        "netOutflowEth": "7",
+        "peakBalanceEth": "10",
+        "profitRatio": "105%",
+        "profitSharers": "3명",
+        "profitSharersThreshold": "2명"
+      },
+      "netDrain": {
+        "met": true,
+        "netOutflowEth": 7,
+        "peakBalanceEth": 10,
+        "threshold": 0.7,
+        "value": 0.7
+      },
+      "scope": {
+        "hasFlow": true,
+        "inScope": true,
+        "isContract": true,
+        "isContractSource": "assumed",
+        "ledger": "per_wallet",
+        "passThrough": false,
+        "passThroughDetail": {
+          "matched": 0,
+          "withdrawals": 4
+        },
+        "reason": null,
+        "reasonLabel": null,
+        "reasonText": null
+      },
+      "shape": "shared",
+      "shapeLabel": "여럿이 나눠 가짐",
+      "shapeText": "원금을 넘는 돈이 빠져나갔지만, 원금 이상을 돌려받은 참여자가 기준 이상입니다",
+      "sharedProfit": {
+        "count": 3,
+        "met": true,
+        "threshold": 2,
+        "wallets": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ]
+      },
+      "thresholds": {
+        "netDrain": 0.7,
+        "passThroughMatchShare": 0.5,
+        "passThroughMinWithdrawals": 5,
+        "profitRatio": 1.05,
+        "profitSharers": 2
+      },
+      "verdict": false,
+      "version": 1,
+      "wallets": [
+        {
+          "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "deposited": 1,
+          "drainContributor": true,
+          "netGain": 0.1,
+          "profitSharer": true,
+          "received": 1.1
+        },
+        {
+          "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "deposited": 1,
+          "drainContributor": true,
+          "netGain": 0.1,
+          "profitSharer": true,
+          "received": 1.1
+        },
+        {
+          "address": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+          "deposited": 1,
+          "drainContributor": true,
+          "netGain": 0.1,
+          "profitSharer": true,
+          "received": 1.1
+        },
+        {
+          "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+          "deposited": 1,
+          "drainContributor": false,
+          "netGain": -1,
+          "profitSharer": false,
+          "received": 0
+        },
+        {
+          "address": "0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc",
+          "deposited": 1,
+          "drainContributor": false,
+          "netGain": -1,
+          "profitSharer": false,
+          "received": 0
+        },
+        {
+          "address": "0x976ea74026e726554db657fa54763abd0c3a0aa9",
+          "deposited": 1,
+          "drainContributor": false,
+          "netGain": -1,
+          "profitSharer": false,
+          "received": 0
+        },
+        {
+          "address": "0x14dc79964da2c08b23698b3d3cc7ca32193d9955",
+          "deposited": 1,
+          "drainContributor": false,
+          "netGain": -1,
+          "profitSharer": false,
+          "received": 0
+        },
+        {
+          "address": "0x23618e81e3f5cdf7f54c3d65f7fbc0abf5b21e8f",
+          "deposited": 1,
+          "drainContributor": false,
+          "netGain": -1,
+          "profitSharer": false,
+          "received": 0
+        },
+        {
+          "address": "0xa0ee7a142d267c1f36714e4a8f75612f20a79720",
+          "deposited": 1,
+          "drainContributor": false,
+          "netGain": -1,
+          "profitSharer": false,
+          "received": 0
+        },
+        {
+          "address": "0xbcd4042de499d14e55001ccbb24a551f3b954096",
+          "deposited": 1,
+          "drainContributor": false,
+          "netGain": -1,
+          "profitSharer": false,
+          "received": 0
+        },
+        {
+          "address": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+          "deposited": 0,
+          "drainContributor": true,
+          "netGain": 6.7,
+          "profitSharer": false,
+          "received": 6.7
+        }
+      ]
+    },
     "segments": [
       {
         "from": 4,
@@ -399,7 +551,7 @@
       {
         "checked": true,
         "label": "러그풀",
-        "reason": "한 번에 빠진 돈이 최고 잔고의 67%로 기준(70%)에 못 미침",
+        "reason": "원금의 105% 이상 돌려받은 참여자가 3명이라 여럿이 나눠 가진 모양",
         "type": "rug_pull"
       },
       {
@@ -461,6 +613,9 @@
       "withdrawSuccessRate: 100.0% (4/4 succeeded)",
       "nonPrivilegedSuccessRate: 100.0% (owner 0xf39fd6e5... 제외 3건 중 성공)",
       "balanceAtFailure: 0.000 ETH (amount_eth=0 시점 잔고 최댓값, n=0)",
+      "rugpullScope: true (reason none, contract assumed, hasFlow true, passThrough false 0/4)",
+      "netDrain: true (7.000 / peak 10.000 = 70.0%, threshold 70%)",
+      "sharedProfit: true (3 wallets received >= 105% of deposit, threshold 2)",
       "→ ponzi_scheme (balance drop + flow spike + 3 participant mid-exits)"
     ],
     "signals": [
@@ -518,7 +673,7 @@
       "type": "first_withdraw"
     }
   },
-  "reportHash": "ea71ae0cb366c7fae71749c584ab574f4f816aa64c6da6504b33b4ad222dd63a",
+  "reportHash": "baeb59b93cd24c3e0b3654dd85f0804d85edfd436a3803a220fb082b4db98518",
   "scenario": "ponzi",
   "source": "fixture",
   "walletAssessment": {

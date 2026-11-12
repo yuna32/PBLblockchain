@@ -6,7 +6,15 @@ import assert from "node:assert/strict";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { buildDecision, formatPercent, formatEth, roundHalfUp, withRo, THRESHOLDS, TYPE_LABELS, DEFAULT_DECISION_CONFIG } from "../lib/decision.js";
+import { buildDecision, formatPercent, formatEth, roundHalfUp, withRo, THRESHOLDS, TYPE_LABELS, DEFAULT_DECISION_CONFIG, RUG_SCOPE_REASONS } from "../lib/decision.js";
+import { computeRugPullAxiom, RUGPULL_AXIOM } from "../../analysis/dynamic_analyzer.js";
+
+// 판정 사슬은 매칭된 단계까지만 보이므로, 러그풀 단계를 보려면 whyNot 대신 rugpull 값으로 3단 조건을 다시 만든다
+// (화면이 쓰는 decision.chain의 러그풀 단계와 같은 함수 결과인지는 위 3단 시험에서 고정한다)
+function buildSteps(d) {
+  const all = buildDecision({ report: { dynamic: { triggered_rules: [], rugpull_axiom: d.rugpull } }, rows: [] });
+  return all.chain.find(s => s.type === "rug_pull");
+}
 import { buildViewModel } from "../lib/viewmodel.js";
 import { toTimeseries } from "../lib/timeseries.js";
 
@@ -237,6 +245,63 @@ test("출금 차단 경고(unclassified_warning): 손으로 만든 소형 거래
   assert.equal(d.copy.summary.analyzed, "입금 5건 · 출금 시도 3건 (성공 0건)");
   assert.equal(d.whyNot.length, 4);
   assert.ok(d.whyNot.every(x => x.checked && x.reason.length > 0));
+});
+
+// ── 러그풀 교차공리 (decision.rugpull = report.dynamic.rugpull_axiom + 화면 문구) ──
+test("러그풀 축: 값은 리포트 rugpull_axiom 그대로, 같은 행으로 다시 계산해도 같다", () => {
+  for (const name of NAMES) {
+    const { report, rows } = load(name);
+    const r = buildDecision({ report, rows }).rugpull;
+    const a = report.dynamic.rugpull_axiom;
+    for (const k of ["version", "thresholds", "netDrain", "sharedProfit", "wallets", "verdict"]) assert.deepEqual(r[k], a[k], `${name}.${k}`);
+    for (const k of Object.keys(a.scope)) assert.deepEqual(r.scope[k], a.scope[k], `${name}.scope.${k}`);
+    assert.deepEqual(computeRugPullAxiom(rows), a, `${name}: 화면 행으로 다시 계산한 값`);
+  }
+  const th = buildDecision(load("rugpull")).rugpull.thresholds;
+  assert.deepEqual([th.netDrain, th.profitRatio, th.profitSharers, th.passThroughMinWithdrawals],
+    [RUGPULL_AXIOM.netDrain, RUGPULL_AXIOM.profitRatio, RUGPULL_AXIOM.profitSharers, RUGPULL_AXIOM.passThroughMinWithdrawals]);
+});
+
+test("러그풀 카드 3단: ① 판단할 수 있는 기록 ② 원금을 넘는 유출 ③ 한쪽이 몰아 가져감 (기준값은 결과 JSON에서)", () => {
+  const d = buildDecision(load("rugpull"));
+  const step = d.chain.find(s => s.type === "rug_pull");
+  assert.deepEqual(step.conditions.map(c => c.id), ["rug_scope", "net_drain", "not_shared_profit"]);
+  assert.deepEqual(step.conditions.map(c => c.status), ["met", "met", "met"]);
+  assert.deepEqual(step.conditions.map(c => c.valueText), ["판단할 수 있음", "최고 잔고의 100%", "0명"]);
+  assert.ok(step.conditions[1].label.includes(`최고 잔고의 ${formatPercent(RUGPULL_AXIOM.netDrain)} 이상`));
+  assert.ok(step.conditions[2].label.includes(`원금의 ${formatPercent(RUGPULL_AXIOM.profitRatio)} 이상`) && step.conditions[2].label.includes(`${RUGPULL_AXIOM.profitSharers}명 미만`));
+  assert.deepEqual(step.conditions[1].bar, { value: 1, threshold: RUGPULL_AXIOM.netDrain, max: 1, unit: "ratio", direction: "above" });
+  assert.equal(d.copy.headline, "넣은 돈보다 많은 돈을 한쪽이 몰아 가져갔습니다");
+  assert.equal(d.copy.reasons[0], "원금을 넘어 빠져나간 돈이 최고 잔고의 100%입니다 (기준 70% 이상)");
+  assert.equal(d.copy.reasons[2], "입금한 적이 없는 운영자 지갑이 원금보다 19 ETH를 더 가져갔습니다");
+  assert.ok(!JSON.stringify(d.copy).includes("한 번에 빠져나갔"), "옛 조건(한 번에 빠진 돈) 문구가 남지 않음");
+  // 폰지: ③에서 갈림 (수익자 3명)
+  const why = buildDecision(load("ponzi")).whyNot.find(w => w.type === "rug_pull");
+  assert.equal(why.reason, "원금의 105% 이상 돌려받은 참여자가 3명이라 여럿이 나눠 가진 모양");
+  // 자금세탁: 러그풀 조건도 맞지만 판정 순서상 자금세탁 (알려진 한계)
+  assert.match(buildDecision(load("laundering")).whyNot.find(w => w.type === "rug_pull").reason, /판정 순서상 앞선 자금세탁/);
+});
+
+test("러그풀 축의 돈 모양: 몰아 가져감 / 나눠 가짐 / 유출 기준 미만", () => {
+  const shape = n => buildDecision(load(n)).rugpull.shape;
+  assert.deepEqual(NAMES.map(shape), ["below_threshold", "shared", "concentrated", "concentrated", "below_threshold"]);
+});
+
+test("러그풀 축 적용 범위 밖 4개 사유: 판정하지 않고 중립 '판단할 수 없음'으로 표시", () => {
+  for (const reason of Object.keys(RUG_SCOPE_REASONS)) {
+    const { report, rows } = load("rugpull");
+    const a = report.dynamic.rugpull_axiom;
+    report.dynamic.rugpull_axiom = { ...a, scope: { ...a.scope, inScope: false, reason }, verdict: false };
+    const d = buildDecision({ report, rows });
+    assert.notEqual(d.hint, "rug_pull", reason);
+    const step = buildSteps(d);
+    assert.ok(step.conditions.every(c => c.status === "out_of_scope"), reason);
+    assert.equal(step.conditions[0].valueText, `판단할 수 없음 · ${RUG_SCOPE_REASONS[reason].label}`);
+    assert.equal(d.rugpull.shape, "out_of_scope");
+    assert.equal(d.rugpull.scope.reasonText, RUG_SCOPE_REASONS[reason].text);
+    assert.match(d.whyNot.find(w => w.type === "rug_pull").reason, /판단할 수 없음/);
+    assert.ok(!/정상|안전/.test(JSON.stringify(step)), "범위 밖을 정상·안전으로 표현하지 않음");
+  }
 });
 
 test("자금세탁 문구는 모은 지갑 제외를 밝힌다 (입금 지갑 19개 · 18개 지갑)", () => {

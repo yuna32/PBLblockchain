@@ -152,8 +152,7 @@
       {
         "approx": false,
         "classes": [
-          "PonziScheme",
-          "RugPull"
+          "PonziScheme"
         ],
         "condition": "BalanceDrop",
         "label": "잔고 급락 신호",
@@ -174,7 +173,6 @@
         "approx": true,
         "classes": [
           "PonziScheme",
-          "RugPull",
           "MoneyLaundering"
         ],
         "condition": "MaxTxAlert",
@@ -197,9 +195,39 @@
         "classes": [
           "RugPull"
         ],
-        "condition": "NoMidWithdrawals",
-        "label": "중도 출금 없음",
-        "note": "dynamic.reasoning_steps의 participantMidExit가 false.",
+        "condition": "HasFlow",
+        "label": "입출금 흐름 있음",
+        "note": "dynamic.rugpull_axiom.scope.hasFlow가 true.",
+        "status": "met"
+      },
+      {
+        "approx": false,
+        "classes": [
+          "RugPull"
+        ],
+        "condition": "NotPassThrough",
+        "label": "반복 중계 아님",
+        "note": "dynamic.rugpull_axiom.scope.passThrough가 false (반복 중계 아님).",
+        "status": "met"
+      },
+      {
+        "approx": false,
+        "classes": [
+          "RugPull"
+        ],
+        "condition": "NetDrain",
+        "label": "원금 초과 순유출",
+        "note": "dynamic.rugpull_axiom.netDrain.met (순유출 비율이 기준 이상).",
+        "status": "met"
+      },
+      {
+        "approx": false,
+        "classes": [
+          "RugPull"
+        ],
+        "condition": "NotSharedProfit",
+        "label": "수익을 나눠 가지지 않음",
+        "note": "dynamic.rugpull_axiom.sharedProfit.met가 false (수익자 수가 기준 미만).",
         "status": "met"
       },
       {
@@ -256,10 +284,20 @@
     "fraudTypeHint": "money_laundering",
     "mappingNote": "시연용 매핑, 온톨로지 정의 아님. 회피 기법 활성 판정도 시연용 매핑이며, 해당 유형의 usesEvasion 목록에 있는 기법만 표시한다. OwnerWithdrawAll은 중첩 pipeline(analysis/analysis/pipeline.js)과 같이 정적 UNCONSTRAINED_OWNER_DRAIN으로, SmurfingDeposit은 분산 입금 신호(reasoning_steps.distributedInflow)로 판정한다. 중첩 pipeline의 CONCENTRATION_DRAIN 규칙은 의미가 달라 따르지 않음",
     "owlInferred": [
+      "RugPull",
       "MoneyLaundering"
     ],
-    "owlMismatch": null,
+    "owlMismatch": {
+      "owl": [
+        "RugPull",
+        "MoneyLaundering"
+      ],
+      "report": [
+        "MoneyLaundering"
+      ]
+    },
     "owlNote": "저장소의 예전 로그 기준 결과로 현재 fixture와 값이 다를 수 있음",
+    "owlOrderNote": "OWL에는 판정 순서가 없어 여러 유형이 함께 추론될 수 있습니다. 화면의 판정은 판정 순서(펌프앤덤프 → 자금세탁 → 러그풀 → 폰지)로 정합니다",
     "scenarioFraudClass": "MoneyLaundering",
     "source": {
       "conditionMapping": "시연용 매핑, 온톨로지 정의 아님",

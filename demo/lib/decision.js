@@ -19,8 +19,26 @@
 // 화면 문구의 숫자는 모두 facts에서 formatPercent·formatEth로 만든다.
 
 import { glossaryLabel } from "./glossary.js";
+import { computeRugPullAxiom } from "../../analysis/dynamic_analyzer.js";
 
 export const DECISION_VERSION = 1;
+
+// 러그풀 축 적용 범위 밖 사유 (report.dynamic.rugpull_axiom.scope.reason). "정상"이 아니라
+// "이 장부로는 판단할 수 없음"이다. 화면은 이 문구를 decision.rugpull.scope로 받는다.
+export const RUG_SCOPE_REASONS = Object.freeze({
+  eoa:              { label: "개인 지갑",       text: "입금 받은 주소가 개인 지갑이라 입금·출금의 뜻이 컨트랙트와 다릅니다" },
+  no_flow:          { label: "흐름 없음",       text: "입금이나 실제로 돈이 나간 출금이 없어 비교할 흐름이 없습니다" },
+  pass_through:     { label: "반복 중계",       text: "들어온 돈을 같은 금액으로 바로 내보내는 거래가 대부분이라 중계 기록으로 봅니다" },
+  no_wallet_ledger: { label: "지갑별 기록 없음", text: "지갑별 거래가 아니라 블록 단위로 합친 자료라 누가 얼마를 가져갔는지 알 수 없습니다" }
+});
+
+// 러그풀 축에서 본 돈의 모양 (판정 조건 화면의 러그풀·폰지 비교에 쓴다)
+export const RUG_SHAPES = Object.freeze({
+  concentrated:    { label: "한쪽이 몰아 가져감",          text: "원금을 넘는 돈이 빠져나갔고, 원금 이상을 돌려받은 참여자가 기준보다 적습니다" },
+  shared:          { label: "여럿이 나눠 가짐",            text: "원금을 넘는 돈이 빠져나갔지만, 원금 이상을 돌려받은 참여자가 기준 이상입니다" },
+  below_threshold: { label: "원금을 넘는 유출이 기준 미만", text: "원금을 넘어 빠져나간 돈이 기준보다 적습니다" },
+  out_of_scope:    { label: "이 장부로는 판단할 수 없음",   text: "러그풀 여부를 판단할 수 있는 거래 기록이 아닙니다" }
+});
 
 // 판정 설정. 운영자(배포자) 주소는 이곳 한 곳에서만 정한다.
 // 기본값은 시뮬레이션의 배포자(hardhat 기본 계정 0, analysis/dynamic_analyzer.js 296행과 같은 값).
@@ -174,13 +192,39 @@ function computeFacts(rows, report, config) {
   };
 }
 
-// 분석기 hintFraudType()의 우선순위 그대로
-function hintOf(f) {
+// 러그풀 축: 분석기 결과(report.dynamic.rugpull_axiom)를 원천으로 쓴다. 예전 리포트처럼 필드가 없으면
+// 분석기와 같은 함수(computeRugPullAxiom)로 같은 행에서 계산한다. 화면용 문구·표시 숫자를 덧붙인다.
+function rugAxisOf(report, rows) {
+  const a = report.dynamic?.rugpull_axiom ?? computeRugPullAxiom(rows);
+  const th = a.thresholds;
+  const shape = !a.scope.inScope ? "out_of_scope"
+    : !a.netDrain.met ? "below_threshold"
+    : a.sharedProfit.met ? "shared" : "concentrated";
+  const reason = a.scope.reason ? RUG_SCOPE_REASONS[a.scope.reason] ?? { label: a.scope.reason, text: a.scope.reason } : null;
+  return {
+    ...a,
+    scope: { ...a.scope, reasonLabel: reason?.label ?? null, reasonText: reason?.text ?? null },
+    shape, shapeLabel: RUG_SHAPES[shape].label, shapeText: RUG_SHAPES[shape].text,
+    // 화면 숫자 (모두 위 값에서 만든다)
+    display: {
+      netDrain: a.netDrain.value === null ? null : formatPercent(a.netDrain.value),
+      netDrainThreshold: formatPercent(th.netDrain),
+      profitRatio: formatPercent(th.profitRatio),
+      profitSharersThreshold: `${th.profitSharers}명`,
+      profitSharers: a.sharedProfit.count === null ? null : `${a.sharedProfit.count}명`,
+      netOutflowEth: a.netDrain.netOutflowEth === null ? null : formatEth(a.netDrain.netOutflowEth),
+      peakBalanceEth: formatEth(a.netDrain.peakBalanceEth)
+    }
+  };
+}
+
+// 분석기 hintFraudType()의 우선순위 그대로 (러그풀 단계는 rugpull_axiom.verdict)
+function hintOf(f, rug) {
   if (f.rowCount === 0) return "unknown";
   if (f.signals.OSCILLATING_BALANCE) return "flash_loan";
   if (f.someWithdrawalsSucceed && f.someWithdrawalsFail && f.insiderExit && f.balanceAtFailureEth <= THRESHOLDS.pumpBalanceAtFailureMax) return "pump_and_dump";
   if (f.singleLargeOutflow && f.distributedInflow && !f.ownerWithdrawAll) return "money_laundering";
-  if (f.singleLargeOutflow && f.ownerWithdrawAll && !f.participantMidExit) return "rug_pull";
+  if (rug.verdict) return "rug_pull";
   if (f.signals.BALANCE_DROP && f.signals.FLOW_SPIKE && f.participantMidExit) return "ponzi_scheme";
   if (f.zeroWithdrawBlock) return "unclassified_warning";
   if (f.hasStakePattern) return "normal_staking";
@@ -235,12 +279,39 @@ function unrecoveredText(t, noun = "참여자") {
 }
 
 // ── 판정 사슬 ──
+// status: met | unmet | no_data(데이터 없음) | out_of_scope(러그풀 축 적용 범위 밖, 판단 불가)
 const cond = (id, label, met, valueText, unmetText, extra = {}) => ({
-  id, label, met, status: extra.noData ? "no_data" : met ? "met" : "unmet", valueText, unmetText,
+  id, label, met,
+  status: extra.outOfScope ? "out_of_scope" : extra.noData ? "no_data" : met ? "met" : "unmet",
+  valueText, unmetText,
   ...(extra.bar ? { bar: extra.bar } : {})
 });
 
-function buildSteps(f) {
+// 러그풀 3단: ① 판단할 수 있는 기록인가 ② 원금을 넘는 돈이 빠져나갔나 ③ 한쪽이 몰아 가져갔나
+function rugConditions(rug) {
+  const { thresholds: th, scope: sc, netDrain: nd, sharedProfit: sp, display: d } = rug;
+  const out = !sc.inScope;
+  return [
+    cond("rug_scope", "① 판단할 수 있는 거래 기록인가", sc.inScope,
+      sc.inScope ? "판단할 수 있음" : `판단할 수 없음 · ${sc.reasonLabel}`,
+      sc.inScope ? "이 기록으로는 러그풀 여부를 판단할 수 없음"
+        : `이 기록으로는 러그풀 여부를 판단할 수 없음 (${sc.reasonLabel}: ${sc.reasonText})`,
+      { outOfScope: out }),
+    cond("net_drain", `② 원금을 넘는 돈이 빠져나갔나 (최고 잔고의 ${d.netDrainThreshold} 이상)`, nd.met,
+      d.netDrain === null ? "계산할 수 없음" : `최고 잔고의 ${d.netDrain}`,
+      d.netDrain === null ? "원금을 넘어 빠져나간 돈을 계산할 수 없음"
+        : `원금을 넘어 빠져나간 돈이 최고 잔고의 ${d.netDrain}로 기준(${d.netDrainThreshold})에 못 미침`,
+      { outOfScope: out,
+        bar: nd.value === null ? null : { value: nd.value, threshold: th.netDrain, max: Math.max(1, nd.value), unit: "ratio", direction: "above" } }),
+    cond("not_shared_profit", `③ 한쪽이 몰아 가져갔나 (원금의 ${d.profitRatio} 이상 돌려받은 참여자 ${d.profitSharersThreshold} 미만)`, !sp.met,
+      d.profitSharers === null ? "계산할 수 없음" : d.profitSharers,
+      `원금의 ${d.profitRatio} 이상 돌려받은 참여자가 ${d.profitSharers}이라 여럿이 나눠 가진 모양`,
+      { outOfScope: out,
+        bar: sp.count === null ? null : { value: sp.count, threshold: th.profitSharers, max: Math.max(th.profitSharers * 2, sp.count), unit: "count", direction: "below" } })
+  ];
+}
+
+function buildSteps(f, rug) {
   const pct = formatPercent, eth = formatEth;
   const single = () => cond("single_large_outflow", `한 번에 빠진 돈이 최고 잔고의 ${pct(THRESHOLDS.singleLargeOutflowRatio)} 이상`,
     f.singleLargeOutflow, `최고 잔고의 ${pct(f.maxSingleWithdrawRatio)}`,
@@ -267,14 +338,7 @@ function buildSteps(f) {
         f.largestWithdraw ? (f.ownerWithdrawAll ? "아니요" : "예") : "출금 없음",
         f.largestWithdraw ? "큰 출금을 받은 주소가 입금한 적 없는 주소" : "출금이 없음", { noData: !f.largestWithdraw })
     ] },
-    { type: "rug_pull", question: "운영자가 모인 돈의 대부분을 한 번에 가져갔나?", conditions: [
-      single(),
-      cond("recipient_not_depositor", "그 돈을 받은 주소가 입금한 적 없는 주소", f.ownerWithdrawAll,
-        f.largestWithdraw ? (f.ownerWithdrawAll ? "예" : "아니요") : "출금 없음",
-        f.largestWithdraw ? "큰 출금을 받은 주소가 입금자 중 하나" : "출금이 없음", { noData: !f.largestWithdraw }),
-      cond("no_mid_exit", "참여자 중도 출금이 없음", !f.participantMidExit, `${f.midExitCount}건`,
-        `참여자 중도 출금이 ${f.midExitCount}건 있음`)
-    ] },
+    { type: "rug_pull", question: "넣은 돈보다 많은 돈을 한쪽이 몰아 가져갔나?", conditions: rugConditions(rug) },
     { type: "ponzi_scheme", question: "새로 들어온 돈으로 앞사람에게 돌려줬나?", conditions: [
       cond("balance_drop", `${glossaryLabel("BALANCE_DROP")} 신호`, f.signals.BALANCE_DROP, f.signals.BALANCE_DROP ? "있음" : "없음",
         `${glossaryLabel("BALANCE_DROP")} 신호가 없음`),
@@ -387,7 +451,7 @@ function timelineOf(f, hint, principal, config) {
 }
 
 // ── 문구 ──
-function buildCopy(f, hint, conclusion, p, tl, onset) {
+function buildCopy(f, hint, conclusion, p, tl, onset, rug, owner) {
   const pct = formatPercent, eth = formatEth;
   const th = THRESHOLDS;
   const inflowStopped = tl.segments.some(s => s.key === "wait");
@@ -456,23 +520,31 @@ function buildCopy(f, hint, conclusion, p, tl, onset) {
         tl.decisive && { block: tl.decisive.block, kind: "owner_drain", title: "운영자가 남은 잔고를 인출", detail: `${eth(p.ownerReceivedEth)} ETH` }
       ].filter(Boolean);
       break;
-    case "rug_pull":
-      headline = "운영자가 모인 돈의 대부분을 한 번에 가져갔습니다";
+    case "rug_pull": {
+      // 숫자는 rugpull_axiom(분석기 결과)에서: 순유출 비율, 수익자 수, 원금보다 가장 많이 더 받은 지갑
+      const d = rug.display;
+      const top = rug.wallets.filter(w => w.drainContributor).reduce((a, b) => (b.netGain > (a?.netGain ?? -Infinity) ? b : a), null);
+      const topIsOwner = top && top.address === lower(owner);
+      const who = !top ? "한 지갑이" : topIsOwner ? (top.deposited > 0 ? "운영자 지갑이" : "입금한 적이 없는 운영자 지갑이") : "한 지갑이";
+      headline = "넣은 돈보다 많은 돈을 한쪽이 몰아 가져갔습니다";
       reasons = [
-        `최고 잔고의 ${pct(f.maxSingleWithdrawRatio)}가 한 번에 빠져나갔습니다`,
-        drain.toIsOwner ? "그 돈을 받은 주소는 입금한 적이 없는 운영자 지갑입니다" : "그 돈을 받은 주소는 입금한 적이 없는 지갑입니다",
-        `참여자 중도 출금은 ${f.midExitCount}건이었습니다`
+        `원금을 넘어 빠져나간 돈이 최고 잔고의 ${d.netDrain}입니다 (기준 ${d.netDrainThreshold} 이상)`,
+        rug.sharedProfit.count === 0
+          ? `원금의 ${d.profitRatio} 이상을 돌려받은 참여자가 없어, 여럿이 나눠 가진 모양이 아닙니다`
+          : `원금의 ${d.profitRatio} 이상을 돌려받은 참여자는 ${d.profitSharers}뿐입니다 (기준 ${d.profitSharersThreshold} 미만)`,
+        top ? `${who} 원금보다 ${eth(top.netGain)} ETH를 더 가져갔습니다` : "원금보다 더 가져간 지갑을 찾지 못했습니다"
       ];
       chartNotes = [
         `입금이 이어지는 동안 돈이 ${eth(f.peakBalanceEth)} ETH까지 쌓였습니다`,
-        `${drain.toIsOwner ? "운영자가" : "한 지갑이"} 한 번에 ${eth(drain.amountEth)} ETH를 꺼냈습니다`,
+        top ? `${who} 원금보다 ${eth(top.netGain)} ETH를 더 가져갔습니다` : `원금을 넘어 빠져나간 돈은 ${d.netOutflowEth} ETH입니다`,
         `${unrecoveredText(p.participants)}은 원금을 돌려받지 못했습니다`
       ];
       callouts = [
         ...lastDepositCallout,
-        { block: drain.block, kind: "drain", title: `${drain.toIsOwner ? "운영자가" : "한 지갑이"} 잔고를 ${fullDrain ? "전부 인출" : "대부분 인출"}`, detail: `한 번에 ${eth(drain.amountEth)} ETH가 빠져나감` }
+        { block: drain.block, kind: "drain", title: `${drain.toIsOwner ? "운영자가" : "한 지갑이"} 잔고를 ${fullDrain ? "전부 인출" : "대부분 인출"}`, detail: `가장 큰 출금 ${eth(drain.amountEth)} ETH` }
       ];
       break;
+    }
     case "money_laundering": {
       const counted = p.participants.count;
       headline = "여러 지갑의 소액 입금을 한 지갑으로 모아 내보냈습니다";
@@ -583,16 +655,17 @@ function flowOf(f, hint, p) {
 export function buildDecision({ report, rows, onset = null, normalClean = true, config = {} }) {
   const cfg = { ...DEFAULT_DECISION_CONFIG, ...config };
   const f = computeFacts(rows ?? [], report ?? {}, cfg);
-  const hint = hintOf(f);
+  const rug = rugAxisOf(report ?? {}, rows ?? []);
+  const hint = hintOf(f, rug);
   const conclusion = conclusionOf(hint, normalClean);
-  const steps = buildSteps(f);
+  const steps = buildSteps(f, rug);
   const matchedStep = steps.find(s => s.matched) ?? null;
   // 플래시론(제외된 유형)은 사슬에서 어느 단계에도 맞추지 않는다
   const effectiveMatch = hint === "flash_loan" || hint === "unknown" ? null : matchedStep;
   const shown = effectiveMatch ? steps.slice(0, effectiveMatch.no) : steps;
   const principal = computePrincipal(f, hint, cfg);
   const tl = timelineOf(f, hint, principal, cfg);
-  const copy = buildCopy(f, hint, conclusion, principal, tl, onset);
+  const copy = buildCopy(f, hint, conclusion, principal, tl, onset, rug, cfg.ownerAddress);
   const { _rows, ...facts } = f;
   return {
     version: DECISION_VERSION,
@@ -609,6 +682,8 @@ export function buildDecision({ report, rows, onset = null, normalClean = true, 
     chainSummary: chainSummary(shown, effectiveMatch, hint, conclusion),
     whyNot: whyNotOf(steps, effectiveMatch),
     flow: flowOf(f, hint, principal),
+    // 러그풀 축 (report.dynamic.rugpull_axiom + 화면 문구). 화면의 기준값·지갑별 낸 돈/받은 돈은 여기서만 읽는다.
+    rugpull: rug,
     segments: tl.segments,
     decisive: tl.decisive,
     copy

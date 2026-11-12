@@ -155,6 +155,7 @@ function OwlNote({ meta }) {
     <div className="small muted">
       참고: 저장소의 예전 로그 기준 OWL 추론 결과 — {inferred === null ? "항목 없음" : inferred.length ? inferred.join(", ") : "추론된 클래스 없음"}
       {" "}({meta.owlNote}){meta.owlMismatch ? " · 현재 분류와 다름" : ""}
+      {meta.owlOrderNote && <div>{meta.owlOrderNote}</div>}
     </div>
   );
 }

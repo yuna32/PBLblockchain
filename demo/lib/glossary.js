@@ -3,6 +3,10 @@
 // collectTerms(report)는 리포트에 실제로 나온 ID를 모은다(용어집 누락 시험용).
 
 import { FraudOntology } from "../../analysis/fraud_ontology.js";
+import { RUGPULL_AXIOM as A } from "../../analysis/dynamic_analyzer.js";
+
+// 기준값 비율 → "70%" (정수 퍼센트만 쓰는 상수라 반올림 규칙이 필요 없다)
+const pct = x => `${Math.round(x * 1000) / 10}%`;
 
 const MANUAL = {
   // ── 동적 분석 규칙 (analysis/dynamic_analyzer.js) ──
@@ -41,7 +45,11 @@ const MANUAL = {
 
   // ── 온톨로지 조건 (fraudTypes.necessaryConditions / sufficientConditions) ──
   MidWithdrawalsExist:  ["condition", "중도 출금 있음", "마지막 블록 이전에 참여자 출금이 성공한 적이 있다."],
-  NoMidWithdrawals:     ["condition", "중도 출금 없음", "참여자 출금 없이 마지막에 한 번에 자금이 빠져나갔다."],
+  // 러그풀 교차공리 (2026-11): RugPull ← Contract ∧ HasFlow ∧ ¬T ∧ NetDrain ∧ ¬SharedProfit
+  HasFlow:              ["condition", "입출금 흐름 있음", "입금과 실제로 돈이 나간 출금이 각각 한 건 이상 있다. 없으면 러그풀 여부를 판단할 수 없다."],
+  NotPassThrough:       ["condition", "반복 중계 아님", `들어온 돈을 같은 금액으로 바로 내보내는 출금이 ${A.passThroughMinWithdrawals}건 이상이면서 과반인 반복 중계가 아니다. 반복 중계면 판단할 수 없다.`],
+  NetDrain:             ["condition", "원금 초과 순유출", `지갑마다 받은 돈에서 낸 돈을 뺀 순이익을 더한 값이 최고 잔고의 ${pct(A.netDrain)} 이상이다. 원금을 넘는 돈이 빠져나갔다는 뜻이다.`],
+  NotSharedProfit:      ["condition", "수익을 나눠 가지지 않음", `원금의 ${pct(A.profitRatio)} 이상을 돌려받은 참여자가 ${A.profitSharers}명 미만이다. ${A.profitSharers}명 이상이면 여럿이 나눠 가진 모양(폰지 쪽)으로 본다.`],
   UniqueParticipants:   ["condition", "다수 입금자", "서로 다른 지갑 여러 개가 입금했다."],
   SingleDrain:          ["condition", "단일 대량 인출", "한 번의 출금이 잔고 대부분을 가져갔다."],
   InsiderPrivilege:     ["condition", "내부자 특권 조건", "코드에 내부자 전용 권한이 있다."],
@@ -52,7 +60,10 @@ const MANUAL = {
   singleLargeOutflow:   ["evidence", "단일 대형 유출", "최대 단일 출금이 최고 잔고의 70% 이상이다 (동적 분석 판정 단계)."],
   distributedInflow:    ["evidence", "분산 유입", "서로 다른 입금자가 5명 이상이다 (동적 분석 판정 단계)."],
   participantMidExit:   ["evidence", "참여자 중도 출금", "마지막 블록 전에 금액이 있는 참여자 출금이 있다 (동적 분석 판정 단계)."],
-  participantNoMidExit: ["evidence", "참여자 중도 출금 없음", "마지막 블록 전에 금액이 있는 참여자 출금이 없다 (동적 분석 판정 단계)."],
+  hasFlow:              ["evidence", "입출금 흐름 (hasFlow)", "러그풀 축 데이터 속성: 입금과 성공 출금(금액 > 0)이 각각 있는지 (dynamic.rugpull_axiom.scope)."],
+  passThrough:          ["evidence", "반복 중계 여부 (passThrough)", `러그풀 축 데이터 속성: 성공 출금 ${A.passThroughMinWithdrawals}건 이상 중 과반이 직전 입금과 같은 금액인지 (dynamic.rugpull_axiom.scope).`],
+  netDrainRatio:        ["evidence", "순유출 비율 (netDrainRatio)", "러그풀 축 데이터 속성: 원금을 넘어 빠져나간 돈 ÷ 최고 잔고 (dynamic.rugpull_axiom.netDrain)."],
+  profitSharerCount:    ["evidence", "수익자 수 (profitSharerCount)", `러그풀 축 데이터 속성: 원금의 ${pct(A.profitRatio)} 이상을 돌려받은 입금자 수 (dynamic.rugpull_axiom.sharedProfit).`],
   withdrawFailure:      ["evidence", "출금 실패 발생", "출금 성공률이 100% 미만이다. 금액 0으로 끝난 출금 시도가 있다는 뜻이다."],
 
   // ── 회피 기법 (온톨로지 evasionTechniques, usesEvasion) ──
@@ -75,7 +86,7 @@ const MANUAL = {
   FraudPattern:    ["class", "사기 패턴", "블록체인 사기 유형의 최상위 개념이다."],
   NormalContract:  ["class", "정상 컨트랙트", "어떤 사기 유형에도 해당하지 않고 출금 차단 신호도 없는 컨트랙트다."],
   PonziScheme:     ["class", "폰지 사기", "신규 입금으로 기존 참여자에게 수익을 지급하는 구조다."],
-  RugPull:         ["class", "러그풀", "잔고가 정점일 때 운영자가 한 번에 전액을 인출하는 사기다."],
+  RugPull:         ["class", "러그풀", "넣은 돈보다 많은 돈을 한쪽이 몰아 가져가는 사기다. 여러 참여자가 나눠 가지면 폰지로 본다."],
   MoneyLaundering: ["class", "자금세탁", "여러 지갑의 입금을 한 주소로 모아 출처를 흐리는 패턴이다."],
   PumpDump:        ["class", "펌프앤덤프", "내부자가 먼저 들어와 자금을 부풀린 뒤 빼내 후발 참여자가 손실을 보는 사기다."],
   PumpAndDump:     ["class", "펌프앤덤프", "PumpDump의 다른 표기다(온톨로지 클래스 목록과 OWL 결과가 이 이름을 쓴다)."],

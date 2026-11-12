@@ -37,9 +37,139 @@
       "withdrawSuccessRate: 100.0% (10/10 succeeded)",
       "nonPrivilegedSuccessRate: 100.0% (owner 0xf39fd6e5... 제외 10건 중 성공)",
       "balanceAtFailure: 0.000 ETH (amount_eth=0 시점 잔고 최댓값, n=0)",
+      "rugpullScope: true (reason none, contract assumed, hasFlow true, passThrough false 0/10)",
+      "netDrain: false (0.445 / peak 15.000 = 3.0%, threshold 70%)",
+      "sharedProfit: false (0 wallets received >= 105% of deposit, threshold 2)",
       "→ normal_staking (stake/unstake pattern, no fraud signals)"
     ],
     "rows_analyzed": 21,
+    "rugpull_axiom": {
+      "netDrain": {
+        "met": false,
+        "netOutflowEth": 0.445,
+        "peakBalanceEth": 15,
+        "threshold": 0.7,
+        "value": 0.029667
+      },
+      "scope": {
+        "hasFlow": true,
+        "inScope": true,
+        "isContract": true,
+        "isContractSource": "assumed",
+        "ledger": "per_wallet",
+        "passThrough": false,
+        "passThroughDetail": {
+          "matched": 0,
+          "withdrawals": 10
+        },
+        "reason": null
+      },
+      "sharedProfit": {
+        "count": 0,
+        "met": false,
+        "threshold": 2,
+        "wallets": []
+      },
+      "thresholds": {
+        "netDrain": 0.7,
+        "passThroughMatchShare": 0.5,
+        "passThroughMinWithdrawals": 5,
+        "profitRatio": 1.05,
+        "profitSharers": 2
+      },
+      "verdict": false,
+      "version": 1,
+      "wallets": [
+        {
+          "address": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+          "deposited": 5,
+          "drainContributor": false,
+          "netGain": -5,
+          "profitSharer": false,
+          "received": 0
+        },
+        {
+          "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "deposited": 1,
+          "drainContributor": true,
+          "netGain": 0.049,
+          "profitSharer": false,
+          "received": 1.049
+        },
+        {
+          "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "deposited": 1,
+          "drainContributor": true,
+          "netGain": 0.048,
+          "profitSharer": false,
+          "received": 1.048
+        },
+        {
+          "address": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+          "deposited": 1,
+          "drainContributor": true,
+          "netGain": 0.047,
+          "profitSharer": false,
+          "received": 1.047
+        },
+        {
+          "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+          "deposited": 1,
+          "drainContributor": true,
+          "netGain": 0.046,
+          "profitSharer": false,
+          "received": 1.046
+        },
+        {
+          "address": "0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc",
+          "deposited": 1,
+          "drainContributor": true,
+          "netGain": 0.045,
+          "profitSharer": false,
+          "received": 1.045
+        },
+        {
+          "address": "0x976ea74026e726554db657fa54763abd0c3a0aa9",
+          "deposited": 1,
+          "drainContributor": true,
+          "netGain": 0.044,
+          "profitSharer": false,
+          "received": 1.044
+        },
+        {
+          "address": "0x14dc79964da2c08b23698b3d3cc7ca32193d9955",
+          "deposited": 1,
+          "drainContributor": true,
+          "netGain": 0.043,
+          "profitSharer": false,
+          "received": 1.043
+        },
+        {
+          "address": "0x23618e81e3f5cdf7f54c3d65f7fbc0abf5b21e8f",
+          "deposited": 1,
+          "drainContributor": true,
+          "netGain": 0.042,
+          "profitSharer": false,
+          "received": 1.042
+        },
+        {
+          "address": "0xa0ee7a142d267c1f36714e4a8f75612f20a79720",
+          "deposited": 1,
+          "drainContributor": true,
+          "netGain": 0.041,
+          "profitSharer": false,
+          "received": 1.041
+        },
+        {
+          "address": "0xbcd4042de499d14e55001ccbb24a551f3b954096",
+          "deposited": 1,
+          "drainContributor": true,
+          "netGain": 0.04,
+          "profitSharer": false,
+          "received": 1.04
+        }
+      ]
+    },
     "triggered_rules": [],
     "verdict": "LOW_RISK",
     "withdraw_block_warning": {
@@ -106,7 +236,7 @@
     ],
     "verdict": "LOW_RISK"
   },
-  "timestamp": "2026-10-24T14:18:53.834Z",
+  "timestamp": "2026-11-12T09:57:12.611Z",
   "trust": {
     "csv": "normal_log.csv",
     "overall_trust_score": 86,

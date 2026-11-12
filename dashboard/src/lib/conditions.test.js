@@ -59,12 +59,25 @@ describe("판정 조건: 제목·질문 사슬", () => {
     expect(renderToStaticMarkup(h(DecisionGraph, { decision: u }))).toContain("확인한 유형 6개");
   });
 
-  it("임계값 막대는 decision.thresholds의 기준과 같은 위치", () => {
+  it("임계값 막대는 결과 JSON의 기준과 같은 위치 (러그풀 ②는 rugpull.thresholds.netDrain)", () => {
     const d = vm("rugpull").decision;
-    const bar = d.chain[2].conditions[0].bar;
-    expect(bar.threshold).toBe(d.thresholds.singleLargeOutflowRatio);
+    const bar = d.chain[2].conditions.find(c => c.id === "net_drain").bar;
+    expect(bar.threshold).toBe(d.rugpull.thresholds.netDrain);
+    expect(bar.threshold).toBe(loadFixture("rugpull").report.dynamic.rugpull_axiom.thresholds.netDrain);
     const html = renderToStaticMarkup(h(ChainCard, { decision: d }));
-    expect(html).toContain(`left:${d.thresholds.singleLargeOutflowRatio * 100}%`);
+    expect(html).toContain(`left:${d.rugpull.thresholds.netDrain * 100}%`);
+    // 자금세탁 단계의 단일 대형 유출 막대는 그대로 decision.thresholds
+    const l = vm("laundering").decision;
+    expect(l.chain[1].conditions[0].bar.threshold).toBe(l.thresholds.singleLargeOutflowRatio);
+  });
+
+  it("러그풀 범위 밖 조건은 '판단 불가' 중립 표시 (데이터 없음·미충족과 구분)", () => {
+    const d = vm("rugpull").decision;
+    const out = { ...d, chain: d.chain.map(s => s.type !== "rug_pull" ? s : { ...s, matched: false, answer: "아니요",
+      conditions: s.conditions.map(c => ({ ...c, status: "out_of_scope", met: false })) }) };
+    const html = renderToStaticMarkup(h(ChainCard, { decision: out }));
+    expect(html).toContain("cond-out_of_scope");
+    expect(html).toContain("판단 불가");
   });
 
   it("사람 아이콘 줄: 참여자 수와 원금 이상 회수 수 (자금세탁은 모은 지갑 제외)", () => {

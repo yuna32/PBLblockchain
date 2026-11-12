@@ -114,6 +114,14 @@
         "answer": "예",
         "conditions": [
           {
+            "id": "rug_scope",
+            "label": "① 판단할 수 있는 거래 기록인가",
+            "met": true,
+            "status": "met",
+            "unmetText": "이 기록으로는 러그풀 여부를 판단할 수 없음",
+            "valueText": "판단할 수 있음"
+          },
+          {
             "bar": {
               "direction": "above",
               "max": 1,
@@ -121,34 +129,33 @@
               "unit": "ratio",
               "value": 1
             },
-            "id": "single_large_outflow",
-            "label": "한 번에 빠진 돈이 최고 잔고의 70% 이상",
+            "id": "net_drain",
+            "label": "② 원금을 넘는 돈이 빠져나갔나 (최고 잔고의 70% 이상)",
             "met": true,
             "status": "met",
-            "unmetText": "한 번에 빠진 돈이 최고 잔고의 100%로 기준(70%)에 못 미침",
+            "unmetText": "원금을 넘어 빠져나간 돈이 최고 잔고의 100%로 기준(70%)에 못 미침",
             "valueText": "최고 잔고의 100%"
           },
           {
-            "id": "recipient_not_depositor",
-            "label": "그 돈을 받은 주소가 입금한 적 없는 주소",
+            "bar": {
+              "direction": "below",
+              "max": 4,
+              "threshold": 2,
+              "unit": "count",
+              "value": 0
+            },
+            "id": "not_shared_profit",
+            "label": "③ 한쪽이 몰아 가져갔나 (원금의 105% 이상 돌려받은 참여자 2명 미만)",
             "met": true,
             "status": "met",
-            "unmetText": "큰 출금을 받은 주소가 입금자 중 하나",
-            "valueText": "예"
-          },
-          {
-            "id": "no_mid_exit",
-            "label": "참여자 중도 출금이 없음",
-            "met": true,
-            "status": "met",
-            "unmetText": "참여자 중도 출금이 0건 있음",
-            "valueText": "0건"
+            "unmetText": "원금의 105% 이상 돌려받은 참여자가 0명이라 여럿이 나눠 가진 모양",
+            "valueText": "0명"
           }
         ],
         "label": "러그풀",
         "matched": true,
         "no": 3,
-        "question": "운영자가 모인 돈의 대부분을 한 번에 가져갔나?",
+        "question": "넣은 돈보다 많은 돈을 한쪽이 몰아 가져갔나?",
         "type": "rug_pull"
       }
     ],
@@ -165,22 +172,22 @@
         },
         {
           "block": 35,
-          "detail": "한 번에 19 ETH가 빠져나감",
+          "detail": "가장 큰 출금 19 ETH",
           "kind": "drain",
           "title": "운영자가 잔고를 전부 인출"
         }
       ],
       "chartNotes": [
         "입금이 이어지는 동안 돈이 19 ETH까지 쌓였습니다",
-        "운영자가 한 번에 19 ETH를 꺼냈습니다",
+        "입금한 적이 없는 운영자 지갑이 원금보다 19 ETH를 더 가져갔습니다",
         "참여자 10명은 원금을 돌려받지 못했습니다"
       ],
-      "headline": "운영자가 모인 돈의 대부분을 한 번에 가져갔습니다",
+      "headline": "넣은 돈보다 많은 돈을 한쪽이 몰아 가져갔습니다",
       "note": null,
       "reasons": [
-        "최고 잔고의 100%가 한 번에 빠져나갔습니다",
-        "그 돈을 받은 주소는 입금한 적이 없는 운영자 지갑입니다",
-        "참여자 중도 출금은 0건이었습니다"
+        "원금을 넘어 빠져나간 돈이 최고 잔고의 100%입니다 (기준 70% 이상)",
+        "원금의 105% 이상을 돌려받은 참여자가 없어, 여럿이 나눠 가진 모양이 아닙니다",
+        "입금한 적이 없는 운영자 지갑이 원금보다 19 ETH를 더 가져갔습니다"
       ],
       "summary": {
         "analyzed": "입금 10건 · 출금 1건",
@@ -298,6 +305,147 @@
         "unrecoveredCount": 10
       }
     },
+    "rugpull": {
+      "display": {
+        "netDrain": "100%",
+        "netDrainThreshold": "70%",
+        "netOutflowEth": "19",
+        "peakBalanceEth": "19",
+        "profitRatio": "105%",
+        "profitSharers": "0명",
+        "profitSharersThreshold": "2명"
+      },
+      "netDrain": {
+        "met": true,
+        "netOutflowEth": 19,
+        "peakBalanceEth": 19,
+        "threshold": 0.7,
+        "value": 1
+      },
+      "scope": {
+        "hasFlow": true,
+        "inScope": true,
+        "isContract": true,
+        "isContractSource": "assumed",
+        "ledger": "per_wallet",
+        "passThrough": false,
+        "passThroughDetail": {
+          "matched": 0,
+          "withdrawals": 1
+        },
+        "reason": null,
+        "reasonLabel": null,
+        "reasonText": null
+      },
+      "shape": "concentrated",
+      "shapeLabel": "한쪽이 몰아 가져감",
+      "shapeText": "원금을 넘는 돈이 빠져나갔고, 원금 이상을 돌려받은 참여자가 기준보다 적습니다",
+      "sharedProfit": {
+        "count": 0,
+        "met": false,
+        "threshold": 2,
+        "wallets": []
+      },
+      "thresholds": {
+        "netDrain": 0.7,
+        "passThroughMatchShare": 0.5,
+        "passThroughMinWithdrawals": 5,
+        "profitRatio": 1.05,
+        "profitSharers": 2
+      },
+      "verdict": true,
+      "version": 1,
+      "wallets": [
+        {
+          "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "deposited": 1,
+          "drainContributor": false,
+          "netGain": -1,
+          "profitSharer": false,
+          "received": 0
+        },
+        {
+          "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "deposited": 1.2,
+          "drainContributor": false,
+          "netGain": -1.2,
+          "profitSharer": false,
+          "received": 0
+        },
+        {
+          "address": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+          "deposited": 1.4,
+          "drainContributor": false,
+          "netGain": -1.4,
+          "profitSharer": false,
+          "received": 0
+        },
+        {
+          "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+          "deposited": 1.6,
+          "drainContributor": false,
+          "netGain": -1.6,
+          "profitSharer": false,
+          "received": 0
+        },
+        {
+          "address": "0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc",
+          "deposited": 1.8,
+          "drainContributor": false,
+          "netGain": -1.8,
+          "profitSharer": false,
+          "received": 0
+        },
+        {
+          "address": "0x976ea74026e726554db657fa54763abd0c3a0aa9",
+          "deposited": 2,
+          "drainContributor": false,
+          "netGain": -2,
+          "profitSharer": false,
+          "received": 0
+        },
+        {
+          "address": "0x14dc79964da2c08b23698b3d3cc7ca32193d9955",
+          "deposited": 2.2,
+          "drainContributor": false,
+          "netGain": -2.2,
+          "profitSharer": false,
+          "received": 0
+        },
+        {
+          "address": "0x23618e81e3f5cdf7f54c3d65f7fbc0abf5b21e8f",
+          "deposited": 2.4,
+          "drainContributor": false,
+          "netGain": -2.4,
+          "profitSharer": false,
+          "received": 0
+        },
+        {
+          "address": "0xa0ee7a142d267c1f36714e4a8f75612f20a79720",
+          "deposited": 2.6,
+          "drainContributor": false,
+          "netGain": -2.6,
+          "profitSharer": false,
+          "received": 0
+        },
+        {
+          "address": "0xbcd4042de499d14e55001ccbb24a551f3b954096",
+          "deposited": 2.8,
+          "drainContributor": false,
+          "netGain": -2.8,
+          "profitSharer": false,
+          "received": 0
+        },
+        {
+          "address": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+          "deposited": 0,
+          "drainContributor": true,
+          "netGain": 19,
+          "profitSharer": false,
+          "received": 19
+        }
+      ]
+    },
     "segments": [
       {
         "from": 4,
@@ -373,7 +521,7 @@
         "page": "report"
       }
     ],
-    "text": "운영자가 모인 자금을 한 번에 빼내는 러그풀 가능성이 높습니다.",
+    "text": "넣은 돈보다 많은 돈을 한쪽이 몰아 가져가는 러그풀 가능성이 높습니다.",
     "tone": "danger"
   },
   "patterns": {
@@ -400,7 +548,10 @@
       "withdrawSuccessRate: 100.0% (1/1 succeeded)",
       "nonPrivilegedSuccessRate: 0.0% (owner 0xf39fd6e5... 제외 0건 중 성공)",
       "balanceAtFailure: 0.000 ETH (amount_eth=0 시점 잔고 최댓값, n=0)",
-      "→ rug_pull (large outflow to non-depositor address, no participant mid-exits)"
+      "rugpullScope: true (reason none, contract assumed, hasFlow true, passThrough false 0/1)",
+      "netDrain: true (19.000 / peak 19.000 = 100.0%, threshold 70%)",
+      "sharedProfit: false (0 wallets received >= 105% of deposit, threshold 2)",
+      "→ rug_pull (rugpull_axiom: in scope, NetDrain 100.0% >= 70%, profit sharers 0 < 2)"
     ],
     "signals": [
       {
@@ -464,7 +615,7 @@
       "type": "first_withdraw"
     }
   },
-  "reportHash": "8a6def5dbae578d70ff8518670f38fa0447c6915e36ea0ac9ffae66193e4e4e4",
+  "reportHash": "8339e38932c5e7744970ec76b9dc3ebeb2b4f58669629fb049b477b75640433c",
   "scenario": "rugpull",
   "source": "fixture",
   "walletAssessment": {

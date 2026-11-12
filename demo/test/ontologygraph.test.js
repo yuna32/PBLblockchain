@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { buildOntologyGraph, conditionStatuses, techniqueStatuses, TECHNIQUE_EVIDENCE, MAPPING_NOTE, TECHNIQUE_MAPPING_NOTE, OWL_NOTE } from "../lib/ontologygraph.js";
+import { buildOntologyGraph, conditionStatuses, techniqueStatuses, TECHNIQUE_EVIDENCE, MAPPING_NOTE, TECHNIQUE_MAPPING_NOTE, OWL_NOTE, OWL_ORDER_NOTE } from "../lib/ontologygraph.js";
 import { GLOSSARY } from "../lib/glossary.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -18,10 +18,12 @@ const LINK_KINDS = new Set(["subClassOf", "requires", "supportedBy", "exhibits",
 
 // 시나리오별 조건 상태 기대값 (met/unmet/no_data)
 const EXPECTED_STATUS = {
-  normal:     { BalanceDrop: false, FlowSpike: false, MaxTxAlert: false, MidWithdrawalsExist: true, NoMidWithdrawals: false,
+  normal:     { BalanceDrop: false, FlowSpike: false, MaxTxAlert: false, MidWithdrawalsExist: true,
+                HasFlow: true, NotPassThrough: true, NetDrain: false, NotSharedProfit: true,
                 UniqueParticipants: true, SingleDrain: false, InsiderPrivilege: false, AsymmetricWithdrawal: false, LateParticipantLoss: false },
   ponzi:      { BalanceDrop: true, FlowSpike: true, MaxTxAlert: false, MidWithdrawalsExist: true },
-  rugpull:    { BalanceDrop: true, MaxTxAlert: true, NoMidWithdrawals: true },
+  // 러그풀 교차공리: 조건 4개 ← 데이터 속성 (dynamic.rugpull_axiom)
+  rugpull:    { HasFlow: true, NotPassThrough: true, NetDrain: true, NotSharedProfit: true },
   laundering: { UniqueParticipants: true, MaxTxAlert: true, SingleDrain: true },
   pumpdump:   { InsiderPrivilege: true, AsymmetricWithdrawal: true, LateParticipantLoss: true }
 };
@@ -78,9 +80,31 @@ for (const [name, expected] of Object.entries(EXPECTED_STATUS)) {
     assert.equal(g.meta.mappingNote, `${MAPPING_NOTE}. ${TECHNIQUE_MAPPING_NOTE}`);
     assert.match(g.meta.mappingNote, /중첩 pipeline/);
     assert.equal(g.meta.owlNote, OWL_NOTE);
-    assert.equal(g.meta.owlMismatch, null, JSON.stringify(g.meta.owlMismatch));
+    if (name === "laundering") {
+      // 알려진 한계: OWL에는 판정 순서가 없어 자금세탁 인스턴스가 RugPull 규칙도 만족한다
+      assert.deepEqual([...g.meta.owlMismatch.owl].sort(), ["MoneyLaundering", "RugPull"]);
+      assert.deepEqual(g.meta.owlMismatch.report, ["MoneyLaundering"]);
+      assert.equal(g.meta.owlOrderNote, OWL_ORDER_NOTE);
+    } else {
+      assert.equal(g.meta.owlMismatch, null, JSON.stringify(g.meta.owlMismatch));
+      assert.equal(g.meta.owlOrderNote, null);
+    }
   });
 }
+
+test("러그풀 조건은 데이터 속성 근거(netDrainRatio·profitSharerCount·passThrough·hasFlow)로 연결", () => {
+  const g = buildOntologyGraph(load("rugpull"), { owlResults });
+  const pairs = g.links.filter(l => l.kind === "supportedBy" && l.target.startsWith("condition:")).map(l => [l.source, l.target]);
+  for (const [ev, c] of [["hasFlow", "HasFlow"], ["passThrough", "NotPassThrough"], ["netDrainRatio", "NetDrain"], ["profitSharerCount", "NotSharedProfit"]]) {
+    assert.ok(pairs.some(([s, t]) => s === `evidence:${ev}` && t === `condition:${c}`), `${ev} → ${c}`);
+    assert.ok(g.links.some(l => l.source === "class:RugPull" && l.target === `condition:${c}` && l.kind === "requires"), c);
+  }
+  assert.ok(!g.nodes.some(n => ["condition:BalanceDrop", "condition:MaxTxAlert", "condition:NoMidWithdrawals"].includes(n.id)),
+    "옛 러그풀 조건 노드가 남지 않음");
+  // 리포트에 rugpull_axiom이 없으면 근거 데이터 없음
+  const old = load("rugpull"); delete old.dynamic.rugpull_axiom;
+  assert.equal(conditionStatuses(old).NetDrain, null);
+});
 
 test("approx 조건은 desc에 근사 사유를 적음", () => {
   const g = buildOntologyGraph(load("normal"));
@@ -90,7 +114,7 @@ test("approx 조건은 desc에 근사 사유를 적음", () => {
     assert.match(n.desc, /근사:/, id);
   }
   assert.match(g.nodes.find(x => x.id === "condition:MaxTxAlert").desc, /70%.*0\.9|70%.*90%/);
-  for (const id of ["BalanceDrop", "FlowSpike", "SingleDrain", "InsiderPrivilege", "MidWithdrawalsExist", "NoMidWithdrawals"]) {
+  for (const id of ["BalanceDrop", "FlowSpike", "SingleDrain", "InsiderPrivilege", "MidWithdrawalsExist", "HasFlow", "NotPassThrough", "NetDrain", "NotSharedProfit"]) {
     assert.equal(g.nodes.find(x => x.id === `condition:${id}`).approx, false, id);
   }
 });

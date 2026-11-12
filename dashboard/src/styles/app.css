@@ -437,6 +437,47 @@ html[data-hero-top] .hero-shell .topbar :focus-visible { outline-color: var(--he
 .cond-met svg { color: var(--text-1); }
 .cond-unmet svg, .cond-no_data svg { color: var(--text-4); }
 .cond-no_data .chain-cond-label { color: var(--text-3); }
+/* 러그풀 축 적용 범위 밖 = "판단 불가": 결론 판단 불가(중립)와 같은 회색, 점선 아이콘 */
+.cond-out_of_scope svg { color: var(--text-4); }
+.cond-out_of_scope .chain-cond-label, .cond-out_of_scope .chain-cond-status { color: var(--text-3); }
+
+/* 범위 밖 안내 (회색 중립 톤, 안전·정상 색을 쓰지 않음) */
+.scope-notice { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; margin-bottom: 12px;
+  border: 1px dashed var(--border-strong); border-radius: var(--radius-ctl); background: var(--fill-1); color: var(--text-2); }
+.scope-notice svg { color: var(--text-3); flex: none; margin-top: 2px; }
+.scope-notice strong { color: var(--text-1); }
+.scope-notice p { margin: 4px 0 0; }
+.scope-notice-reason { color: var(--text-2); }
+
+/* 지갑별 낸 돈 vs 받은 돈 (가로 막대, 4px 둥근 끝, 같은 축) */
+.wl-head { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.wl-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.wl-row { display: grid; grid-template-columns: minmax(0, 15rem) minmax(0, 1fr); gap: 4px 16px; align-items: center;
+  padding: 8px 10px; border-radius: var(--radius-ctl); border-left: 3px solid transparent; }
+.wl-row:hover { background: var(--fill-1); }
+.wl-contrib { border-left-color: var(--danger); background: var(--danger-weak); }
+.wl-contrib:hover { background: var(--danger-weak); }
+.wl-who { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; }
+.wl-bars { display: grid; grid-template-columns: minmax(0, 1fr) 9.5rem; gap: 4px 10px; align-items: center; }
+.wl-track { height: 8px; border-radius: 4px; background: var(--fill-2); overflow: hidden; }
+.wl-fill { display: block; height: 100%; border-radius: 4px; min-width: 0; }
+.wl-dep { background: var(--deposit); }
+.wl-rec { background: var(--withdraw); }
+.wl-val { color: var(--text-2); font-size: var(--fs-label); white-space: nowrap; }
+@container (max-width: 640px) { .wl-row { grid-template-columns: minmax(0, 1fr); } }
+
+/* 러그풀 vs 폰지 비교 */
+.rvp > p { margin: 0 0 12px; }
+.rvp-meters { display: grid; gap: 14px; margin-bottom: 14px; }
+.rvp-meter-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; margin-bottom: 6px; color: var(--text-2); }
+.rvp-split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+.rvp-side { display: grid; gap: 4px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-ctl); color: var(--text-3); }
+.rvp-side strong { color: var(--text-2); }
+.rvp-on { border-color: var(--text-1); border-width: 2px; color: var(--text-2); background: var(--fill-1); }
+.rvp-on strong { color: var(--text-1); }
+.rvp-result { margin: 0 0 6px; color: var(--text-1); }
+.rvp-result-out { color: var(--text-2); }
+@container (max-width: 520px) { .rvp-split { grid-template-columns: minmax(0, 1fr); } }
 .cond-bar { position: relative; height: 8px; margin: 6px 72px 2px 24px; border-radius: 999px; background: var(--fill-2); }
 .cond-bar-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: inherit; background: var(--text-4); }
 .cond-bar-met.cond-bar-danger .cond-bar-fill { background: var(--danger); }
@@ -472,6 +513,8 @@ html[data-hero-top] .hero-shell .topbar :focus-visible { outline-color: var(--he
 .dgraph-unmet text { fill: var(--text-2); }
 .dgraph-no_data rect { fill: var(--surface); stroke: var(--text-3); stroke-dasharray: 4 3; }
 .dgraph-no_data text { fill: var(--text-3); }
+.dgraph-out_of_scope rect { fill: var(--fill-1); stroke: var(--text-3); stroke-dasharray: 4 3; }
+.dgraph-out_of_scope text { fill: var(--text-3); }
 .dgraph-met rect { fill: var(--primary-weak); stroke: var(--primary); }
 .dgraph-danger .dgraph-met rect { fill: var(--danger-weak); stroke: var(--danger); }
 .dgraph-danger .dgraph-met text { fill: var(--danger); }
@@ -484,7 +527,7 @@ html[data-hero-top] .hero-shell .topbar :focus-visible { outline-color: var(--he
 .dgraph-link-met { stroke: var(--primary); }
 .dgraph-danger .dgraph-link-met { stroke: var(--danger); }
 .dgraph-link-unmet { stroke: var(--border-strong); }
-.dgraph-link-no_data { stroke: var(--text-4); stroke-dasharray: 4 3; }
+.dgraph-link-no_data, .dgraph-link-out_of_scope { stroke: var(--text-4); stroke-dasharray: 4 3; }
 .dgraph-legend { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: var(--fs-label); color: var(--text-2); }
 .dgraph-legend li { display: inline-flex; align-items: center; gap: 6px; }
 .dgraph-legend .sw { width: 26px; height: 14px; border-radius: 7px; border: 1.4px solid var(--border-strong); background: var(--surface); }

@@ -5,8 +5,9 @@ import { CONCLUSIONS } from "../lib/conclusion.js";
 import { buildDecisionGraph, conditionsTitle, peopleRow } from "../lib/conditions.js";
 import { Badge, ICON } from "./ui.jsx";
 
-const STATUS_LABEL = { met: "충족", unmet: "미충족", no_data: "데이터 없음" };
-const STATUS_ICON = { met: CircleCheck, unmet: CircleMinus, no_data: CircleDashed };
+// out_of_scope: 러그풀 축 적용 범위 밖. 결론 "판단 불가"(플래시론 등)와 같은 이름·중립 회색으로 보인다.
+const STATUS_LABEL = { met: "충족", unmet: "미충족", no_data: "데이터 없음", out_of_scope: "판단 불가" };
+const STATUS_ICON = { met: CircleCheck, unmet: CircleMinus, no_data: CircleDashed, out_of_scope: CircleDashed };
 const toneOf = c => CONCLUSIONS[c]?.tone ?? "neutral";
 
 // 임계값 진행 막대: bar = { value, threshold, max, unit, direction } (decision.chain 조건의 bar)
@@ -101,7 +102,7 @@ export function WhyNotCard({ decision }) {
             </li>
           ))}
         </ul>
-        <p className="threshold-note">기준값은 연구 단계의 잠정값입니다. 출금 비율·입금 지갑 수·출금 성공률 기준에 따라 오탐과 미탐이 있을 수 있습니다.</p>
+        <p className="threshold-note">기준값은 연구 단계의 잠정값입니다. 출금 비율·입금 지갑 수·출금 성공률 기준에 따라 오탐과 미탐이 있을 수 있습니다. 러그풀 기준(순유출·수익자 수)은 시뮬레이션 예시로만 확인했습니다.</p>
       </div>
     </section>
   );
@@ -151,7 +152,7 @@ export function GraphLegend() {
     <ul className="dgraph-legend">
       <li><span className="sw sw-met" />충족</li>
       <li><span className="sw sw-unmet" />미충족</li>
-      <li><span className="sw sw-nodata" />데이터 없음</li>
+      <li><span className="sw sw-nodata" />데이터 없음 · 판단 불가</li>
     </ul>
   );
 }

@@ -19,7 +19,7 @@ export const CHECK_CARDS = [
 
 export const FRAUD_CARDS = [
   { key: "ponzi", title: "폰지", nick: "돌려막기", desc: "뒤에 들어온 사람의 돈으로 앞사람에게 수익을 줍니다" },
-  { key: "rugpull", title: "러그풀", nick: "들고 나가기", desc: "모인 돈을 운영자가 한 번에 가져갑니다" },
+  { key: "rugpull", title: "러그풀", nick: "들고 나가기", desc: "넣은 돈보다 많은 돈을 한쪽이 몰아 가져갑니다" },
   { key: "laundering", title: "자금세탁", nick: "모아서 흘려보내기", desc: "잘게 나눈 돈을 한곳에 모아 출처를 흐립니다" },
   { key: "pumpdump", title: "펌프앤덤프", nick: "띄우고 먼저 팔기", desc: "내부자가 먼저 빠져나가고, 뒤에 온 사람의 출금이 막힙니다" }
 ];
@@ -37,7 +37,7 @@ const STEP_BASE = [
   { key: "signal", title: "눈에 띄는 움직임을 찾습니다", desc: "입금이 멈추거나 잔고가 갑자기 줄어든 순간을 찾습니다", label: "신호",
     fallback: "잔고가 갑자기 줄어든 순간 같은 신호를 찾습니다" },
   { key: "condition", title: "판정 기준과 맞춰 봅니다", desc: "신호를 정해진 기준값과 비교합니다", label: "조건",
-    fallback: "한 번에 빠진 돈의 비율 같은 조건을 기준과 비교합니다" },
+    fallback: "원금을 넘어 빠져나간 돈의 비율 같은 조건을 기준과 비교합니다" },
   { key: "type", title: "어떤 사기와 비슷한지 봅니다", desc: "사기 유형을 정해진 순서대로 하나씩 확인합니다", label: "유형",
     fallback: "사기 유형 네 가지를 정해진 순서대로 확인합니다" },
   { key: "verdict", title: "결론을 하나로 냅니다", desc: "위험·주의·근거 없음·판단 불가 중 하나로 정리합니다", label: "판정",
@@ -55,12 +55,11 @@ export function heroSteps(decision) {
       if (!Number.isFinite(block)) return null;
       return wait ? `블록 ${wait.from}의 마지막 입금 뒤, 블록 ${block}에서 잔고가 한 번에 빠졌습니다` : `블록 ${block}에서 잔고가 한 번에 빠졌습니다`;
     },
+    // 기준값은 결과 JSON(decision.rugpull = report.dynamic.rugpull_axiom)의 thresholds에서 만든 표시값을 쓴다
     condition: () => {
-      const step = d.chain.find(s => s.no === d.matchedStep);
-      const c = step?.conditions?.[0];
-      const th = c?.label?.match(/(\d+(?:\.\d+)?%) 이상/)?.[1];
-      if (!c?.valueText || !th) return null;
-      return `한 번에 빠진 돈이 ${c.valueText} (기준 ${th} 이상)`;
+      const disp = d.rugpull?.display;
+      if (!disp?.netDrain || !disp.netDrainThreshold) return null;
+      return `원금을 넘어 빠져나간 돈이 최고 잔고의 ${disp.netDrain} (기준 ${disp.netDrainThreshold} 이상)`;
     },
     type: () => (Number.isFinite(d.matchedStep) && d.typeLabel ? `${d.matchedStep}번째 질문(${d.typeLabel})에서 조건이 모두 맞았습니다` : null),
     verdict: () => {

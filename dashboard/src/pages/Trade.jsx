@@ -9,6 +9,7 @@ import { Card, ICON, Legend, ReportGate, Segmented, Term } from "../components/u
 import ForceGraph from "../components/ForceGraph.jsx";
 import BalanceStory from "../components/BalanceStory.jsx";
 import FlowDiagram from "../components/FlowDiagram.jsx";
+import { WalletLedger } from "../components/RugAxisParts.jsx";
 import { NodeShape } from "../components/shapes.jsx";
 import { cssVar } from "../components/theme.js";
 import { api } from "../api/client.js";
@@ -145,6 +146,12 @@ function TradeBody({ data }) {
             </button>
           </Card>
         </div>
+      )}
+
+      {decision?.rugpull && (
+        <Card title="지갑별 낸 돈과 받은 돈" aside={<span className="muted small">전체 기간 · 러그풀 판정에 쓴 값</span>}>
+          <WalletLedger decision={decision} />
+        </Card>
       )}
 
       <Card title="블록별 입출금 상세"

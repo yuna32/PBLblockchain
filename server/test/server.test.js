@@ -255,7 +255,13 @@ test("5개 시나리오: view.headline·combination, /ontology 응답 (mode=fixt
     const o = await api(base, "GET", `/api/report/${job.reportId}/ontology`);
     assert.equal(o.status, 200);
     assert.deepEqual(Object.keys(o.body), ["nodes", "links", "highlight", "meta"]);
-    assert.equal(o.body.meta.owlMismatch, null);
+    // 알려진 한계: OWL에는 판정 순서가 없어 자금세탁 인스턴스가 RugPull로도 추론된다 (판정은 JS 판정 순서)
+    if (scenario === "laundering") {
+      assert.deepEqual([...o.body.meta.owlMismatch.owl].sort(), ["MoneyLaundering", "RugPull"]);
+      assert.ok(o.body.meta.owlOrderNote);
+    } else {
+      assert.equal(o.body.meta.owlMismatch, null);
+    }
     assert.ok(Array.isArray(o.body.meta.owlInferred));
     assert.equal(view.combination.quadrant, scenario === "normal" ? "low-low" : "high-high");
     rows.push({

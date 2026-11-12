@@ -4,7 +4,7 @@
     "explorerBase": "https://sepolia.easscan.org"
   },
   "canonicalVersion": "jcs-rfc8785/pbl-demo-v1",
-  "generatedAt": "2026-10-24T14:18:57.910Z",
+  "generatedAt": "2026-11-12T09:57:16.037Z",
   "glossary": {
     "ASYMMETRIC_WITHDRAWAL": {
       "category": "prevention_item",
@@ -95,6 +95,11 @@
       "category": "verdict",
       "desc": "정적 또는 동적 위험 점수가 높은 구간이다.",
       "ko": "높은 위험"
+    },
+    "HasFlow": {
+      "category": "condition",
+      "desc": "입금과 실제로 돈이 나간 출금이 각각 한 건 이상 있다. 없으면 러그풀 여부를 판단할 수 없다.",
+      "ko": "입출금 흐름 있음"
     },
     "HiddenRequireCondition": {
       "category": "evasion_technique",
@@ -266,15 +271,25 @@
       "desc": "전액 단발 인출 가능",
       "ko": "단일 출금 한도 없음"
     },
-    "NoMidWithdrawals": {
+    "NetDrain": {
       "category": "condition",
-      "desc": "참여자 출금 없이 마지막에 한 번에 자금이 빠져나갔다.",
-      "ko": "중도 출금 없음"
+      "desc": "지갑마다 받은 돈에서 낸 돈을 뺀 순이익을 더한 값이 최고 잔고의 70% 이상이다. 원금을 넘는 돈이 빠져나갔다는 뜻이다.",
+      "ko": "원금 초과 순유출"
     },
     "NormalContract": {
       "category": "class",
       "desc": "어떤 사기 유형에도 해당하지 않고 출금 차단 신호도 없는 컨트랙트다.",
       "ko": "정상 컨트랙트"
+    },
+    "NotPassThrough": {
+      "category": "condition",
+      "desc": "들어온 돈을 같은 금액으로 바로 내보내는 출금이 5건 이상이면서 과반인 반복 중계가 아니다. 반복 중계면 판단할 수 없다.",
+      "ko": "반복 중계 아님"
+    },
+    "NotSharedProfit": {
+      "category": "condition",
+      "desc": "원금의 105% 이상을 돌려받은 참여자가 2명 미만이다. 2명 이상이면 여럿이 나눠 가진 모양(폰지 쪽)으로 본다.",
+      "ko": "수익을 나눠 가지지 않음"
     },
     "OSCILLATING_BALANCE": {
       "category": "dynamic_rule",
@@ -383,7 +398,7 @@
     },
     "RugPull": {
       "category": "class",
-      "desc": "잔고가 정점일 때 운영자가 한 번에 전액을 인출하는 사기다.",
+      "desc": "넣은 돈보다 많은 돈을 한쪽이 몰아 가져가는 사기다. 여러 참여자가 나눠 가지면 폰지로 본다.",
       "ko": "러그풀"
     },
     "RugPull_BalanceDropEvasion": {
@@ -516,6 +531,11 @@
       "desc": "입금 대비 수령 비율이 클수록 낮다. 가중치 25%.",
       "ko": "자금 이동 패턴"
     },
+    "hasFlow": {
+      "category": "evidence",
+      "desc": "러그풀 축 데이터 속성: 입금과 성공 출금(금액 > 0)이 각각 있는지 (dynamic.rugpull_axiom.scope).",
+      "ko": "입출금 흐름 (hasFlow)"
+    },
     "live": {
       "category": "term",
       "desc": "이번 요청에서 시뮬레이션을 실제로 돌려 만든 결과다.",
@@ -530,6 +550,11 @@
       "category": "fraud_type_hint",
       "desc": "동적 분석이 자금세탁으로 판정했다.",
       "ko": "자금세탁"
+    },
+    "netDrainRatio": {
+      "category": "evidence",
+      "desc": "러그풀 축 데이터 속성: 원금을 넘어 빠져나간 돈 ÷ 최고 잔고 (dynamic.rugpull_axiom.netDrain).",
+      "ko": "순유출 비율 (netDrainRatio)"
     },
     "normal_staking": {
       "category": "fraud_type_hint",
@@ -546,10 +571,10 @@
       "desc": "마지막 블록 전에 금액이 있는 참여자 출금이 있다 (동적 분석 판정 단계).",
       "ko": "참여자 중도 출금"
     },
-    "participantNoMidExit": {
+    "passThrough": {
       "category": "evidence",
-      "desc": "마지막 블록 전에 금액이 있는 참여자 출금이 없다 (동적 분석 판정 단계).",
-      "ko": "참여자 중도 출금 없음"
+      "desc": "러그풀 축 데이터 속성: 성공 출금 5건 이상 중 과반이 직전 입금과 같은 금액인지 (dynamic.rugpull_axiom.scope).",
+      "ko": "반복 중계 여부 (passThrough)"
     },
     "ponzi_scheme": {
       "category": "fraud_type_hint",
@@ -560,6 +585,11 @@
       "category": "term",
       "desc": "배포 전 예방 분석(온톨로지 체크리스트)의 위험 등급이다.",
       "ko": "코드 위험 수준"
+    },
+    "profitSharerCount": {
+      "category": "evidence",
+      "desc": "러그풀 축 데이터 속성: 원금의 105% 이상을 돌려받은 입금자 수 (dynamic.rugpull_axiom.sharedProfit).",
+      "ko": "수익자 수 (profitSharerCount)"
     },
     "pump_and_dump": {
       "category": "fraud_type_hint",
@@ -629,7 +659,7 @@
       "expectedType": "normal_staking",
       "id": "normal",
       "label": "정상 스테이킹",
-      "reportHash": "0x08f1e9e69219a0b2b8557682168241a7c1df79e24345f89601da13766d68a609"
+      "reportHash": "0x2978f4a18407d9def9a28ca4879197ea863cd32c32fe670af9c26b7488969e1f"
     },
     {
       "attestStatus": "B",
@@ -637,15 +667,15 @@
       "expectedType": "ponzi_scheme",
       "id": "ponzi",
       "label": "폰지 사기",
-      "reportHash": "0xea71ae0cb366c7fae71749c584ab574f4f816aa64c6da6504b33b4ad222dd63a"
+      "reportHash": "0xbaeb59b93cd24c3e0b3654dd85f0804d85edfd436a3803a220fb082b4db98518"
     },
     {
       "attestStatus": "B",
-      "description": "참여자 10명이 점점 큰 금액을 입금한 뒤 운영자가 잔고 전액을 한 번에 인출한다.",
+      "description": "참여자 10명이 점점 큰 금액을 입금한 뒤, 입금한 적 없는 운영자 한쪽이 원금을 넘는 잔고를 몰아 가져간다.",
       "expectedType": "rug_pull",
       "id": "rugpull",
       "label": "러그풀",
-      "reportHash": "0x8a6def5dbae578d70ff8518670f38fa0447c6915e36ea0ac9ffae66193e4e4e4"
+      "reportHash": "0x8339e38932c5e7744970ec76b9dc3ebeb2b4f58669629fb049b477b75640433c"
     },
     {
       "attestStatus": "B",
@@ -653,7 +683,7 @@
       "expectedType": "money_laundering",
       "id": "laundering",
       "label": "자금세탁",
-      "reportHash": "0xed9442e63c0de5224afc5f04b9d3bc73c318ece02c7c33a32b6c0c5368236c81"
+      "reportHash": "0xbf233c243b7b6af18c6b3fc664ece24d57402b3ee13a30cba5a57ad1da38d663"
     },
     {
       "attestStatus": "B",
@@ -661,9 +691,9 @@
       "expectedType": "pump_and_dump",
       "id": "pumpdump",
       "label": "펌프앤덤프",
-      "reportHash": "0xaae9a4ceefb45d5965285ddff2ece86dfe8b35acae0ace6fcc16732e4b866d76"
+      "reportHash": "0xd17bebb6e3aebfb6ea77db0451e52508a7f8f7515bac1a403587867cbbbbd62b"
     }
   ],
   "schemaVersion": 1,
-  "sourceCommit": "0e40508"
+  "sourceCommit": "98d5797"
 }
