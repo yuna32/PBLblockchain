@@ -134,6 +134,8 @@ N=272에 새 공리를 그대로 적용하면(계산만 해 본 결과) 폰지 1
 - `flash_loan` 분기: 컨트랙트·시뮬은 `archive/2026-10_flashloan/`로 옮겼지만 판정 1순위 분기와 `OSCILLATING_BALANCE` 규칙은 남아 있다.
 - 커밋된 `analysis/reports/`·`analysis/analysis/reports/`의 컨트랙트 리포트 14개는 이번 변경 전부터 현재 코드보다 낡았다
   (변경 전 코드로 다시 만들어도 prevention 추론 체인 등이 다름). 다시 만들지 결정 필요.
+- analysis/reports, analysis/analysis/reports 컨트랙트 리포트 14개는 prevention 추론 체인·static 필드가 현재 코드와 어긋나 있음(ead3d65에서도 동일). 원인 조사 필요.
+- 이 14개에는 rugpull_axiom 필드가 없음(demo/fixtures, 스냅샷과 불일치).
 - `ontology/run_reasoner.py`는 `add_swrl_rules.py`의 규칙 사본인데 이미 어긋나 있다(PumpAndDump 규칙에 balanceAtFailure 조건 없음, 인스턴스 목록에 honeypot_selective 없음). 이번에는 Rule_RugPull만 맞췄다.
 - CLAUDE.md의 HSU/SMC 서술(`fraudType==="HoneypotTrap"`일 때만 실행)은 허니팟 유형 삭제 전 내용이다.
 - `evaluation/ponzi_comparison/results/`의 커밋된 4파일은 2026-09 isError 데이터 수정 전 스냅샷이라 지금 실행 결과와
