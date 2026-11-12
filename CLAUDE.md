@@ -15,13 +15,19 @@
 | 시뮬레이션 | `scripts/simulate_*.js` (honeypot, evasion_patched 포함) | 없음 — ②와 공유 |
 | 로그 | `analysis/logs/` | `analysis/analysis/logs/` (기존 로그 보존용. 새 시뮬레이션은 여기에 쓰지 않음) |
 | 파이프라인 | `analysis/pipeline.js` (`npm run analyze`) | `analysis/analysis/pipeline.js` (npm script 없음 — `node analysis/analysis/pipeline.js --contract <이름>`) |
-| prevention | `analysis/prevention_reasoner.js` (메인, HSU/SMC 2차 분류 포함) | `analysis/analysis/prevention_reasoner.js` (중첩본, `predictCausalSignals` 포함) |
+| prevention | `analysis/prevention_reasoner.js` (메인, HSU/SMC 2차 분류·`predictCausalSignals` 포함) | `analysis/analysis/prevention_reasoner.js` (메인을 re-export하는 한 줄, fc9c426) |
 | HSU/SMC 탐지 | `analysis/honeypot_code_patterns.js` | 같은 모듈을 import·re-export |
 | 리포트 | `analysis/reports/` | `analysis/analysis/reports/` |
 | 대시보드 | `analysis/dashboard.html` (Panel 5, 코드 패턴 블록 포함) | `analysis/analysis/dashboard.html` (Panel 5 이전) |
 
+- **(2026-11-12 정정)** 판정 로직이 실제로 있는 곳은 `analysis/dynamic_analyzer.js`와
+  `analysis/fraud_ontology.js`뿐이다. 중첩 `analysis/analysis/`의 `dynamic_analyzer.js`(9열 로그를 8열로 맞춘 뒤
+  메인 호출, 97e765a)·`prevention_reasoner.js`·`static_analyzer.js`(re-export)·`trust_scorer.js`(메인 호출 어댑터)는
+  메인을 부르는 얇은 층이고, 중첩 폴더에 `fraud_ontology.js`는 없다(b177946에서 `analysis/`로 이동).
+  "활성 파이프라인은 analysis/analysis/"라는 서술은 낡았다. 판정 규칙을 고칠 때는 메인 파일만 고친다.
 - N=272 실데이터 비교(`evaluation/ponzi_comparison/evaluate_comparison.js`)는 흐름 ②의
-  `analysis/dynamic_analyzer.js`와 `analysis/analysis/fraud_ontology.js`의 `preventionRules`를 쓴다.
+  `analysis/dynamic_analyzer.js`와 `analysis/fraud_ontology.js`의 `preventionRules`를 쓴다.
+  블록 집계 로그를 합성 주소로 펼쳐 넣으므로 `analyzeDynamic(…, { ledger: "aggregated" })`로 부른다(아래 러그풀 교차공리 절).
 - HSU/SMC 평가(`evaluation/honeypot_comparison/`)는 중첩 `prevention_reasoner.js`에서 import하지만,
   실제 로직은 `analysis/honeypot_code_patterns.js`에 있다(중첩 reasoner는 re-export만 함).
 - 루트에 있던 초기 파이프라인 사본 9개 항목은 `archive/2026-09_pre-cleanup/`로 옮겼다(f27a283, 해당 폴더 README 참고).
@@ -39,13 +45,14 @@
 
 - `dynamic_analyzer.js`: **`analysis/dynamic_analyzer.js`(②)**. 메인 pipeline, N=272 평가,
   `scenarios/`, `analysis/compare_evasion.js`가 사용. `analysis/analysis/dynamic_analyzer.js`는
-  ③ pipeline 전용(FraudOntology 연동 버전).
+  ③ pipeline 전용 어댑터(9열 로그 정규화 후 메인 호출, 옵션 인자도 그대로 넘김).
 - `prevention_reasoner.js`: 두 벌이며 용도가 다르다. 둘 다 저장소 루트 `contracts/`를 읽는다.
   - `analysis/prevention_reasoner.js`(237줄 메인): `analysis/pipeline.js:7`,
     `scenarios/run_all_scenarios.js:51`이 사용. `fraudType==="HoneypotTrap"`일 때만 HSU/SMC 2차 분류를
     실행해 추론 과정에 `[코드패턴]` 2줄을 더하고, `honeypot_code_pattern_subclasses`는 **모든 반환 경로**
     (소스 없음, 패턴 미검출로 일찍 반환, 정상 반환)에 넣는다(해당 없으면 `[]`). `predictCausalSignals` 없음.
-  - `analysis/analysis/prevention_reasoner.js`(중첩본): `predictCausalSignals` 포함.
+  - `analysis/analysis/prevention_reasoner.js`(중첩본): **(2026-11-12 정정)** 지금은 메인 `runPrevention`을
+    re-export하는 한 줄이다(fc9c426에서 `predictCausalSignals`를 메인으로 옮김). 아래 서술은 그 이전 상태다.
     ③ pipeline과 `evaluation/honeypot_comparison/*`가 사용. HSU/SMC 함수는
     `analysis/honeypot_code_patterns.js`에서 import해 같은 이름으로 re-export한다. 일찍 반환하는 경로
     (NormalStaking 등)에는 `honeypot_code_pattern_subclasses`가 없다(메인과 다름, 반환 형태 유지).
@@ -55,14 +62,15 @@
 - `honeypot_code_patterns.js`: **`analysis/honeypot_code_patterns.js`** — HSU/SMC 탐지 정본
   (2026-10-01 중첩 reasoner에서 로직 변경 없이 추출). `ontology/load_instances.py`에 같은 로직의
   Python 독립 구현이 있으므로(교차검산용) 한쪽을 고치면 다른 쪽도 맞출 것.
-- `fraud_ontology.js`: **`analysis/analysis/fraud_ontology.js` 하나뿐**. 메인 reasoner도
-  `./analysis/fraud_ontology.js` 경로로 이 파일을 import한다.
+- `fraud_ontology.js`: **`analysis/fraud_ontology.js` 하나뿐** (2026-11-12 정정: 예전 서술의
+  `analysis/analysis/fraud_ontology.js`는 b177946에서 옮겨져 없다). 메인·중첩 pipeline, reasoner, demo가 모두 이 파일을 import한다.
+  러그풀 기준값은 이 파일이 아니라 `analysis/dynamic_analyzer.js`의 `RUGPULL_AXIOM`에서 가져온다.
 - `dashboard.html`: **`analysis/dashboard.html`**. Panel 5 예방 탭의 "코드 패턴" 블록은
   `honeypot_code_pattern_subclasses`가 undefined면 "코드 패턴 분류 이전 버전(재실행 필요)",
   `[]`면 "해당 코드 패턴 없음", 항목이 있으면 카드(label·id·codePattern·근거)로 표시한다.
 - `response_reasoner.js`: **`evaluation/response_reasoner/response_reasoner.js`** — 버전 간 불일치 케이스
   요약기(설계서 v0.3 `response_reasoner.js`의 MVP). 두 소스 트리(`--old`, `--new`)에서 각각
-  `analysis/dynamic_analyzer.js`의 `analyzeDynamic`과 `analysis/analysis/fraud_ontology.js`를 import해
+  `analysis/dynamic_analyzer.js`의 `analyzeDynamic`과 `analysis/fraud_ontology.js`(옛 트리는 `analysis/analysis/`)를 import해
   N=272 평가와 같은 방식으로 주소별 예측·`triggered_rules`를 다시 계산하고 차이를 요약한다.
   `evaluate_comparison.js`는 import하지 않고(`main()`이 `results/`를 덮어씀) 필요한 로직을 복사했으므로,
   원본을 고치면 복사 블록(주석에 원본 줄 번호)도 맞출 것. 기존 파일은 읽기만 하고 출력은 `--out`에만 쓴다
@@ -731,7 +739,8 @@ Phase 1 데이터 준비 중 발견.
 
 ### 4. [설계서 정정] 5-5절 규칙 3건의 body 조건이 실제 SWRL과 다름
 
-- **Rule_RugPull**: 문서 = `hasSignal(BalanceDrop)∧hasPattern(OwnerWithdrawAll)∧
+- **Rule_RugPull** (2026-11-12 주: 아래는 v0.2 규칙이다. 지금 규칙은 "러그풀 교차공리" 절의 수치 속성 규칙이고,
+  v0.2 상태는 태그 `ontology-v0.2-final`): 문서 = `hasSignal(BalanceDrop)∧hasPattern(OwnerWithdrawAll)∧
   hasSignal(MaxTxAlert)`. 실제(`fraud_with_rules.owl` 12번째 `<swrl:Imp>`) =
   `hasSignal(BalanceDrop)∧hasPattern(OwnerWithdrawAll)∧hasPattern(SingleLargeOutflow)`
   — 세 번째 조건이 `hasSignal(MaxTxAlert)`가 아니라 `hasPattern(SingleLargeOutflow)`.
@@ -1089,3 +1098,42 @@ React 대시보드(`dashboard/`)를 새 시안(`docs/ui_mock/`) 기준으로 개
 - 대시보드 시험·빌드는 WSL에서 nvm Node 22로(`dashboard/node_modules`에 리눅스 바이너리): `npm --prefix dashboard test`, `npm --prefix dashboard run build`, `npm --prefix dashboard run build:static`, `node --test demo/test/*.test.js`.
 - 화면 확인은 `npm --prefix dashboard run preview:static`(127.0.0.1:4173) 후 `#/`, `#/overview?scenario=rugpull` 등.
 - 저장소와 작업 트리는 LF다(`core.autocrlf=true`). 스크립트로 고칠 때 줄바꿈이 바뀌지 않게 주의하고(Git Bash `sed -i`는 쓰지 않는다), 줄바꿈은 `git ls-files --eol`로 확인한다.
+
+## 러그풀 교차공리 (2026-11, 브랜치 feat/rugpull-axiom)
+
+팀 간소화안(2026-10-11)을 명세로 삼아 우리 코드에 직접 구현했다. 변경점 정리는 `docs/rugpull_axiom_v03_changes.md`.
+
+- 원칙: 원금을 넘는 돈을 한쪽이 몰아 가져가면 러그풀, 여러 참여자가 나눠 가지면 폰지.
+  `RugPull ← Contract ∧ HasFlow ∧ ¬T ∧ NetDrain ∧ ¬SharedProfit`
+  - NetDrain: 지갑별 `max(0, 받은 돈 − 낸 돈)`의 합 ≥ 0.7 × 최고 잔고
+  - SharedProfit: 낸 돈 > 0이고 받은 돈 ≥ 1.05 × 낸 돈인 지갑이 2개 이상
+  - T(반복 중계): 성공 출금(금액 > 0) 5건 이상이고 그 과반이 직전 입금과 같은 금액(차이 ≤ 1e-9 ETH)
+- 판정 코드: `analysis/dynamic_analyzer.js`의 `computeRugPullAxiom()`. 기준값은 `RUGPULL_AXIOM` 한 곳에만 있다.
+  `analysis/fraud_ontology.js`, `ontology/rugpull_axiom.py`(OWL용, JS 블록을 읽음), `demo/lib`가 이 값을 가져다 쓰고,
+  대시보드는 리포트의 `rugpull_axiom.thresholds`를 읽는다. 다른 곳에 숫자를 적지 않는다.
+- 금액 비교는 wei 정수(BigInt, Python은 Decimal)로 한다. 폰지 fixture의 NetDrain이 정확히 70.0%라 부동소수점이면 경계에서 뒤집힐 수 있다.
+- 결과: `report.dynamic.rugpull_axiom = { version, thresholds, scope{isContract, isContractSource, ledger, hasFlow,
+  passThrough, passThroughDetail, inScope, reason}, netDrain{value, netOutflowEth, peakBalanceEth, threshold, met},
+  sharedProfit{count, threshold, met, wallets}, wallets[{address, deposited, received, netGain, drainContributor, profitSharer}], verdict }`.
+- 적용 범위 밖(`scope.reason`: `eoa` / `no_flow` / `pass_through` / `no_wallet_ledger`)은 "정상"이 아니라
+  "이 장부로는 판단할 수 없음"이다. 러그풀 단계만 건너뛰고 다른 유형은 그대로 본다. 전역 판정불가 verdict는 두지 않았다.
+- `analyzeDynamic(csv, { ledger: "aggregated" })`: 블록 집계를 합성 주소로 펼친 N=272 입력용. 러그풀 축은
+  `no_wallet_ledger`이고 판정 체인은 옛 술어(singleLargeOutflow ∧ ownerWithdrawAll ∧ ¬participantMidExit)를 그대로 쓴다.
+  호출처 5곳(evaluate_comparison, pilot_diagnose, response_reasoner, response_candidates, network_viz/extract_reasoning)이
+  넘긴다. 집계 장부를 쓰는 새 스크립트를 만들면 반드시 넘길 것. 넘기지 않으면 N=272 폰지 판정이 대부분 러그풀로 바뀐다.
+- 검증 범위: 시뮬레이션에서만 확인했다. 시나리오 5개 판정은 그대로이고, evasive_A·C는 폰지에서 러그풀로 바뀐다.
+  N=272에는 지갑별 장부가 없어 적용하지 못했고 생성 4파일은 그대로다. 팀 실데이터 25건은 저장소에 없어 재현하지 못했다.
+  F1 개선이나 실데이터 성능을 말할 근거는 없다.
+- 기준값 근거(시뮬레이션 기준): NetDrain 70~85%에서 판정 불변, 90%로 올리면 evasive_B(89%)·C(86%)가 바뀐다.
+  수익 기준은 100% 초과~110%에서 판정 불변. 130%로 올리면 폰지 fixture가 러그풀로 바뀐다(PROFIT_EXTRACTION의 1.3과 섞지 말 것).
+- 알려진 한계: 자금세탁과 장부상 같은 모양이라 JS 판정 순서(자금세탁 우선)로 가른다. OWL에는 순서가 없어
+  자금세탁 인스턴스가 RugPull로도 추론된다(대시보드 온톨로지 그래프에 안내 문구). 운영자가 지갑을 둘 이상 쓰면
+  SharedProfit이 성립해 러그풀이 아니게 된다. EOA 여부는 파이프라인에서 확인하지 않는다(isContract는 가정값).
+- 정상 스테이킹 fixture는 참여자 수익률이 104.0~104.9%로 1.05 바로 아래다. 폰지 쪽에 SharedProfit을 쓰는
+  2단계-B(미착수, 사용자 결정 필요)에서는 이 경계를 먼저 확인할 것.
+- 테스트: `node --test analysis/test/*.test.js`(경계·T·범위·판정 체인 17개), `demo/test/decision.test.js`(리포트 값과 일치),
+  `dashboard/src/lib/rugaxis.test.js`(지갑 값 = network.js 값, 범위 밖 중립 표시, 기준값은 JSON에서).
+- 대시보드: 판정 조건의 러그풀 카드(① 판단할 수 있는 거래 기록인가 ② 원금을 넘는 돈이 빠져나갔나 ③ 한쪽이 몰아 가져갔나),
+  "러그풀과 폰지가 갈리는 지점" 카드, 거래 분석 "지갑별 낸 돈과 받은 돈". 범위 밖 조건 상태는 `out_of_scope`("판단 불가", 회색).
+- 커밋된 `analysis/reports/`·`analysis/analysis/reports/`의 컨트랙트 리포트 14개는 이전부터 현재 코드보다 낡아 있다
+  (변경 전 코드 ead3d65로 다시 만들어도 다름). 이번에는 다시 만들지 않았다.
