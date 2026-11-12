@@ -3,7 +3,7 @@
   "scenario": "normal",
   "contract": "NormalStaking",
   "source": "live",
-  "report_sha256": "08f1e9e69219a0b2b8557682168241a7c1df79e24345f89601da13766d68a609",
+  "report_sha256": "2978f4a18407d9def9a28ca4879197ea863cd32c32fe670af9c26b7488969e1f",
   "report_hash_excluded": [
     "timestamp",
     "dynamic.csv",
@@ -23,5 +23,5 @@
     },
     "seed": "pbl-demo"
   },
-  "created_at": "2026-10-24T14:18:53.835Z"
+  "created_at": "2026-11-12T09:57:12.611Z"
 }

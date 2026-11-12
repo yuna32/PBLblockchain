@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-30T07:36:54.723Z",
+  "generated_at": "2026-11-12T09:57:10.983Z",
   "note": "Red-team blind-spot analysis — Hardhat simulation only, not for mainnet",
   "results": [
     {
@@ -173,7 +173,7 @@
         "PROFIT_EXTRACTION",
         "OSCILLATING_BALANCE"
       ],
-      "fraud_type_hint": "ponzi_scheme",
+      "fraud_type_hint": "rug_pull",
       "metrics": {
         "total_in_eth": 10,
         "total_out_eth": 9.6,
@@ -233,7 +233,7 @@
       "evaded_rules": [
         "OSCILLATING_BALANCE"
       ],
-      "fraud_type_hint": "ponzi_scheme",
+      "fraud_type_hint": "rug_pull",
       "metrics": {
         "total_in_eth": 10,
         "total_out_eth": 9.6,

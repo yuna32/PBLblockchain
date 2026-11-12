@@ -1,7 +1,7 @@
 {
   "contract": "NormalStaking",
   "type": "normal",
-  "timestamp": "2026-10-24T14:18:53.834Z",
+  "timestamp": "2026-11-12T09:57:12.611Z",
   "overall_grade": "A",
   "raw_grade": "A",
   "prevention_cap_applied": false,
@@ -83,6 +83,9 @@
       "withdrawSuccessRate: 100.0% (10/10 succeeded)",
       "nonPrivilegedSuccessRate: 100.0% (owner 0xf39fd6e5... 제외 10건 중 성공)",
       "balanceAtFailure: 0.000 ETH (amount_eth=0 시점 잔고 최댓값, n=0)",
+      "rugpullScope: true (reason none, contract assumed, hasFlow true, passThrough false 0/10)",
+      "netDrain: false (0.445 / peak 15.000 = 3.0%, threshold 70%)",
+      "sharedProfit: false (0 wallets received >= 105% of deposit, threshold 2)",
       "→ normal_staking (stake/unstake pattern, no fraud signals)"
     ],
     "withdraw_success_rate": 1,
@@ -91,6 +94,133 @@
     "withdraw_block_warning": {
       "detected": false,
       "reason": "비오너 출금 10건 중 성공률 100.0% > 5%, 실패 시점 잔고 0.000 ETH"
+    },
+    "rugpull_axiom": {
+      "version": 1,
+      "thresholds": {
+        "netDrain": 0.7,
+        "profitRatio": 1.05,
+        "profitSharers": 2,
+        "passThroughMinWithdrawals": 5,
+        "passThroughMatchShare": 0.5
+      },
+      "scope": {
+        "isContract": true,
+        "isContractSource": "assumed",
+        "ledger": "per_wallet",
+        "hasFlow": true,
+        "passThrough": false,
+        "passThroughDetail": {
+          "withdrawals": 10,
+          "matched": 0
+        },
+        "inScope": true,
+        "reason": null
+      },
+      "netDrain": {
+        "value": 0.029667,
+        "netOutflowEth": 0.445,
+        "peakBalanceEth": 15,
+        "threshold": 0.7,
+        "met": false
+      },
+      "sharedProfit": {
+        "count": 0,
+        "threshold": 2,
+        "met": false,
+        "wallets": []
+      },
+      "wallets": [
+        {
+          "address": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+          "deposited": 5,
+          "received": 0,
+          "netGain": -5,
+          "drainContributor": false,
+          "profitSharer": false
+        },
+        {
+          "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "deposited": 1,
+          "received": 1.049,
+          "netGain": 0.049,
+          "drainContributor": true,
+          "profitSharer": false
+        },
+        {
+          "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "deposited": 1,
+          "received": 1.048,
+          "netGain": 0.048,
+          "drainContributor": true,
+          "profitSharer": false
+        },
+        {
+          "address": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+          "deposited": 1,
+          "received": 1.047,
+          "netGain": 0.047,
+          "drainContributor": true,
+          "profitSharer": false
+        },
+        {
+          "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+          "deposited": 1,
+          "received": 1.046,
+          "netGain": 0.046,
+          "drainContributor": true,
+          "profitSharer": false
+        },
+        {
+          "address": "0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc",
+          "deposited": 1,
+          "received": 1.045,
+          "netGain": 0.045,
+          "drainContributor": true,
+          "profitSharer": false
+        },
+        {
+          "address": "0x976ea74026e726554db657fa54763abd0c3a0aa9",
+          "deposited": 1,
+          "received": 1.044,
+          "netGain": 0.044,
+          "drainContributor": true,
+          "profitSharer": false
+        },
+        {
+          "address": "0x14dc79964da2c08b23698b3d3cc7ca32193d9955",
+          "deposited": 1,
+          "received": 1.043,
+          "netGain": 0.043,
+          "drainContributor": true,
+          "profitSharer": false
+        },
+        {
+          "address": "0x23618e81e3f5cdf7f54c3d65f7fbc0abf5b21e8f",
+          "deposited": 1,
+          "received": 1.042,
+          "netGain": 0.042,
+          "drainContributor": true,
+          "profitSharer": false
+        },
+        {
+          "address": "0xa0ee7a142d267c1f36714e4a8f75612f20a79720",
+          "deposited": 1,
+          "received": 1.041,
+          "netGain": 0.041,
+          "drainContributor": true,
+          "profitSharer": false
+        },
+        {
+          "address": "0xbcd4042de499d14e55001ccbb24a551f3b954096",
+          "deposited": 1,
+          "received": 1.04,
+          "netGain": 0.04,
+          "drainContributor": true,
+          "profitSharer": false
+        }
+      ],
+      "verdict": false
     },
     "anomaly_signals": {
       "INFLOW_STOP": {
