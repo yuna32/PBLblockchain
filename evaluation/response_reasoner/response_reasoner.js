@@ -231,7 +231,7 @@ function dynamicPredict(analyzeDynamic, logsDir, tmpDir, tag, address) {
   const tmpPath = path.join(tmpDir, `${tag}_${address}.csv`);
   try {
     fs.writeFileSync(tmpPath, [PER_TX_HEADER, ...perTx].join('\n') + '\n', 'utf8');
-    const result = analyzeDynamic(tmpPath);
+    const result = analyzeDynamic(tmpPath, { ledger: 'aggregated' });   // 블록 집계 → 합성 주소 (옛 트리는 둘째 인자를 무시)
     const hint   = result.fraud_type_hint ?? 'unknown';
     return {
       exactPred: EXACT_HINTS.has(hint) ? 1 : 0,

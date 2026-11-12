@@ -6,6 +6,7 @@ import os
 import re
 import pandas as pd
 from owlready2 import *
+import rugpull_axiom   # ontology/rugpull_axiom.py (기준값은 analysis/dynamic_analyzer.js RUGPULL_AXIOM)
 
 onto = get_ontology("ontology/fraud.owl").load()
 
@@ -276,6 +277,14 @@ with onto:
         instance.nonPrivilegedSuccessRate  = non_privileged_success_rate
         instance.balanceAtFailure          = balance_at_failure
 
+        # ── 러그풀 교차공리 데이터 속성 4종 (2026-11, ontology/rugpull_axiom.py) ──
+        # JS computeRugPullAxiom()과 같은 정의를 같은 CSV에서 다시 계산한다(값 복사 아님).
+        rug_axiom = rugpull_axiom.compute(csv_path)
+        instance.hasFlow           = rug_axiom["hasFlow"]
+        instance.passThrough       = rug_axiom["passThrough"]
+        instance.netDrainRatio     = rug_axiom["netDrainRatio"]
+        instance.profitSharerCount = rug_axiom["profitSharerCount"]
+
         if len(pos_withdrawals) > 0:
             # Largest withdrawal row
             max_idx       = pos_withdrawals["amount_eth_f"].idxmax()
@@ -348,6 +357,8 @@ with onto:
         print(f"  withdrawSuccessRate      = {instance.withdrawSuccessRate:.4f}")
         print(f"  nonPrivilegedSuccessRate = {instance.nonPrivilegedSuccessRate:.4f}")
         print(f"  balanceAtFailure         = {instance.balanceAtFailure:.4f} ETH")
+        print(f"  rugpull axiom: hasFlow={instance.hasFlow} passThrough={instance.passThrough} "
+              f"netDrainRatio={instance.netDrainRatio:.4f} profitSharerCount={instance.profitSharerCount}")
         print(f"  Signals  : {[s.name for s in instance.hasSignal]}")
         print(f"  Patterns : {[p.name for p in instance.hasPattern]}")
         if sol_path:

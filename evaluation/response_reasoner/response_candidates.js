@@ -386,7 +386,7 @@ function analyzeTreeF(t, analyzeDynamic, recs, tmpDir) {
         const tmpPath = path.join(tmpDir, `${t.tag}_${address}.csv`);
         try {
           fs.writeFileSync(tmpPath, [PER_TX_HEADER, ...perTx].join('\n') + '\n', 'utf8');
-          res = analyzeDynamic(tmpPath);
+          res = analyzeDynamic(tmpPath, { ledger: 'aggregated' });   // 블록 집계 → 합성 주소 (옛 트리는 둘째 인자를 무시)
         } catch (e) {
           status = 'analyzer_error';
         } finally {

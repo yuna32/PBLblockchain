@@ -7,6 +7,7 @@ each SWRL rule body against the loaded instances and asserts the head atoms.
 Semantics are equivalent to what a DL reasoner would produce for these rules.
 """
 from owlready2 import *
+from rugpull_axiom import PARAMS as RUG   # 기준값: analysis/dynamic_analyzer.js RUGPULL_AXIOM
 
 onto = get_ontology("ontology/fraud_with_rules.owl").load()
 
@@ -68,12 +69,14 @@ SWRL_RULES = [
         "head": "PonziScheme",
     },
     {
+        # 2026-11 러그풀 교차공리 (add_swrl_rules.py Rule 2와 같음, 기준값 RUGPULL_AXIOM)
         "name": "Rule_RugPull",
         "body": [
             ("type",    "FraudContract"),
-            ("signal",  "BalanceDrop"),
-            ("pattern", "OwnerWithdrawAll"),
-            ("pattern", "SingleLargeOutflow"),
+            ("data_eq", ("hasFlow", True)),
+            ("data_eq", ("passThrough", False)),
+            ("data_ge", ("netDrainRatio", float(RUG["netDrain"]))),
+            ("data_lt", ("profitSharerCount", int(RUG["profitSharers"]))),
         ],
         "head": "RugPull",
     },
@@ -149,6 +152,16 @@ def check_body_atom(instance, check_type, arg):
         return has_signal_type(instance, arg)
     elif check_type == "pattern":
         return has_pattern_type(instance, arg)
+    elif check_type in ("data_eq", "data_ge", "data_lt"):
+        prop_name, threshold = arg
+        actual = getattr(instance, prop_name, None)
+        if actual is None:
+            return False
+        if check_type == "data_eq":
+            return actual == threshold
+        if check_type == "data_ge":
+            return actual >= threshold
+        return actual < threshold
     return False
 
 def evaluate_body(instance, body):

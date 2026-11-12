@@ -21,16 +21,16 @@ function normalizeLines(lines) {
   return { lines: out, changed };
 }
 
-export function analyzeDynamic(csvPath) {
-  if (!fs.existsSync(csvPath)) return analyzeMain(csvPath);
+export function analyzeDynamic(csvPath, opts = {}) {
+  if (!fs.existsSync(csvPath)) return analyzeMain(csvPath, opts);
   const lines = fs.readFileSync(csvPath, "utf8").trim().split("\n");
   const { lines: norm, changed } = normalizeLines(lines);
-  if (!changed) return analyzeMain(csvPath);
+  if (!changed) return analyzeMain(csvPath, opts);
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nested-dyn-"));
   const tmp = path.join(dir, path.basename(csvPath));
   try {
     fs.writeFileSync(tmp, norm.join("\n") + "\n");
-    return analyzeMain(tmp);
+    return analyzeMain(tmp, opts);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

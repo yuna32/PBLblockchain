@@ -1,4 +1,6 @@
-﻿export const FraudOntology = {
+﻿import { RUGPULL_AXIOM } from "./dynamic_analyzer.js";
+
+export const FraudOntology = {
 
   classes: {
     FraudPattern: {
@@ -99,17 +101,42 @@
         }
       }
     },
+    // 2026-11 러그풀 교차공리: RugPull ← Contract ∧ HasFlow ∧ ¬T ∧ NetDrain ∧ ¬SharedProfit.
+    // 판정은 analysis/dynamic_analyzer.js computeRugPullAxiom()이 하고, 기준값은 RUGPULL_AXIOM 한 곳에 있다.
+    // 조건이 모두 연언이라 각각이 필요 조건이고, 넷이 함께 충족될 때만 러그풀이다(단독 충분 조건 없음).
+    // 이전 정의(BalanceDrop·MaxTxAlert + NoMidWithdrawals, 태그 ontology-v0.2-final)는 블록 집계 장부
+    // (N=272, scope.reason no_wallet_ledger)에서만 판정 체인이 그대로 쓴다.
     RugPull: {
       label: '러그풀',
-      description: '잔고 정점에서 단 1회 전액 인출',
-      necessaryConditions: ['BalanceDrop', 'MaxTxAlert'],
-      sufficientConditions: ['NoMidWithdrawals'],
+      description: '원금을 넘는 돈을 한쪽이 몰아 가져감 (여러 참여자가 나눠 가지면 폰지)',
+      necessaryConditions: ['HasFlow', 'NotPassThrough', 'NetDrain', 'NotSharedProfit'],
+      sufficientConditions: [],
+      axiom: {
+        formula: 'RugPull ← Contract ∧ HasFlow ∧ ¬T ∧ NetDrain ∧ ¬SharedProfit',
+        scope:     ['IsContract', 'HasFlow', 'NotPassThrough', 'WalletLedger'],
+        base:      'NetDrain',
+        cross:     'NotSharedProfit',
+        // OWL 데이터 속성 (ontology/build_ontology.py). SWRL에 부정이 없어 수치·불리언으로 표현한다.
+        dataProperties: {
+          netDrainRatio:     'Σ max(0, received − deposited) ÷ 최고 잔고 ≥ netDrain',
+          profitSharerCount: '원금의 profitRatio 이상을 받은 입금자 수 < profitSharers',
+          passThrough:       '반복 중계(T) = false',
+          hasFlow:           '입금·성공 출금이 각각 1건 이상 = true'
+        },
+        knownLimits: [
+          '자금세탁과 장부상 같은 모양일 수 있어 JS 판정 체인의 순서(자금세탁 우선)로 가른다. OWL에는 순서가 없어 두 클래스가 함께 추론될 수 있다.',
+          '운영자가 지갑 2개 이상으로 수익을 나누면 SharedProfit이 성립해 러그풀로 판정되지 않는다.',
+          '시뮬레이션에서만 검증했다. N=272는 지갑별 장부가 없어 적용 범위 밖이다.'
+        ]
+      },
       usesEvasion: ['OwnerWithdrawAll'],
       affectedRoles: ['LateParticipant', 'Victim'],
       beneficiaryRoles: ['Insider'],
       detectionThresholds: {
-        BALANCE_DROP: 0.2,
-        MAX_TX_ALERT: 0.9
+        NET_DRAIN:                    RUGPULL_AXIOM.netDrain,
+        PROFIT_RATIO:                 RUGPULL_AXIOM.profitRatio,
+        PROFIT_SHARERS:               RUGPULL_AXIOM.profitSharers,
+        PASS_THROUGH_MIN_WITHDRAWALS: RUGPULL_AXIOM.passThroughMinWithdrawals
       },
       guiEmphasis: {
         panel1: 'owner 노드 빨간 테두리 + 컨트랙트→owner 대형 엣지',
@@ -354,6 +381,8 @@
   // analysis/dynamic_analyzer.js hintFraudType()에 있고, 이 항목은 그 순서를 지식으로 기술한다.
   // flash_loan(OSCILLATING_BALANCE)은 4개 사기 유형 밖의 실험용 분기라 체인 맨 앞에 그대로 둔다.
   // 사기 조건이 모두 불일치인데 ZeroWithdrawBlock이 발동하면 Normal 대신 unclassified_warning.
+  // RugPull 단계는 2026-11부터 교차공리(rugpull_axiom.verdict)로 판정한다. 적용 범위 밖이면 이 단계만
+  // 건너뛰고 다음 유형을 계속 본다(전역 "판정 불가"는 두지 않음).
   classificationChain: [
     'PumpAndDump', 'MoneyLaundering', 'RugPull', 'PonziScheme',
     'unclassified_warning', 'NormalContract'

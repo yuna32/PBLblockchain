@@ -20,6 +20,140 @@ const DEX_WHITELIST = new Set([
   "0xdef1c0ded9bec7f1a1670819833240f027b25eff", // 0x: Exchange Proxy
 ]);
 
+// ── 러그풀 교차공리 (2026-11, 팀 간소화안 반영) ─────────────────────────────────
+// 원금을 넘는 돈을 한쪽이 몰아 가져가면 러그풀, 여러 참여자가 나눠 가지면 폰지.
+//   RugPull ← Contract ∧ HasFlow ∧ ¬T ∧ NetDrain ∧ ¬SharedProfit
+//   NetDrain     ≡ Σ_a max(0, received(a) − deposited(a)) ≥ netDrain × peak
+//   SharedProfit ≡ |{a : deposited(a) > 0 ∧ received(a) ≥ profitRatio × deposited(a)}| ≥ profitSharers
+//   T(반복 중계) ≡ 성공 출금(금액 > 0) ≥ passThroughMinWithdrawals건이고, 그중 직전 입금과 같은 금액
+//                 (차이 ≤ passThroughAmountToleranceEth)인 건이 passThroughMatchShare 비율을 넘음
+// 적용 범위(Contract ∧ HasFlow ∧ ¬T, 그리고 지갑별 장부가 있을 것) 밖이면 "정상"이 아니라
+// "이 장부로는 판단할 수 없음"이다(scope.reason). 판정 체인의 다른 유형은 그대로 평가한다.
+// 이 값은 이 파일 한 곳에서만 정한다. demo/lib는 import해 쓰고, 대시보드는 리포트의
+// rugpull_axiom.thresholds를 읽는다. 기준값은 시뮬레이션 기준 측정값이다
+// (NetDrain 70~85%에서 판정 불변, 90%에서 evasive_B·C가 바뀜. 실데이터 검증 없음).
+export const RUGPULL_AXIOM = Object.freeze({
+  version: 1,
+  netDrain: 0.7,
+  profitRatio: 1.05,
+  profitSharers: 2,
+  passThroughMinWithdrawals: 5,
+  passThroughMatchShare: 0.5,
+  passThroughAmountToleranceEth: 1e-9
+});
+
+// 금액 비교는 부동소수점 대신 wei 정수(BigInt)로 한다. 경계(정확히 70%, 정확히 105%)가
+// 반올림 오차로 뒤집히지 않게 하기 위해서다. 파싱 규칙은 parseFloat(x) || 0과 같게
+// 숫자로 읽을 수 없으면 0으로 본다. 소수 18자리 밑은 버린다.
+const WEI_PER_ETH = 10n ** 18n;
+function toWei(x) {
+  let s = String(x ?? "").trim();
+  if (/e/i.test(s)) {
+    const n = Number(s);
+    if (!Number.isFinite(n)) return 0n;
+    s = n.toFixed(18);
+  }
+  const m = /^([+-]?)(\d*)(?:\.(\d*))?/.exec(s);
+  if (!m || (m[2] === "" && (m[3] ?? "") === "")) return 0n;
+  const frac = ((m[3] ?? "") + "0".repeat(18)).slice(0, 18);
+  const v = BigInt(m[2] || "0") * WEI_PER_ETH + BigInt(frac);
+  return m[1] === "-" ? -v : v;
+}
+function weiToNumber(v) {
+  const neg = v < 0n, a = neg ? -v : v;
+  const frac = (a % WEI_PER_ETH).toString().padStart(18, "0").replace(/0+$/, "");
+  return Number(`${neg ? "-" : ""}${a / WEI_PER_ETH}${frac ? "." + frac : ""}`);
+}
+// 상수(소수 표기) → 분수. 0.7 → 7/10, 1.05 → 105/100
+function toFraction(x) {
+  const [i, f = ""] = String(x).split(".");
+  return { num: BigInt(i + f), den: 10n ** BigInt(f.length) };
+}
+const roundTo = (x, d) => Math.round(x * 10 ** d) / 10 ** d;
+
+// 러그풀 축 평가. ledger: "per_wallet"(기본, 주소별 거래 로그) | "aggregated"(블록 집계를
+// 합성 주소로 펼친 N=272 같은 입력 — 주소가 실제 지갑이 아니므로 범위 밖, 판정 체인은 옛 술어 유지).
+// isContract: 호출자가 알면 넘긴다. 없으면 컨트랙트로 가정한다(isContractSource "assumed").
+export function computeRugPullAxiom(rows, opts = {}) {
+  const A = RUGPULL_AXIOM;
+  const ledger = opts.ledger === "aggregated" ? "aggregated" : "per_wallet";
+  const isContract = opts.isContract !== false;
+  const isContractSource = typeof opts.isContract === "boolean" ? "input" : "assumed";
+  const tol = toWei(A.passThroughAmountToleranceEth);
+
+  const dep = new Map(), rec = new Map(), order = [];
+  const touch = a => { if (!dep.has(a)) { dep.set(a, 0n); rec.set(a, 0n); order.push(a); } };
+  let peak = 0n, nDep = 0, nWd = 0, matched = 0, lastDep = null;
+  for (const r of rows) {
+    const amt = toWei(r.amount_eth), bal = toWei(r.contract_balance_eth);
+    if (bal > peak) peak = bal;
+    if (DEPOSIT_ACTIONS.has(r.action)) {
+      const a = String(r.from ?? "").toLowerCase();
+      touch(a); dep.set(a, dep.get(a) + amt);
+      if (amt > 0n) { nDep++; lastDep = amt; }
+    } else if (WITHDRAW_ACTIONS.has(r.action)) {
+      const a = String(r.to ?? "").toLowerCase();
+      touch(a); rec.set(a, rec.get(a) + amt);
+      if (amt > 0n) {
+        nWd++;
+        if (lastDep !== null) { const d = amt - lastDep; if ((d < 0n ? -d : d) <= tol) matched++; }
+      }
+    }
+  }
+
+  const share = toFraction(A.passThroughMatchShare);
+  const hasFlow = nDep > 0 && nWd > 0;
+  const passThrough = nWd >= A.passThroughMinWithdrawals && BigInt(matched) * share.den > BigInt(nWd) * share.num;
+  const reason = !isContract ? "eoa"
+    : ledger === "aggregated" ? "no_wallet_ledger"
+    : !hasFlow ? "no_flow"
+    : passThrough ? "pass_through"
+    : null;
+  const scope = { isContract, isContractSource, ledger, hasFlow, passThrough,
+                  passThroughDetail: { withdrawals: nWd, matched }, inScope: reason === null, reason };
+  const thresholds = {
+    netDrain: A.netDrain, profitRatio: A.profitRatio, profitSharers: A.profitSharers,
+    passThroughMinWithdrawals: A.passThroughMinWithdrawals, passThroughMatchShare: A.passThroughMatchShare
+  };
+
+  if (ledger === "aggregated") {
+    return {
+      version: A.version, thresholds, scope,
+      netDrain: { value: null, netOutflowEth: null, peakBalanceEth: weiToNumber(peak), threshold: A.netDrain, met: false },
+      sharedProfit: { count: null, threshold: A.profitSharers, met: false, wallets: [] },
+      wallets: [],
+      verdict: false
+    };
+  }
+
+  const nd = toFraction(A.netDrain), pr = toFraction(A.profitRatio);
+  let netOut = 0n;
+  const wallets = order.map(address => {
+    const d = dep.get(address), r = rec.get(address);
+    const gain = r - d;
+    if (gain > 0n) netOut += gain;
+    return {
+      address, deposited: weiToNumber(d), received: weiToNumber(r), netGain: weiToNumber(gain),
+      drainContributor: gain > 0n,
+      profitSharer: d > 0n && r * pr.den >= d * pr.num
+    };
+  });
+  const sharers = wallets.filter(w => w.profitSharer).map(w => w.address);
+  const ndMet = peak > 0n && netOut * nd.den >= peak * nd.num;
+  const spMet = sharers.length >= A.profitSharers;
+  return {
+    version: A.version, thresholds, scope,
+    netDrain: {
+      value: peak > 0n ? roundTo(weiToNumber(netOut) / weiToNumber(peak), 6) : null,
+      netOutflowEth: weiToNumber(netOut), peakBalanceEth: weiToNumber(peak),
+      threshold: A.netDrain, met: ndMet
+    },
+    sharedProfit: { count: sharers.length, threshold: A.profitSharers, met: spMet, wallets: sharers },
+    wallets,
+    verdict: scope.inScope && ndMet && !spMet
+  };
+}
+
 function parseCSV(csvPath) {
   if (!fs.existsSync(csvPath)) return [];
   const lines = fs.readFileSync(csvPath, "utf8").trim().split("\n");
@@ -224,7 +358,7 @@ const VERDICT_THRESHOLDS = [
 
 // ── Cross-type disambiguation ─────────────────────────────────────────────────
 
-function hintFraudType(rows, triggered) {
+function hintFraudType(rows, triggered, rugAxis) {
   const ids = new Set(triggered.map(r => r.id));
   const steps = [];
 
@@ -370,6 +504,31 @@ function hintFraudType(rows, triggered) {
         `실패 시점 잔고 ${balanceAtFailure.toFixed(3)} ETH${balanceAtFailure > 0 ? " > 0" : ""}`
   };
 
+  // ── 러그풀 축 (RUGPULL_AXIOM) ──
+  // 지갑별 장부(per_wallet)에서는 교차공리 판정(rugAxis.verdict)을 쓴다.
+  // 집계 장부(aggregated, N=272)는 주소가 합성값이라 공리를 평가할 수 없어(scope.reason
+  // no_wallet_ledger) 옛 술어를 그대로 쓰고, 판단 과정 줄도 늘리지 않는다(N=272 산출물 불변).
+  const aggregatedLedger = rugAxis.scope.ledger === "aggregated";
+  const legacyRugPull = singleLargeOutflow && ownerWithdrawAll && !participantMidExit;
+  if (!aggregatedLedger) {
+    const sc = rugAxis.scope, nd = rugAxis.netDrain, sp = rugAxis.sharedProfit;
+    steps.push(
+      `rugpullScope: ${sc.inScope}` +
+      ` (reason ${sc.reason ?? "none"}, contract ${sc.isContract ? sc.isContractSource : "no"}, ` +
+      `hasFlow ${sc.hasFlow}, passThrough ${sc.passThrough} ${sc.passThroughDetail.matched}/${sc.passThroughDetail.withdrawals})`
+    );
+    steps.push(
+      `netDrain: ${nd.met}` +
+      ` (${nd.netOutflowEth.toFixed(3)} / peak ${nd.peakBalanceEth.toFixed(3)} = ` +
+      `${nd.value === null ? 0 : (nd.value * 100).toFixed(1)}%, threshold ${(nd.threshold * 100).toFixed(0)}%)`
+    );
+    steps.push(
+      `sharedProfit: ${sp.met}` +
+      ` (${sp.count} wallets received >= ${(RUGPULL_AXIOM.profitRatio * 100).toFixed(0)}% of deposit, threshold ${sp.threshold})`
+    );
+  }
+  const rugPull = aggregatedLedger ? legacyRugPull : rugAxis.verdict;
+
   // ── Priority 1: Flash Loan ──
   if (ids.has("OSCILLATING_BALANCE")) {
     steps.push("→ flash_loan (OSCILLATING_BALANCE signal)");
@@ -404,8 +563,12 @@ function hintFraudType(rows, triggered) {
   }
 
   // ── Priority 4: RugPull ──
-  if (singleLargeOutflow && ownerWithdrawAll && !participantMidExit) {
-    steps.push("→ rug_pull (large outflow to non-depositor address, no participant mid-exits)");
+  // 자금세탁(3순위)과는 장부상 같은 모양일 수 있어 판정 순서로 가른다(알려진 한계).
+  if (rugPull) {
+    steps.push(aggregatedLedger
+      ? "→ rug_pull (large outflow to non-depositor address, no participant mid-exits)"
+      : `→ rug_pull (rugpull_axiom: in scope, NetDrain ${(rugAxis.netDrain.value * 100).toFixed(1)}% >= ` +
+        `${(RUGPULL_AXIOM.netDrain * 100).toFixed(0)}%, profit sharers ${rugAxis.sharedProfit.count} < ${RUGPULL_AXIOM.profitSharers})`);
     return { hint: "rug_pull", reasoning_steps: steps,
              withdrawSuccessRate, nonPrivilegedSuccessRate, balanceAtFailure, withdrawBlockWarning };
   }
@@ -594,7 +757,9 @@ const FRAUD_TYPE_MAP = {
   "normal_staking":      "Normal"
 };
 
-export function analyzeDynamic(csvPath) {
+// opts.ledger: "per_wallet"(기본) | "aggregated" — 블록 집계를 합성 주소로 펼친 입력(N=272 평가 스크립트)은
+//   반드시 "aggregated"를 넘긴다. opts.isContract: 입금 대상이 컨트랙트인지 호출자가 알면 넘긴다.
+export function analyzeDynamic(csvPath, opts = {}) {
   const rows = parseCSV(csvPath);
 
   if (rows.length === 0) {
@@ -610,6 +775,7 @@ export function analyzeDynamic(csvPath) {
       non_privileged_success_rate: 0,
       balance_at_failure_eth:      0,
       withdraw_block_warning:      { detected: false, reason: "CSV 없음" },
+      rugpull_axiom:     computeRugPullAxiom([], opts),
       anomaly_signals:   {},
       evasion_detected:  false,
       evasion_subclass:  null,
@@ -673,7 +839,8 @@ export function analyzeDynamic(csvPath) {
   const verdict = VERDICT_THRESHOLDS.find(t => dynamic_risk_score >= t.min).label;
 
   // Classification with reasoning
-  const hintResult      = hintFraudType(rows, triggered);
+  const rugpull_axiom   = computeRugPullAxiom(rows, opts);
+  const hintResult      = hintFraudType(rows, triggered, rugpull_axiom);
   const fraud_type_hint = hintResult.hint;
   const reasoning_steps = hintResult.reasoning_steps;
   const withdraw_block_warning = hintResult.withdrawBlockWarning;
@@ -714,6 +881,7 @@ export function analyzeDynamic(csvPath) {
     non_privileged_success_rate: +hintResult.nonPrivilegedSuccessRate.toFixed(3),
     balance_at_failure_eth:      +hintResult.balanceAtFailure.toFixed(4),
     withdraw_block_warning,
+    rugpull_axiom,
     anomaly_signals: {
       INFLOW_STOP: inflowStop
     },
@@ -735,6 +903,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
     console.error("사용법: node analysis/dynamic_analyzer.js analysis/logs/ponzi_log.csv");
     process.exit(1);
   }
-  const result = analyzeDynamic(path.resolve(csvArg));
+  const result = analyzeDynamic(path.resolve(csvArg),
+    process.argv.includes("--aggregated") ? { ledger: "aggregated" } : {});
   console.log(JSON.stringify(result, null, 2));
 }

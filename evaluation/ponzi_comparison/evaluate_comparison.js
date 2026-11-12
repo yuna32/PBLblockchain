@@ -198,7 +198,7 @@ function dynamicPredict(address) {
   );
   try {
     fs.writeFileSync(tmpPath, [PER_TX_HEADER, ...perTx].join('\n') + '\n', 'utf8');
-    const result = analyzeDynamic(tmpPath);
+    const result = analyzeDynamic(tmpPath, { ledger: 'aggregated' });   // 블록 집계 → 합성 주소: 러그풀 축은 no_wallet_ledger
     const hint   = result.fraud_type_hint ?? 'unknown';
     return {
       exactPred: EXACT_HINTS.has(hint) ? 1 : 0,

@@ -69,6 +69,7 @@
   },
   "contract_laundering": {
     "inferred_types": [
+      "RugPull",
       "MoneyLaundering"
     ],
     "reasoner_classified": true,

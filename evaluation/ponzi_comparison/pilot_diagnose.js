@@ -150,7 +150,7 @@ function dynamicPredict(address) {
   const tmpPath = path.join(os.tmpdir(), `pilot_diag_${Date.now()}_${Math.random().toString(36).slice(2)}.csv`);
   try {
     fs.writeFileSync(tmpPath, [PER_TX_HEADER, ...perTx].join('\n') + '\n', 'utf8');
-    const result = analyzeDynamic(tmpPath);
+    const result = analyzeDynamic(tmpPath, { ledger: 'aggregated' });   // 블록 집계 → 합성 주소
     const hint   = result.fraud_type_hint ?? 'unknown';
     return {
       exactPred: EXACT_HINTS.has(hint) ? 1 : 0,

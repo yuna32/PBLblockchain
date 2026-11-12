@@ -12,6 +12,7 @@ Output files:
 """
 from owlready2 import *
 import os
+from rugpull_axiom import PARAMS as RUG   # 기준값: analysis/dynamic_analyzer.js RUGPULL_AXIOM
 
 onto = get_ontology("ontology/fraud_with_instances.owl").load()
 
@@ -30,15 +31,19 @@ with onto:
     )
     imp1.name = "Rule_PonziScheme"
 
-    # ── Rule 2: RugPull ────────────────────────────────────────────────────────
-    # BalanceDrop + OwnerWithdrawAll + SingleLargeOutflow
-    # (no distributed collector = external owner drains entirely)
+    # ── Rule 2: RugPull (2026-11 교차공리) ──────────────────────────────────────
+    # RugPull ← Contract ∧ HasFlow ∧ ¬T ∧ NetDrain ∧ ¬SharedProfit
+    # SWRL은 부정이 없어 ¬T는 passThrough = false, ¬SharedProfit은 profitSharerCount < 2로 쓴다.
+    # 기준값은 analysis/dynamic_analyzer.js RUGPULL_AXIOM(ontology/rugpull_axiom.py가 읽음).
+    # 이전 규칙(BalanceDrop + OwnerWithdrawAll + SingleLargeOutflow)은 태그 ontology-v0.2-final.
+    # 알려진 한계: OWL에는 판정 순서가 없어 자금세탁 인스턴스도 이 규칙으로 RugPull이 함께 추론될 수
+    # 있다. 어느 유형으로 판정할지는 JS 판정 체인(자금세탁 우선)이 정한다.
     imp2 = Imp()
     imp2.set_as_rule(
         "FraudContract(?c), "
-        "hasSignal(?c, ?s1), BalanceDrop(?s1), "
-        "hasPattern(?c, ?p1), OwnerWithdrawAll(?p1), "
-        "hasPattern(?c, ?p2), SingleLargeOutflow(?p2) "
+        "hasFlow(?c, true), passThrough(?c, false), "
+        f"netDrainRatio(?c, ?r), greaterThanOrEqual(?r, {float(RUG['netDrain'])}), "
+        f"profitSharerCount(?c, ?n), lessThan(?n, {int(RUG['profitSharers'])}) "
         "-> RugPull(?c)"
     )
     imp2.name = "Rule_RugPull"
@@ -239,7 +244,7 @@ except Exception as e:
             # DatatypeProperty 수치 비교(swrlb builtin에 대응). peakBalance/
             # finalBalance는 이전까지 어떤 규칙 body에도 쓰인 적이 없어(순수
             # 서술용 메타데이터) 이 분기가 처음 생겼다.
-            if check_type in ("data_eq", "data_gt", "data_le"):
+            if check_type in ("data_eq", "data_gt", "data_le", "data_ge", "data_lt"):
                 prop_name, threshold = arg
                 actual = getattr(instance, prop_name, None)
                 if actual is None:
@@ -250,6 +255,10 @@ except Exception as e:
                     return actual > threshold
                 if check_type == "data_le":
                     return actual <= threshold
+                if check_type == "data_ge":
+                    return actual >= threshold
+                if check_type == "data_lt":
+                    return actual < threshold
             return False
 
         # Mirrors the SWRL rules above for the forward-chaining evaluator
@@ -268,9 +277,10 @@ except Exception as e:
                 "name": "Rule_RugPull",
                 "body": [
                     ("type",    "FraudContract"),
-                    ("signal",  "BalanceDrop"),
-                    ("pattern", "OwnerWithdrawAll"),
-                    ("pattern", "SingleLargeOutflow"),
+                    ("data_eq", ("hasFlow", True)),
+                    ("data_eq", ("passThrough", False)),
+                    ("data_ge", ("netDrainRatio", float(RUG["netDrain"]))),
+                    ("data_lt", ("profitSharerCount", int(RUG["profitSharers"]))),
                 ],
                 "head": "RugPull",
             },

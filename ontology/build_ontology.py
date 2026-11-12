@@ -26,7 +26,8 @@ with onto:
         comment = ["폰지 사기: 신규 입금으로 기존 참여자 수익 지급"]
 
     class RugPull(FundMovementFraud):
-        comment = ["러그풀: 잔고 정점에서 단 1회 전액 인출"]
+        comment = ["러그풀: 원금을 넘는 돈을 한쪽이 몰아 가져감 "
+                   "(Contract ∧ HasFlow ∧ ¬T ∧ NetDrain ∧ ¬SharedProfit, 2026-11 교차공리)"]
 
     class PumpAndDump(FundMovementFraud):
         comment = ["펌프앤덤프: 내부자 부양 후 대량 인출"]
@@ -247,6 +248,29 @@ with onto:
         domain = [FraudContract]
         range  = [float]
         comment = ["amount_eth=0으로 실패한 출금 시점의 컨트랙트 잔고 최댓값 (ETH)"]
+
+    # 러그풀 교차공리 데이터 속성 (2026-11). SWRL은 부정(¬)을 쓸 수 없어 ¬T·¬SharedProfit을
+    # 불리언·수치 비교로 표현한다. 정의와 기준값은 analysis/dynamic_analyzer.js
+    # computeRugPullAxiom()/RUGPULL_AXIOM과 같고, 값은 load_instances.py가 CSV에서 다시 계산한다.
+    class netDrainRatio(DataProperty, FunctionalProperty):
+        domain = [FraudContract]
+        range  = [float]
+        comment = ["순유출 비율: Σ max(0, 받은 돈 − 낸 돈) ÷ 최고 잔고 (NetDrain: ≥ 0.7)"]
+
+    class profitSharerCount(DataProperty, FunctionalProperty):
+        domain = [FraudContract]
+        range  = [int]
+        comment = ["낸 돈의 105% 이상을 받은 입금자 수 (SharedProfit: ≥ 2)"]
+
+    class passThrough(DataProperty, FunctionalProperty):
+        domain = [FraudContract]
+        range  = [bool]
+        comment = ["반복 중계(T): 성공 출금 5건 이상이고 그 과반이 직전 입금과 같은 금액"]
+
+    class hasFlow(DataProperty, FunctionalProperty):
+        domain = [FraudContract]
+        range  = [bool]
+        comment = ["입금과 성공 출금(금액 > 0)이 각각 1건 이상 있음"]
 
     # ── triggers / implies 인과관계 공리 (설계서 4-3절, v0.2 신규) ──────────────
     # BehaviorPattern 서브클래스가 대응 AnomalySignal 서브클래스를 triggers/implies

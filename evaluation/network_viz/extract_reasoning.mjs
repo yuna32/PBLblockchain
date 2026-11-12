@@ -156,7 +156,7 @@ function dynamicAnalyze(address) {
   );
   try {
     fs.writeFileSync(tmpPath, [PER_TX_HEADER, ...perTx].join('\n') + '\n', 'utf8');
-    return analyzeDynamic(tmpPath);
+    return analyzeDynamic(tmpPath, { ledger: 'aggregated' });   // 블록 집계 → 합성 주소
   } finally {
     try { fs.unlinkSync(tmpPath); } catch {}
   }

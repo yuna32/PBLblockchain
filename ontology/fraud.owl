@@ -106,6 +106,34 @@
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">amount_eth=0으로 실패한 출금 시점의 컨트랙트 잔고 최댓값 (ETH)</rdfs:comment>
 </owl:DatatypeProperty>
 
+<owl:DatatypeProperty rdf:about="#netDrainRatio">
+  <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+  <rdfs:domain rdf:resource="#FraudContract"/>
+  <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">순유출 비율: Σ max(0, 받은 돈 − 낸 돈) ÷ 최고 잔고 (NetDrain: ≥ 0.7)</rdfs:comment>
+</owl:DatatypeProperty>
+
+<owl:DatatypeProperty rdf:about="#profitSharerCount">
+  <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+  <rdfs:domain rdf:resource="#FraudContract"/>
+  <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#integer"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">낸 돈의 105% 이상을 받은 입금자 수 (SharedProfit: ≥ 2)</rdfs:comment>
+</owl:DatatypeProperty>
+
+<owl:DatatypeProperty rdf:about="#passThrough">
+  <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+  <rdfs:domain rdf:resource="#FraudContract"/>
+  <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#boolean"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">반복 중계(T): 성공 출금 5건 이상이고 그 과반이 직전 입금과 같은 금액</rdfs:comment>
+</owl:DatatypeProperty>
+
+<owl:DatatypeProperty rdf:about="#hasFlow">
+  <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+  <rdfs:domain rdf:resource="#FraudContract"/>
+  <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#boolean"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">입금과 성공 출금(금액 &gt; 0)이 각각 1건 이상 있음</rdfs:comment>
+</owl:DatatypeProperty>
+
 <owl:Class rdf:about="#FraudContract">
   <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">블록체인 사기 컨트랙트 최상위 개념</rdfs:comment>
@@ -128,7 +156,7 @@
 
 <owl:Class rdf:about="#RugPull">
   <rdfs:subClassOf rdf:resource="#FundMovementFraud"/>
-  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">러그풀: 잔고 정점에서 단 1회 전액 인출</rdfs:comment>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">러그풀: 원금을 넘는 돈을 한쪽이 몰아 가져감 (Contract ∧ HasFlow ∧ ¬T ∧ NetDrain ∧ ¬SharedProfit, 2026-11 교차공리)</rdfs:comment>
 </owl:Class>
 
 <owl:Class rdf:about="#PumpAndDump">
