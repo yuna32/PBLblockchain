@@ -297,7 +297,7 @@
     ],
     "verdict": "HIGH_RISK"
   },
-  "timestamp": "2026-11-12T09:57:14.282Z",
+  "timestamp": "2026-11-15T12:34:40.088Z",
   "trust": {
     "csv": "rugpull_log.csv",
     "overall_trust_score": 46,
@@ -659,5 +659,16 @@
       }
     ]
   },
-  "type": "rugpull"
+  "type": "rugpull",
+  "wallet_layer": {
+    "params": {
+      "maxHops": 2,
+      "minForwardRatio": 0.8,
+      "minTaintRatio": 0.5,
+      "taintMethod": "haircut"
+    },
+    "reason": "자금세탁으로 분류되지 않아 지갑 레이어를 실행하지 않음",
+    "status": "not_applicable",
+    "version": "v1"
+  }
 }

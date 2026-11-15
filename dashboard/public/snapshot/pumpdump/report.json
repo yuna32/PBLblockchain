@@ -315,7 +315,7 @@
     ],
     "verdict": "MEDIUM_RISK"
   },
-  "timestamp": "2026-11-12T09:57:16.037Z",
+  "timestamp": "2026-11-15T12:34:43.711Z",
   "trust": {
     "csv": "pumpdump_log.csv",
     "overall_trust_score": 73,
@@ -581,5 +581,16 @@
       }
     ]
   },
-  "type": "pumpdump"
+  "type": "pumpdump",
+  "wallet_layer": {
+    "params": {
+      "maxHops": 2,
+      "minForwardRatio": 0.8,
+      "minTaintRatio": 0.5,
+      "taintMethod": "haircut"
+    },
+    "reason": "자금세탁으로 분류되지 않아 지갑 레이어를 실행하지 않음",
+    "status": "not_applicable",
+    "version": "v1"
+  }
 }

@@ -673,7 +673,7 @@
       "type": "first_withdraw"
     }
   },
-  "reportHash": "baeb59b93cd24c3e0b3654dd85f0804d85edfd436a3803a220fb082b4db98518",
+  "reportHash": "3662dbc34db5752dc43403dbf9c15449167b5f03cf8d7ab951822cc5cbf2b6ce",
   "scenario": "ponzi",
   "source": "fixture",
   "walletAssessment": {

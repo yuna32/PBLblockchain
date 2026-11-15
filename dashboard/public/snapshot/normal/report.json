@@ -236,7 +236,7 @@
     ],
     "verdict": "LOW_RISK"
   },
-  "timestamp": "2026-11-12T09:57:12.611Z",
+  "timestamp": "2026-11-15T12:34:37.408Z",
   "trust": {
     "csv": "normal_log.csv",
     "overall_trust_score": 86,
@@ -598,5 +598,16 @@
       }
     ]
   },
-  "type": "normal"
+  "type": "normal",
+  "wallet_layer": {
+    "params": {
+      "maxHops": 2,
+      "minForwardRatio": 0.8,
+      "minTaintRatio": 0.5,
+      "taintMethod": "haircut"
+    },
+    "reason": "자금세탁으로 분류되지 않아 지갑 레이어를 실행하지 않음",
+    "status": "not_applicable",
+    "version": "v1"
+  }
 }

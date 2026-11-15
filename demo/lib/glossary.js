@@ -134,6 +134,16 @@ const MANUAL = {
   fixture:             ["term", "사전 생성본", "시뮬레이션이 실패했거나 사전 생성본 모드일 때 쓰는, 미리 만들어 둔 결과다."]
 };
 
+// 지갑 레이어 조건을 사람이 읽는 식으로 바꾼다 (용어집 설명용)
+function walletConditionText(c) {
+  if (c.prop !== undefined && "eq" in c) return `${c.prop} = ${c.eq}`;
+  if (c.prop !== undefined && "gte" in c) return `${c.prop} ≥ ${c.gte}`;
+  if (c.relation !== undefined) return `${c.relation} 관계 ${c.exists ? "있음" : "없음"}`;
+  if (c.downstreamClass !== undefined) return `${c.via} 지갑에서 ${c.maxHops} 이내에 ${c.downstreamClass} ${c.minCount ?? 1}개 이상`;
+  if (c.contractClass !== undefined) return `컨트랙트 분류 = ${c.contractClass}`;
+  return c.id;
+}
+
 function derived() {
   const out = {};
   for (const rules of Object.values(FraudOntology.preventionRules)) {
@@ -144,6 +154,17 @@ function derived() {
   }
   for (const ft of Object.values(FraudOntology.fraudTypes)) {
     for (const sub of Object.values(ft.evasionSubclasses)) out[sub.id] = { ko: sub.label, desc: sub.consequence, category: "evasion_subclass" };
+  }
+  // 지갑 레이어 v1: 클래스와 규칙 조건 라벨은 온톨로지 walletLayer 절에서 가져온다.
+  const W = FraudOntology.walletLayer;
+  if (W) {
+    for (const [cls, def] of Object.entries(W.classes)) out[cls] = { ko: def.label, desc: def.description, category: "wallet_class" };
+    for (const [ruleName, rule] of Object.entries(W.rules)) {
+      for (const c of rule.all) out[c.id] = { ko: c.label, desc: `${ruleName} 규칙의 조건이다. ${walletConditionText(c)}`, category: "wallet_condition" };
+    }
+    out.wallet_layer_evaluated      = { ko: "지갑 레이어 실행함", desc: "자금세탁으로 분류되어 수집 지갑 하류의 지갑을 판정했다.", category: "wallet_status" };
+    out.wallet_layer_not_applicable = { ko: "지갑 레이어 해당 없음", desc: "자금세탁으로 분류되지 않아 지갑 레이어를 실행하지 않았다.", category: "wallet_status" };
+    out.wallet_layer_missing        = { ko: "지갑 레이어 데이터 없음", desc: "자금세탁으로 분류되었지만 하류 거래 데이터나 수집 지갑이 없어 판정하지 못했다.", category: "wallet_status" };
   }
   return out;
 }
@@ -179,5 +200,15 @@ export function collectTerms(report) {
   add(d.verdict);
   (s.gui_emphasis?.panel4 ?? []).forEach(add);
   (t.wallet_scores ?? []).forEach(w => Object.keys(w.breakdown ?? {}).forEach(add));
+  // 지갑 레이어 v1
+  const wl = report.wallet_layer;
+  if (wl) {
+    add(`wallet_layer_${wl.status}`);
+    (wl.verdicts ?? []).forEach(v => {
+      v.classes.forEach(add);
+      Object.values(v.reasons ?? {}).flat().forEach(c => add(c.id));
+    });
+    (wl.hopLaundering?.conditions ?? []).forEach(c => add(c.id));
+  }
   return ids;
 }

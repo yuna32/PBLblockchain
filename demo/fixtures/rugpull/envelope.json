@@ -3,7 +3,7 @@
   "scenario": "rugpull",
   "contract": "RugPull",
   "source": "live",
-  "report_sha256": "8339e38932c5e7744970ec76b9dc3ebeb2b4f58669629fb049b477b75640433c",
+  "report_sha256": "b42d4ea8549aff4f0ebb40bf379f97b8d3c539b29718ed635d5e68e73fff77a4",
   "report_hash_excluded": [
     "timestamp",
     "dynamic.csv",
@@ -23,5 +23,5 @@
     },
     "seed": "pbl-demo"
   },
-  "created_at": "2026-11-12T09:57:14.282Z"
+  "created_at": "2026-11-15T12:34:40.088Z"
 }

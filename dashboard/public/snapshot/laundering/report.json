@@ -391,7 +391,7 @@
     ],
     "verdict": "HIGH_RISK"
   },
-  "timestamp": "2026-11-12T09:57:15.168Z",
+  "timestamp": "2026-11-15T12:34:41.917Z",
   "trust": {
     "csv": "laundering_log.csv",
     "overall_trust_score": 57,
@@ -1009,5 +1009,282 @@
       }
     ]
   },
-  "type": "laundering"
+  "type": "laundering",
+  "wallet_layer": {
+    "facts": {
+      "contract": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+      "deploys": [],
+      "seeds": [
+        "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+      ],
+      "stops": [
+        {
+          "address": "0x1e00000000000000000000000000000000000004",
+          "hopsFromSource": 3,
+          "reason": "known_service",
+          "type": "exchange"
+        }
+      ],
+      "transfers": [
+        {
+          "amount_eth": 3.78,
+          "block": 43,
+          "from": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+          "timestamp": 1794746121,
+          "to": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+        },
+        {
+          "amount_eth": 2,
+          "block": 45,
+          "from": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "timestamp": 1794746123,
+          "to": "0x1a00000000000000000000000000000000000001"
+        },
+        {
+          "amount_eth": 1,
+          "block": 47,
+          "from": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "timestamp": 1794746125,
+          "to": "0x1c00000000000000000000000000000000000003"
+        },
+        {
+          "amount_eth": 1.98,
+          "block": 49,
+          "from": "0x1a00000000000000000000000000000000000001",
+          "timestamp": 1794746127,
+          "to": "0x1b00000000000000000000000000000000000002"
+        },
+        {
+          "amount_eth": 1.96,
+          "block": 51,
+          "from": "0x1b00000000000000000000000000000000000002",
+          "timestamp": 1794746129,
+          "to": "0x1e00000000000000000000000000000000000004"
+        }
+      ],
+      "wallets": [
+        {
+          "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "forwardRatio": 0.7937,
+          "hopsFromSource": 0,
+          "isKnownService": false,
+          "isSeed": true,
+          "receivedEth": 3.78,
+          "sentEth": 3,
+          "taintRatio": 1
+        },
+        {
+          "address": "0x1a00000000000000000000000000000000000001",
+          "forwardRatio": 0.99,
+          "hopsFromSource": 1,
+          "isKnownService": false,
+          "isSeed": false,
+          "receivedEth": 2,
+          "sentEth": 1.98,
+          "taintRatio": 1
+        },
+        {
+          "address": "0x1c00000000000000000000000000000000000003",
+          "forwardRatio": 0,
+          "hopsFromSource": 1,
+          "isKnownService": false,
+          "isSeed": false,
+          "receivedEth": 1,
+          "sentEth": 0,
+          "taintRatio": 1
+        },
+        {
+          "address": "0x1b00000000000000000000000000000000000002",
+          "forwardRatio": 0.9899,
+          "hopsFromSource": 2,
+          "isKnownService": false,
+          "isSeed": false,
+          "receivedEth": 1.98,
+          "sentEth": 1.96,
+          "taintRatio": 1
+        }
+      ]
+    },
+    "hopLaundering": {
+      "attached": true,
+      "conditions": [
+        {
+          "id": "CLASSIFIED_MONEY_LAUNDERING",
+          "label": "자금세탁으로 분류됨",
+          "result": true,
+          "text": "자금세탁으로 분류됨: 분류 MoneyLaundering"
+        },
+        {
+          "id": "LAYERING_DOWNSTREAM",
+          "label": "수집 지갑 하류에 레이어링 경유 지갑 있음",
+          "matched": [
+            "0x1a00000000000000000000000000000000000001",
+            "0x1b00000000000000000000000000000000000002"
+          ],
+          "result": true,
+          "text": "수집 지갑 하류에 레이어링 경유 지갑 있음: LayeringWallet 2개 (2홉 이내)"
+        }
+      ],
+      "result": true
+    },
+    "params": {
+      "maxHops": 2,
+      "minForwardRatio": 0.8,
+      "minTaintRatio": 0.5,
+      "taintMethod": "haircut"
+    },
+    "seed": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+    "status": "evaluated",
+    "verdicts": [
+      {
+        "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "classes": [],
+        "hopsFromSource": 0,
+        "reasons": {
+          "DeployerWallet": [
+            {
+              "id": "HAS_DEPLOYS",
+              "result": false,
+              "text": "배포 관계 있음: deploys 0건"
+            }
+          ],
+          "LayeringWallet": [
+            {
+              "id": "NOT_KNOWN_SERVICE",
+              "result": true,
+              "text": "서비스 주소 아님: isKnownService = false"
+            },
+            {
+              "id": "NOT_SEED",
+              "result": false,
+              "text": "추적 시작점 아님: isSeed = true"
+            },
+            {
+              "id": "TAINT_RATIO_HIGH",
+              "result": true,
+              "text": "오염 비율 기준 이상: 1.00 ≥ 0.50"
+            },
+            {
+              "id": "FORWARD_RATIO_HIGH",
+              "result": false,
+              "text": "전달 비율 기준 이상: 0.79 < 0.80"
+            }
+          ]
+        }
+      },
+      {
+        "address": "0x1a00000000000000000000000000000000000001",
+        "classes": [
+          "LayeringWallet"
+        ],
+        "hopsFromSource": 1,
+        "reasons": {
+          "DeployerWallet": [
+            {
+              "id": "HAS_DEPLOYS",
+              "result": false,
+              "text": "배포 관계 있음: deploys 0건"
+            }
+          ],
+          "LayeringWallet": [
+            {
+              "id": "NOT_KNOWN_SERVICE",
+              "result": true,
+              "text": "서비스 주소 아님: isKnownService = false"
+            },
+            {
+              "id": "NOT_SEED",
+              "result": true,
+              "text": "추적 시작점 아님: isSeed = false"
+            },
+            {
+              "id": "TAINT_RATIO_HIGH",
+              "result": true,
+              "text": "오염 비율 기준 이상: 1.00 ≥ 0.50"
+            },
+            {
+              "id": "FORWARD_RATIO_HIGH",
+              "result": true,
+              "text": "전달 비율 기준 이상: 0.99 ≥ 0.80"
+            }
+          ]
+        }
+      },
+      {
+        "address": "0x1c00000000000000000000000000000000000003",
+        "classes": [],
+        "hopsFromSource": 1,
+        "reasons": {
+          "DeployerWallet": [
+            {
+              "id": "HAS_DEPLOYS",
+              "result": false,
+              "text": "배포 관계 있음: deploys 0건"
+            }
+          ],
+          "LayeringWallet": [
+            {
+              "id": "NOT_KNOWN_SERVICE",
+              "result": true,
+              "text": "서비스 주소 아님: isKnownService = false"
+            },
+            {
+              "id": "NOT_SEED",
+              "result": true,
+              "text": "추적 시작점 아님: isSeed = false"
+            },
+            {
+              "id": "TAINT_RATIO_HIGH",
+              "result": true,
+              "text": "오염 비율 기준 이상: 1.00 ≥ 0.50"
+            },
+            {
+              "id": "FORWARD_RATIO_HIGH",
+              "result": false,
+              "text": "전달 비율 기준 이상: 0.00 < 0.80"
+            }
+          ]
+        }
+      },
+      {
+        "address": "0x1b00000000000000000000000000000000000002",
+        "classes": [
+          "LayeringWallet"
+        ],
+        "hopsFromSource": 2,
+        "reasons": {
+          "DeployerWallet": [
+            {
+              "id": "HAS_DEPLOYS",
+              "result": false,
+              "text": "배포 관계 있음: deploys 0건"
+            }
+          ],
+          "LayeringWallet": [
+            {
+              "id": "NOT_KNOWN_SERVICE",
+              "result": true,
+              "text": "서비스 주소 아님: isKnownService = false"
+            },
+            {
+              "id": "NOT_SEED",
+              "result": true,
+              "text": "추적 시작점 아님: isSeed = false"
+            },
+            {
+              "id": "TAINT_RATIO_HIGH",
+              "result": true,
+              "text": "오염 비율 기준 이상: 1.00 ≥ 0.50"
+            },
+            {
+              "id": "FORWARD_RATIO_HIGH",
+              "result": true,
+              "text": "전달 비율 기준 이상: 0.99 ≥ 0.80"
+            }
+          ]
+        }
+      }
+    ],
+    "version": "v1"
+  }
 }

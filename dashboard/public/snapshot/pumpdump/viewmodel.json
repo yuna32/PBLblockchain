@@ -529,7 +529,7 @@
       "type": "first_withdraw"
     }
   },
-  "reportHash": "d17bebb6e3aebfb6ea77db0451e52508a7f8f7515bac1a403587867cbbbbd62b",
+  "reportHash": "c2317533a1579fa53700ffde7ba7501572fc27f45a21d727373d87c18e1aa392",
   "scenario": "pumpdump",
   "source": "fixture",
   "walletAssessment": {

@@ -21,6 +21,9 @@ export async function runFixture(name, outDir, options = {}) {
   fs.mkdirSync(outDir, { recursive: true });
   const csvPath = path.join(outDir, spec.csv);
   fs.copyFileSync(fixtureCsv, csvPath);
+  // 지갑 레이어 v1: 하류 거래 CSV가 fixture에 있으면 함께 복사한다 (docs/WALLET_LAYER.md).
+  const fixtureTransfers = path.join(fixtureDir, `${name}_transfers.csv`);
+  if (fs.existsSync(fixtureTransfers)) fs.copyFileSync(fixtureTransfers, path.join(outDir, `${name}_transfers.csv`));
   const fixtureEnvelope = path.join(fixtureDir, "envelope.json");
   const seed = fs.existsSync(fixtureEnvelope)
     ? JSON.parse(fs.readFileSync(fixtureEnvelope, "utf8")).input?.seed ?? null

@@ -156,6 +156,61 @@ export function techniqueStatuses(report) {
   }));
 }
 
+// 지갑 레이어 v1 (docs/WALLET_LAYER.md). 지갑 클래스는 기존 kind 중 role(지갑 종류)로 그리고 group으로 구분한다.
+// 노드: wallet:Wallet, wallet:LayeringWallet, wallet:DeployerWallet. 링크: 하위 클래스, HopLaundering → LayeringWallet(requires).
+// HopLaundering 노드는 동적 분석기의 예전 판정 또는 지갑 레이어 부착 중 하나면 활성으로 둔다.
+export const WALLET_LAYER_NOTE = "지갑 레이어 판정(report.wallet_layer). 수집 지갑은 시뮬레이션 로그에서 찾는다";
+const shortAddr = a => `${a.slice(0, 6)}…${a.slice(-4)}`;
+
+function addWalletLayer(report, classActive, nodes, addNode, addLink) {
+  const W = O.walletLayer;
+  const wl = report.wallet_layer ?? null;
+  const evaluated = wl?.status === "evaluated";
+  const hitsOf = cls => (wl?.verdicts ?? []).filter(v => v.classes.includes(cls)).map(v => v.address);
+  const reportText = cls => {
+    if (!wl) return "이 리포트: 지갑 레이어 결과 없음.";
+    if (!evaluated) return `이 리포트: ${glossaryLabel(`wallet_layer_${wl.status}`)}.`;
+    if (cls === "DeployerWallet" && (wl.facts?.deploys ?? []).length === 0) return "이 리포트: 배포 관계 입력 없음(시연에서는 넣지 않음).";
+    const hits = hitsOf(cls);
+    return `이 리포트: ${hits.length}개${hits.length ? ` (${hits.map(shortAddr).join(", ")})` : ""}.`;
+  };
+
+  const rootId = "wallet:Wallet";
+  const subIds = [];
+  for (const [cls, def] of Object.entries(W.classes)) {
+    if (!def.parent) continue;
+    const id = `wallet:${cls}`;
+    const hits = evaluated ? hitsOf(cls) : [];
+    const rule = W.rules[cls];
+    addNode({
+      id, label: def.label, kind: "role", group: "wallet_class", active: classActive && hits.length > 0,
+      desc: [
+        `지갑 레이어 클래스. ${def.description}.`,
+        rule ? `규칙: ${rule.all.map(c => glossaryLabel(c.id)).join(" 그리고 ")}.` : null,
+        reportText(cls),
+        `(${WALLET_LAYER_NOTE})`
+      ].filter(Boolean).join(" ")
+    });
+    subIds.push(id);
+  }
+  const anyActive = subIds.some(id => nodes.get(id).active);
+  addNode({ id: rootId, label: W.classes.Wallet.label, kind: "role", group: "wallet_class", active: anyActive,
+            desc: `지갑 레이어 상위 클래스. ${W.classes.Wallet.description}.` });
+  for (const id of subIds) addLink(id, rootId, "하위 클래스", "subClassOf");
+
+  const hopId = "evasion:MoneyLaundering_HopLaundering";
+  const hop = nodes.get(hopId);
+  if (hop) {
+    const attached = evaluated && wl.hopLaundering?.attached === true;
+    hop.active = hop.active || (classActive && attached);
+    const note = evaluated
+      ? `지갑 레이어 새 정의: 수집 지갑 하류에 레이어링 경유 지갑 ${hitsOf("LayeringWallet").length}개 → ${attached ? "부착" : "미부착"}.`
+      : `지갑 레이어 새 정의: ${reportText("LayeringWallet").replace("이 리포트: ", "")}`;
+    hop.desc = `${hop.desc} ${note}`;
+    addLink(hopId, "wallet:LayeringWallet", "하류 경유 지갑", "requires");
+  }
+}
+
 export function buildOntologyGraph(report, options = {}) {
   const hint = report.dynamic?.fraud_type_hint ?? null;
   const scenarioClass = HINT_TO_CLASS[hint] ?? null;
@@ -233,6 +288,9 @@ export function buildOntologyGraph(report, options = {}) {
       });
       addLink(classId, `evasion:${sub.id}`, "회피 하위 유형", "exhibits");
     }
+
+    // 지갑 레이어 v1: 자금세탁 클래스에 지갑 클래스와 HopLaundering 새 정의를 붙인다.
+    if (cls === "MoneyLaundering" && O.walletLayer) addWalletLayer(report, classActive, nodes, addNode, addLink);
 
     // 회피 기법과 권고 조치: 이 유형의 usesEvasion 목록에 있는 기법만 그린다.
     // 활성 판정은 TECHNIQUE_EVIDENCE(시연용)로 하고, 근거가 없는 기법은 "근거 데이터 없음".

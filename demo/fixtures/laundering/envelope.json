@@ -3,7 +3,7 @@
   "scenario": "laundering",
   "contract": "MoneyLaundering",
   "source": "live",
-  "report_sha256": "bf233c243b7b6af18c6b3fc664ece24d57402b3ee13a30cba5a57ad1da38d663",
+  "report_sha256": "ec63b093f566f2a51498df3ae01c69422c2a2bde09546f927e6b1d43c4a0d6d2",
   "report_hash_excluded": [
     "timestamp",
     "dynamic.csv",
@@ -23,5 +23,5 @@
     },
     "seed": "pbl-demo"
   },
-  "created_at": "2026-11-12T09:57:15.168Z"
+  "created_at": "2026-11-15T12:34:41.922Z"
 }

@@ -1,7 +1,7 @@
 {
   "contract": "PonziLab",
   "type": "ponzi",
-  "timestamp": "2026-11-12T09:57:13.453Z",
+  "timestamp": "2026-11-15T12:34:38.880Z",
   "overall_grade": "F",
   "raw_grade": "F",
   "prevention_cap_applied": false,
@@ -717,5 +717,16 @@
     "overall_trust_score": 49,
     "trust_grade": "C",
     "summary_ko": "총 11개 지갑 분석. 평균 신뢰 점수 49/100 (평균: 76, 최저: 8). 오너 드레인 지갑 1개 탐지. 과도한 수익 추출 지갑 1개 탐지. 등급: C (MODERATE)."
+  },
+  "wallet_layer": {
+    "version": "v1",
+    "params": {
+      "minTaintRatio": 0.5,
+      "minForwardRatio": 0.8,
+      "maxHops": 2,
+      "taintMethod": "haircut"
+    },
+    "status": "not_applicable",
+    "reason": "자금세탁으로 분류되지 않아 지갑 레이어를 실행하지 않음"
   }
 }

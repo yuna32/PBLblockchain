@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "description": "추적을 멈출 서비스 주소 목록. 지갑 레이어와 배포자 위험도가 함께 쓴다. type 이름은 담당 간 합의 전 임시값.",
+  "services": [
+    {
+      "address": "0x1e00000000000000000000000000000000000004",
+      "type": "exchange",
+      "label": "시뮬레이션 거래소 X",
+      "source": "simulation"
+    }
+  ]
+}

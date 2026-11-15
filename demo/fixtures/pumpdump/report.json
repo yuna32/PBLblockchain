@@ -1,7 +1,7 @@
 {
   "contract": "PumpDump",
   "type": "pumpdump",
-  "timestamp": "2026-11-12T09:57:16.037Z",
+  "timestamp": "2026-11-15T12:34:43.711Z",
   "overall_grade": "D",
   "raw_grade": "C",
   "prevention_cap_applied": true,
@@ -581,5 +581,16 @@
     "overall_trust_score": 73,
     "trust_grade": "A",
     "summary_ko": "총 8개 지갑 분석. 평균 신뢰 점수 73/100 (평균: 83, 최저: 58). 과도한 수익 추출 지갑 3개 탐지. 등급: A (SAFE)."
+  },
+  "wallet_layer": {
+    "version": "v1",
+    "params": {
+      "minTaintRatio": 0.5,
+      "minForwardRatio": 0.8,
+      "maxHops": 2,
+      "taintMethod": "haircut"
+    },
+    "status": "not_applicable",
+    "reason": "자금세탁으로 분류되지 않아 지갑 레이어를 실행하지 않음"
   }
 }
