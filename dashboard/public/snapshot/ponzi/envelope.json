@@ -1,7 +1,7 @@
 {
   "canonical_version": "jcs-rfc8785/pbl-demo-v1",
   "contract": "PonziLab",
-  "created_at": "2026-11-12T09:57:13.453Z",
+  "created_at": "2026-11-15T12:34:38.880Z",
   "input": {
     "csv": {
       "file": "ponzi_log.csv",
@@ -21,7 +21,7 @@
     "trust.csv",
     "static.file"
   ],
-  "report_sha256": "baeb59b93cd24c3e0b3654dd85f0804d85edfd436a3803a220fb082b4db98518",
+  "report_sha256": "3662dbc34db5752dc43403dbf9c15449167b5f03cf8d7ab951822cc5cbf2b6ce",
   "scenario": "ponzi",
   "source": "fixture"
 }

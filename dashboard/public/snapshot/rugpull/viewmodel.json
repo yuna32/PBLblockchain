@@ -615,7 +615,7 @@
       "type": "first_withdraw"
     }
   },
-  "reportHash": "8339e38932c5e7744970ec76b9dc3ebeb2b4f58669629fb049b477b75640433c",
+  "reportHash": "b42d4ea8549aff4f0ebb40bf379f97b8d3c539b29718ed635d5e68e73fff77a4",
   "scenario": "rugpull",
   "source": "fixture",
   "walletAssessment": {

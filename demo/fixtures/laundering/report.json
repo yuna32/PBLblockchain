@@ -1,7 +1,7 @@
 {
   "contract": "MoneyLaundering",
   "type": "laundering",
-  "timestamp": "2026-11-12T09:57:15.168Z",
+  "timestamp": "2026-11-15T12:34:41.917Z",
   "overall_grade": "D",
   "raw_grade": "D",
   "prevention_cap_applied": false,
@@ -1009,5 +1009,282 @@
     "overall_trust_score": 57,
     "trust_grade": "B",
     "summary_ko": "총 19개 지갑 분석. 평균 신뢰 점수 57/100 (평균: 75, 최저: 30). 오너 드레인 지갑 1개 탐지. 과도한 수익 추출 지갑 1개 탐지. 등급: B (LOW_RISK)."
+  },
+  "wallet_layer": {
+    "version": "v1",
+    "params": {
+      "minTaintRatio": 0.5,
+      "minForwardRatio": 0.8,
+      "maxHops": 2,
+      "taintMethod": "haircut"
+    },
+    "status": "evaluated",
+    "seed": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+    "facts": {
+      "contract": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+      "seeds": [
+        "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+      ],
+      "wallets": [
+        {
+          "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "isSeed": true,
+          "isKnownService": false,
+          "taintRatio": 1,
+          "forwardRatio": 0.7937,
+          "hopsFromSource": 0,
+          "receivedEth": 3.78,
+          "sentEth": 3
+        },
+        {
+          "address": "0x1a00000000000000000000000000000000000001",
+          "isSeed": false,
+          "isKnownService": false,
+          "taintRatio": 1,
+          "forwardRatio": 0.99,
+          "hopsFromSource": 1,
+          "receivedEth": 2,
+          "sentEth": 1.98
+        },
+        {
+          "address": "0x1c00000000000000000000000000000000000003",
+          "isSeed": false,
+          "isKnownService": false,
+          "taintRatio": 1,
+          "forwardRatio": 0,
+          "hopsFromSource": 1,
+          "receivedEth": 1,
+          "sentEth": 0
+        },
+        {
+          "address": "0x1b00000000000000000000000000000000000002",
+          "isSeed": false,
+          "isKnownService": false,
+          "taintRatio": 1,
+          "forwardRatio": 0.9899,
+          "hopsFromSource": 2,
+          "receivedEth": 1.98,
+          "sentEth": 1.96
+        }
+      ],
+      "transfers": [
+        {
+          "block": 43,
+          "timestamp": 1794746121,
+          "from": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+          "to": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "amount_eth": 3.78
+        },
+        {
+          "block": 45,
+          "timestamp": 1794746123,
+          "from": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "to": "0x1a00000000000000000000000000000000000001",
+          "amount_eth": 2
+        },
+        {
+          "block": 47,
+          "timestamp": 1794746125,
+          "from": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "to": "0x1c00000000000000000000000000000000000003",
+          "amount_eth": 1
+        },
+        {
+          "block": 49,
+          "timestamp": 1794746127,
+          "from": "0x1a00000000000000000000000000000000000001",
+          "to": "0x1b00000000000000000000000000000000000002",
+          "amount_eth": 1.98
+        },
+        {
+          "block": 51,
+          "timestamp": 1794746129,
+          "from": "0x1b00000000000000000000000000000000000002",
+          "to": "0x1e00000000000000000000000000000000000004",
+          "amount_eth": 1.96
+        }
+      ],
+      "deploys": [],
+      "stops": [
+        {
+          "address": "0x1e00000000000000000000000000000000000004",
+          "reason": "known_service",
+          "type": "exchange",
+          "hopsFromSource": 3
+        }
+      ]
+    },
+    "verdicts": [
+      {
+        "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "hopsFromSource": 0,
+        "classes": [],
+        "reasons": {
+          "LayeringWallet": [
+            {
+              "id": "NOT_KNOWN_SERVICE",
+              "result": true,
+              "text": "서비스 주소 아님: isKnownService = false"
+            },
+            {
+              "id": "NOT_SEED",
+              "result": false,
+              "text": "추적 시작점 아님: isSeed = true"
+            },
+            {
+              "id": "TAINT_RATIO_HIGH",
+              "result": true,
+              "text": "오염 비율 기준 이상: 1.00 ≥ 0.50"
+            },
+            {
+              "id": "FORWARD_RATIO_HIGH",
+              "result": false,
+              "text": "전달 비율 기준 이상: 0.79 < 0.80"
+            }
+          ],
+          "DeployerWallet": [
+            {
+              "id": "HAS_DEPLOYS",
+              "result": false,
+              "text": "배포 관계 있음: deploys 0건"
+            }
+          ]
+        }
+      },
+      {
+        "address": "0x1a00000000000000000000000000000000000001",
+        "hopsFromSource": 1,
+        "classes": [
+          "LayeringWallet"
+        ],
+        "reasons": {
+          "LayeringWallet": [
+            {
+              "id": "NOT_KNOWN_SERVICE",
+              "result": true,
+              "text": "서비스 주소 아님: isKnownService = false"
+            },
+            {
+              "id": "NOT_SEED",
+              "result": true,
+              "text": "추적 시작점 아님: isSeed = false"
+            },
+            {
+              "id": "TAINT_RATIO_HIGH",
+              "result": true,
+              "text": "오염 비율 기준 이상: 1.00 ≥ 0.50"
+            },
+            {
+              "id": "FORWARD_RATIO_HIGH",
+              "result": true,
+              "text": "전달 비율 기준 이상: 0.99 ≥ 0.80"
+            }
+          ],
+          "DeployerWallet": [
+            {
+              "id": "HAS_DEPLOYS",
+              "result": false,
+              "text": "배포 관계 있음: deploys 0건"
+            }
+          ]
+        }
+      },
+      {
+        "address": "0x1c00000000000000000000000000000000000003",
+        "hopsFromSource": 1,
+        "classes": [],
+        "reasons": {
+          "LayeringWallet": [
+            {
+              "id": "NOT_KNOWN_SERVICE",
+              "result": true,
+              "text": "서비스 주소 아님: isKnownService = false"
+            },
+            {
+              "id": "NOT_SEED",
+              "result": true,
+              "text": "추적 시작점 아님: isSeed = false"
+            },
+            {
+              "id": "TAINT_RATIO_HIGH",
+              "result": true,
+              "text": "오염 비율 기준 이상: 1.00 ≥ 0.50"
+            },
+            {
+              "id": "FORWARD_RATIO_HIGH",
+              "result": false,
+              "text": "전달 비율 기준 이상: 0.00 < 0.80"
+            }
+          ],
+          "DeployerWallet": [
+            {
+              "id": "HAS_DEPLOYS",
+              "result": false,
+              "text": "배포 관계 있음: deploys 0건"
+            }
+          ]
+        }
+      },
+      {
+        "address": "0x1b00000000000000000000000000000000000002",
+        "hopsFromSource": 2,
+        "classes": [
+          "LayeringWallet"
+        ],
+        "reasons": {
+          "LayeringWallet": [
+            {
+              "id": "NOT_KNOWN_SERVICE",
+              "result": true,
+              "text": "서비스 주소 아님: isKnownService = false"
+            },
+            {
+              "id": "NOT_SEED",
+              "result": true,
+              "text": "추적 시작점 아님: isSeed = false"
+            },
+            {
+              "id": "TAINT_RATIO_HIGH",
+              "result": true,
+              "text": "오염 비율 기준 이상: 1.00 ≥ 0.50"
+            },
+            {
+              "id": "FORWARD_RATIO_HIGH",
+              "result": true,
+              "text": "전달 비율 기준 이상: 0.99 ≥ 0.80"
+            }
+          ],
+          "DeployerWallet": [
+            {
+              "id": "HAS_DEPLOYS",
+              "result": false,
+              "text": "배포 관계 있음: deploys 0건"
+            }
+          ]
+        }
+      }
+    ],
+    "hopLaundering": {
+      "attached": true,
+      "result": true,
+      "conditions": [
+        {
+          "id": "CLASSIFIED_MONEY_LAUNDERING",
+          "label": "자금세탁으로 분류됨",
+          "result": true,
+          "text": "자금세탁으로 분류됨: 분류 MoneyLaundering"
+        },
+        {
+          "id": "LAYERING_DOWNSTREAM",
+          "label": "수집 지갑 하류에 레이어링 경유 지갑 있음",
+          "result": true,
+          "text": "수집 지갑 하류에 레이어링 경유 지갑 있음: LayeringWallet 2개 (2홉 이내)",
+          "matched": [
+            "0x1a00000000000000000000000000000000000001",
+            "0x1b00000000000000000000000000000000000002"
+          ]
+        }
+      ]
+    }
   }
 }

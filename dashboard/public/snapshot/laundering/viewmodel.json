@@ -650,7 +650,7 @@
       "type": "first_withdraw"
     }
   },
-  "reportHash": "bf233c243b7b6af18c6b3fc664ece24d57402b3ee13a30cba5a57ad1da38d663",
+  "reportHash": "ec63b093f566f2a51498df3ae01c69422c2a2bde09546f927e6b1d43c4a0d6d2",
   "scenario": "laundering",
   "source": "fixture",
   "walletAssessment": {

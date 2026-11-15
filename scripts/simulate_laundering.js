@@ -127,6 +127,66 @@ async function main() {
   fs.writeFileSync(path.join(logDir, "laundering_log.csv"), csv);
   console.log(`\n✅ 로그 저장 완료: ${logLabel}/laundering_log.csv`);
   console.log(`   총 ${log.length}개 트랜잭션 기록`);
+
+  // Phase 3: 수집 지갑 이후 지갑 간 이동 (지갑 레이어 v1 시연용, docs/WALLET_LAYER.md 7절)
+  // 위의 laundering_log.csv는 그대로 두고, 이동은 laundering_transfers.csv에 따로 기록한다.
+  // WALLET_SCENARIO: positive(기본) | negative | none(Phase 3 생략)
+  // 금액은 고정값이라 실행마다 같다. 가스비와 setBalance는 CSV에 기록하지 않는다.
+  // 이전 실행의 하류 CSV가 남아 있으면 잘못 읽힐 수 있으므로 먼저 지운다.
+  fs.rmSync(path.join(logDir, "laundering_transfers.csv"), { force: true });
+  const walletScenario = process.env.WALLET_SCENARIO || "positive";
+  if (walletScenario === "none") return;
+  if (walletScenario !== "positive" && walletScenario !== "negative") {
+    throw new Error(`알 수 없는 WALLET_SCENARIO: ${walletScenario} (positive | negative | none)`);
+  }
+
+  console.log(`\n── Phase 3: 수집 지갑 이후 지갑 간 이동 (${walletScenario}) ──`);
+  const collector = recipient.toLowerCase();
+  const HOP_A    = "0x1a00000000000000000000000000000000000001";
+  const HOP_B    = "0x1b00000000000000000000000000000000000002";
+  const HOLD_C   = "0x1c00000000000000000000000000000000000003";
+  const SERVICE_X = "0x1e00000000000000000000000000000000000004";  // config/services_v1.json에 등록된 거래소 역할 주소
+
+  // 고정 주소는 hardhat 계정이 아니므로 impersonate로 송금 권한을 얻고, 가스용 잔고만 넣는다.
+  for (const address of [HOP_A, HOP_B, HOLD_C]) {
+    await testClient.impersonateAccount({ address });
+    await testClient.setBalance({ address, value: parseEther("0.01") });
+  }
+
+  const moves = walletScenario === "positive"
+    ? [
+        [collector, HOP_A,     "2.00"],
+        [collector, HOLD_C,    "1.00"],
+        [HOP_A,     HOP_B,     "1.98"],
+        [HOP_B,     SERVICE_X, "1.96"]
+      ]
+    : [
+        [collector, SERVICE_X, "3.00"]
+      ];
+
+  const transfers = [];
+  for (const [from, to, amount] of moves) {
+    await testClient.mine({ blocks: 1 });
+    const sender = await viem.getWalletClient(from);
+    const txHash = await sender.sendTransaction({ to, value: parseEther(amount) });
+    const txReceipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+    const txBlock = await publicClient.getBlock({ blockNumber: txReceipt.blockNumber });
+    transfers.push({
+      block: txReceipt.blockNumber.toString(),
+      timestamp: txBlock.timestamp.toString(),
+      from,
+      to,
+      amount_eth: amount
+    });
+    console.log(`  [Block ${txReceipt.blockNumber}] ${from} → ${to} ${amount} ETH`);
+  }
+
+  const transfersCsv = [
+    "block,timestamp,from,to,amount_eth",
+    ...transfers.map(e => Object.values(e).join(","))
+  ].join("\n");
+  fs.writeFileSync(path.join(logDir, "laundering_transfers.csv"), transfersCsv);
+  console.log(`\n하류 이동 저장 완료: ${logLabel}/laundering_transfers.csv (${transfers.length}행)`);
 }
 
 main().catch(console.error);

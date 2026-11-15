@@ -6,6 +6,8 @@ import { analyzeDynamic } from "./dynamic_analyzer.js";
 import { scoreTrust }     from "./trust_scorer.js";
 import { runPrevention }  from "./prevention_reasoner.js";
 import { computeRawGrade, applyPreventionCap } from "./grade.js";
+import { runWalletLayer } from "./wallet_reasoner_v1.js";
+import { parseTransfersCsv, parseSimLogCsv, loadServices, findCollectorFromSimLog, collectorInflowFromSimLog } from "./chain_graph_v2.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -20,6 +22,36 @@ const CONTRACT_MAP = {
   PumpDump:        { type: "pumpdump",    csv: "pumpdump_log.csv"     },
   Honeypot:        { type: "honeypot",    csv: "honeypot_log.csv"     },
 };
+
+// 지갑 레이어 v1 (docs/WALLET_LAYER.md): 동적 분석 분류 → 온톨로지 클래스 이름
+const WALLET_LAYER_HINT_TO_CLASS = {
+  ponzi_scheme:     "PonziScheme",
+  rug_pull:         "RugPull",
+  money_laundering: "MoneyLaundering",
+  pump_and_dump:    "PumpDump"
+};
+
+// 지갑 레이어 v1: 자금세탁으로 분류되면 하류 거래 CSV(<type>_transfers.csv, 컨트랙트 로그와 같은 폴더)로 실행한다.
+// 수집 지갑은 시뮬레이션 로그의 전액 인출 행으로 찾는다(시뮬레이션 전용). 오류가 나도 다른 분석 결과는 그대로 둔다.
+function buildWalletLayer({ type, csvPath, dynamicResult, transfersPath }) {
+  const contractClass = WALLET_LAYER_HINT_TO_CLASS[dynamicResult?.fraud_type_hint] ?? null;
+  if (contractClass !== "MoneyLaundering") return runWalletLayer({ contractClass });
+  try {
+    const tPath = transfersPath ?? path.join(path.dirname(csvPath), `${type}_transfers.csv`);
+    const transfers = fs.existsSync(tPath) ? parseTransfersCsv(fs.readFileSync(tPath, "utf8")) : null;
+    const logRows = parseSimLogCsv(fs.readFileSync(csvPath, "utf8"));
+    return runWalletLayer({
+      contractClass,
+      contract: logRows.find(r => r.action === "deposit")?.to ?? null,
+      collector: findCollectorFromSimLog(logRows),
+      transfers,
+      inflows: [collectorInflowFromSimLog(logRows)].filter(Boolean),
+      services: loadServices(path.join(PROJECT_ROOT, "config", "services_v1.json"))
+    });
+  } catch (err) {
+    return { ...runWalletLayer({ contractClass, transfers: null }), reason: `지갑 레이어 실행 오류: ${err.message}` };
+  }
+}
 
 // ANSI 컬러
 const C = {
@@ -102,6 +134,8 @@ export async function buildReport(contractName, options = {}) {
     dynamic:                 dynamicResult,
     trust:                   trustResult
   };
+  // 지갑 레이어 v1: options.transfersPath로 하류 거래 CSV 경로를 직접 줄 수 있다.
+  report.wallet_layer = buildWalletLayer({ type, csvPath, dynamicResult, transfersPath: options.transfersPath });
 
   return {
     report, type, solPath, csvPath,

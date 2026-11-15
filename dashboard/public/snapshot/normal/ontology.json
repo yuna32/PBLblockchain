@@ -328,6 +328,27 @@
     },
     {
       "active": false,
+      "kind": "subClassOf",
+      "label": "하위 클래스",
+      "source": "wallet:LayeringWallet",
+      "target": "wallet:Wallet"
+    },
+    {
+      "active": false,
+      "kind": "subClassOf",
+      "label": "하위 클래스",
+      "source": "wallet:DeployerWallet",
+      "target": "wallet:Wallet"
+    },
+    {
+      "active": false,
+      "kind": "requires",
+      "label": "하류 경유 지갑",
+      "source": "evasion:MoneyLaundering_HopLaundering",
+      "target": "wallet:LayeringWallet"
+    },
+    {
+      "active": false,
       "kind": "exhibits",
       "label": "사용 기법",
       "source": "class:MoneyLaundering",
@@ -977,11 +998,35 @@
     },
     {
       "active": false,
-      "desc": "자금 출처 역추적 난이도 상승",
+      "desc": "자금 출처 역추적 난이도 상승 지갑 레이어 새 정의: 지갑 레이어 해당 없음.",
       "group": "evasion_subclass",
       "id": "evasion:MoneyLaundering_HopLaundering",
       "kind": "evasion",
       "label": "중간 경유 지갑형"
+    },
+    {
+      "active": false,
+      "desc": "지갑 레이어 클래스. 불법 자금을 받아 대부분을 다시 내보낸 경유 지갑. 규칙: 서비스 주소 아님 그리고 추적 시작점 아님 그리고 오염 비율 기준 이상 그리고 전달 비율 기준 이상. 이 리포트: 지갑 레이어 해당 없음. (지갑 레이어 판정(report.wallet_layer). 수집 지갑은 시뮬레이션 로그에서 찾는다)",
+      "group": "wallet_class",
+      "id": "wallet:LayeringWallet",
+      "kind": "role",
+      "label": "레이어링 경유 지갑"
+    },
+    {
+      "active": false,
+      "desc": "지갑 레이어 클래스. 분석 대상 컨트랙트를 배포한 지갑. 규칙: 배포 관계 있음. 이 리포트: 지갑 레이어 해당 없음. (지갑 레이어 판정(report.wallet_layer). 수집 지갑은 시뮬레이션 로그에서 찾는다)",
+      "group": "wallet_class",
+      "id": "wallet:DeployerWallet",
+      "kind": "role",
+      "label": "배포자 지갑"
+    },
+    {
+      "active": false,
+      "desc": "지갑 레이어 상위 클래스. 이더리움 외부 소유 계정(EOA).",
+      "group": "wallet_class",
+      "id": "wallet:Wallet",
+      "kind": "role",
+      "label": "지갑"
     },
     {
       "active": false,

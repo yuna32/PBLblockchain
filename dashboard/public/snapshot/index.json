@@ -4,7 +4,7 @@
     "explorerBase": "https://sepolia.easscan.org"
   },
   "canonicalVersion": "jcs-rfc8785/pbl-demo-v1",
-  "generatedAt": "2026-11-12T09:57:16.037Z",
+  "generatedAt": "2026-11-15T12:34:43.711Z",
   "glossary": {
     "ASYMMETRIC_WITHDRAWAL": {
       "category": "prevention_item",
@@ -36,6 +36,11 @@
       "desc": "최종적으로 자금을 받아 가는 지갑이다.",
       "ko": "수혜자"
     },
+    "CLASSIFIED_MONEY_LAUNDERING": {
+      "category": "wallet_condition",
+      "desc": "HopLaundering 규칙의 조건이다. 컨트랙트 분류 = MoneyLaundering",
+      "ko": "자금세탁으로 분류됨"
+    },
     "CONCENTRATION_DRAIN": {
       "category": "dynamic_rule",
       "desc": "출금액이 소수 지갑에 몰린 정도(허핀달-허쉬만 지수)를 점수로 매긴다.",
@@ -51,6 +56,11 @@
       "desc": "입금 주소 수가 출금 주소 수의 3배를 넘어 자금이 소수 주소로 모이는 신호다.",
       "ko": "집계 인출 신호"
     },
+    "DeployerWallet": {
+      "category": "wallet_class",
+      "desc": "분석 대상 컨트랙트를 배포한 지갑",
+      "ko": "배포자 지갑"
+    },
     "Depositor": {
       "category": "role",
       "desc": "온톨로지에 정의 없음. fraud_ontology.js의 MoneyLaundering.affectedRoles에 이름만 있다.",
@@ -60,6 +70,11 @@
       "category": "dynamic_rule",
       "desc": "누적 출금이 총 입금의 50% 이상인 경우다. 여러 번 나눠 인출해도 합산해서 본다.",
       "ko": "대량 유출"
+    },
+    "FORWARD_RATIO_HIGH": {
+      "category": "wallet_condition",
+      "desc": "LayeringWallet 규칙의 조건이다. forwardRatio ≥ minForwardRatio",
+      "ko": "전달 비율 기준 이상"
     },
     "FlashRepayment": {
       "category": "evasion_technique",
@@ -80,6 +95,11 @@
       "category": "evasion_technique",
       "desc": "큰 인출 전에 작은 인출을 여러 번 해 급락 신호를 흐리는 기법이다.",
       "ko": "점진적 드레인 난독화"
+    },
+    "HAS_DEPLOYS": {
+      "category": "wallet_condition",
+      "desc": "DeployerWallet 규칙의 조건이다. deploys 관계 있음",
+      "ko": "배포 관계 있음"
     },
     "HIDDEN_WITHDRAW_BLOCK": {
       "category": "prevention_item",
@@ -156,6 +176,11 @@
       "desc": "내부자 덤프 후 후발자 전액 손실 불가피",
       "ko": "후발자 잔고 귀결 0 구조"
     },
+    "LAYERING_DOWNSTREAM": {
+      "category": "wallet_condition",
+      "desc": "HopLaundering 규칙의 조건이다. collectedBy 지갑에서 maxHops 이내에 LayeringWallet 1개 이상",
+      "ko": "수집 지갑 하류에 레이어링 경유 지갑 있음"
+    },
     "LOW": {
       "category": "level",
       "desc": "배포 전 예방 분석에서 위험 항목이 거의 없다.",
@@ -175,6 +200,11 @@
       "category": "condition",
       "desc": "나중에 들어온 참여자의 출금이 실패해 원금을 잃었다.",
       "ko": "후발 참여자 손실"
+    },
+    "LayeringWallet": {
+      "category": "wallet_class",
+      "desc": "불법 자금을 받아 대부분을 다시 내보낸 경유 지갑",
+      "ko": "레이어링 경유 지갑"
     },
     "MANY_TO_ONE_FLOW": {
       "category": "prevention_item",
@@ -235,6 +265,16 @@
       "category": "evasion_subclass",
       "desc": "시계열 패턴 희석 → 급락 지점 탐지 어려움",
       "ko": "시간 분산 회피형"
+    },
+    "NOT_KNOWN_SERVICE": {
+      "category": "wallet_condition",
+      "desc": "LayeringWallet 규칙의 조건이다. isKnownService = false",
+      "ko": "서비스 주소 아님"
+    },
+    "NOT_SEED": {
+      "category": "wallet_condition",
+      "desc": "LayeringWallet 규칙의 조건이다. isSeed = false",
+      "ko": "추적 시작점 아님"
     },
     "NO_DEPOSIT_TRACKING": {
       "category": "prevention_item",
@@ -451,6 +491,11 @@
       "desc": "생성자에서 주입한 외부 컨트랙트로 송금을 넘겨 실제 동작을 숨기는 코드 패턴이다.",
       "ko": "허수아비 컨트랙트"
     },
+    "TAINT_RATIO_HIGH": {
+      "category": "wallet_condition",
+      "desc": "LayeringWallet 규칙의 조건이다. taintRatio ≥ minTaintRatio",
+      "ko": "오염 비율 기준 이상"
+    },
     "TEMPORAL_PATTERN": {
       "category": "dynamic_rule",
       "desc": "입금이 끝난 뒤 오래 기다렸다가 인출하거나, 인출 속도가 급격한 경우다.",
@@ -470,6 +515,11 @@
       "category": "role",
       "desc": "원금을 돌려받지 못한 참여자다.",
       "ko": "피해자"
+    },
+    "Wallet": {
+      "category": "wallet_class",
+      "desc": "이더리움 외부 소유 계정(EOA)",
+      "ko": "지갑"
     },
     "ZeroWithdrawBlock": {
       "category": "signal",
@@ -641,6 +691,21 @@
       "desc": "어떤 판정 규칙에도 맞지 않았다.",
       "ko": "판정 불가"
     },
+    "wallet_layer_evaluated": {
+      "category": "wallet_status",
+      "desc": "자금세탁으로 분류되어 수집 지갑 하류의 지갑을 판정했다.",
+      "ko": "지갑 레이어 실행함"
+    },
+    "wallet_layer_missing": {
+      "category": "wallet_status",
+      "desc": "자금세탁으로 분류되었지만 하류 거래 데이터나 수집 지갑이 없어 판정하지 못했다.",
+      "ko": "지갑 레이어 데이터 없음"
+    },
+    "wallet_layer_not_applicable": {
+      "category": "wallet_status",
+      "desc": "자금세탁으로 분류되지 않아 지갑 레이어를 실행하지 않았다.",
+      "ko": "지갑 레이어 해당 없음"
+    },
     "withdrawFailure": {
       "category": "evidence",
       "desc": "출금 성공률이 100% 미만이다. 금액 0으로 끝난 출금 시도가 있다는 뜻이다.",
@@ -659,7 +724,7 @@
       "expectedType": "normal_staking",
       "id": "normal",
       "label": "정상 스테이킹",
-      "reportHash": "0x2978f4a18407d9def9a28ca4879197ea863cd32c32fe670af9c26b7488969e1f"
+      "reportHash": "0x58ab4492224521fd77eb4230793d106aadc67e42b94f362f8846ab2bdf2cdd8c"
     },
     {
       "attestStatus": "B",
@@ -667,7 +732,7 @@
       "expectedType": "ponzi_scheme",
       "id": "ponzi",
       "label": "폰지 사기",
-      "reportHash": "0xbaeb59b93cd24c3e0b3654dd85f0804d85edfd436a3803a220fb082b4db98518"
+      "reportHash": "0x3662dbc34db5752dc43403dbf9c15449167b5f03cf8d7ab951822cc5cbf2b6ce"
     },
     {
       "attestStatus": "B",
@@ -675,7 +740,7 @@
       "expectedType": "rug_pull",
       "id": "rugpull",
       "label": "러그풀",
-      "reportHash": "0x8339e38932c5e7744970ec76b9dc3ebeb2b4f58669629fb049b477b75640433c"
+      "reportHash": "0xb42d4ea8549aff4f0ebb40bf379f97b8d3c539b29718ed635d5e68e73fff77a4"
     },
     {
       "attestStatus": "B",
@@ -683,7 +748,7 @@
       "expectedType": "money_laundering",
       "id": "laundering",
       "label": "자금세탁",
-      "reportHash": "0xbf233c243b7b6af18c6b3fc664ece24d57402b3ee13a30cba5a57ad1da38d663"
+      "reportHash": "0xec63b093f566f2a51498df3ae01c69422c2a2bde09546f927e6b1d43c4a0d6d2"
     },
     {
       "attestStatus": "B",
@@ -691,9 +756,9 @@
       "expectedType": "pump_and_dump",
       "id": "pumpdump",
       "label": "펌프앤덤프",
-      "reportHash": "0xd17bebb6e3aebfb6ea77db0451e52508a7f8f7515bac1a403587867cbbbbd62b"
+      "reportHash": "0xc2317533a1579fa53700ffde7ba7501572fc27f45a21d727373d87c18e1aa392"
     }
   ],
   "schemaVersion": 1,
-  "sourceCommit": "98d5797"
+  "sourceCommit": "47e14ec"
 }

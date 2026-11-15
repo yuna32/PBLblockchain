@@ -1,7 +1,7 @@
 {
   "contract": "NormalStaking",
   "type": "normal",
-  "timestamp": "2026-11-12T09:57:12.611Z",
+  "timestamp": "2026-11-15T12:34:37.408Z",
   "overall_grade": "A",
   "raw_grade": "A",
   "prevention_cap_applied": false,
@@ -598,5 +598,16 @@
     "overall_trust_score": 86,
     "trust_grade": "A",
     "summary_ko": "총 11개 지갑 분석. 평균 신뢰 점수 86/100 (평균: 92, 최저: 78). 등급: A (SAFE)."
+  },
+  "wallet_layer": {
+    "version": "v1",
+    "params": {
+      "minTaintRatio": 0.5,
+      "minForwardRatio": 0.8,
+      "maxHops": 2,
+      "taintMethod": "haircut"
+    },
+    "status": "not_applicable",
+    "reason": "자금세탁으로 분류되지 않아 지갑 레이어를 실행하지 않음"
   }
 }

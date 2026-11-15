@@ -265,6 +265,9 @@ export const FraudOntology = {
         HopLaundering: {
           id: 'MoneyLaundering_HopLaundering',
           label: '중간 경유 지갑형',
+          // 지갑 레이어 v1: 아래 axiom 조건(출금 주소 NOT IN 입금 주소)은 상위 MoneyLaundering 공리(수집자 = 입금자)와 모순되어 폐기.
+          // 새 정의는 walletLayer.rules.HopLaundering. 기존 조건은 이력 확인용으로 남긴다.
+          replacedBy: 'walletLayer.rules.HopLaundering',
           axiom: {
             baseClass: 'MoneyLaundering',
             conditions: [
@@ -587,6 +590,78 @@ export const FraudOntology = {
   }
 
 ,
+
+  // 지갑 레이어 v1 (시연 최소안). 컨트랙트에서 빠져나간 돈이 여러 지갑을 거치는 레이어링을 지갑 단위로 판정한다.
+  // 판정 결과는 사기 유형 분류의 입력으로 쓰지 않고, MoneyLaundering에 HopLaundering을 붙일 때만 쓴다.
+  // 규칙의 기준값은 이름만 적는다. 값은 analysis/wallet_layer_v1.js의 WALLET_PARAMS에 있다.
+  // OWL에는 아직 반영하지 않았다(docs/WALLET_LAYER.md 9절).
+  walletLayer: {
+    version: 'v1',
+    classes: {
+      Wallet: {
+        label: '지갑',
+        description: '이더리움 외부 소유 계정(EOA)'
+      },
+      LayeringWallet: {
+        parent: 'Wallet',
+        label: '레이어링 경유 지갑',
+        description: '불법 자금을 받아 대부분을 다시 내보낸 경유 지갑'
+      },
+      DeployerWallet: {
+        parent: 'Wallet',
+        label: '배포자 지갑',
+        description: '분석 대상 컨트랙트를 배포한 지갑'
+      }
+    },
+    relations: {
+      deploys:     { domain: 'Wallet', range: 'Contract', label: '배포함' },
+      transfersTo: { domain: 'Wallet', range: 'Wallet', label: '송금함' },
+      collectedBy: { domain: 'MoneyLaundering', range: 'Wallet', label: '자금 수집 지갑' }
+    },
+    // 불리언은 부정 조건 때문에 참/거짓을 항상 명시한다. 값이 없으면 null이고, null인 조건은 판정하지 않는다.
+    properties: {
+      isSeed:         { type: 'boolean', label: '추적 시작점 여부' },
+      isKnownService: { type: 'boolean', label: '서비스 주소 여부' },
+      taintRatio:     { type: 'number',  label: '오염 비율', description: '받은 금액 중 불법 자금 비율 (0~1)' },
+      forwardRatio:   { type: 'number',  label: '전달 비율', description: '받은 금액 대비 다시 보낸 금액 비율' },
+      hopsFromSource: { type: 'integer', label: '홉 수', description: '시드에서 몇 번째 지갑인지 (최단 경로)' }
+    },
+    // 선언형 규칙. all: 모든 조건이 참일 때 해당 클래스.
+    // 조건 형식: { id, label, prop, eq | gte: '<WALLET_PARAMS 키>' }
+    rules: {
+      LayeringWallet: {
+        target: 'Wallet',
+        all: [
+          { id: 'NOT_KNOWN_SERVICE', label: '서비스 주소 아님', prop: 'isKnownService', eq: false },
+          { id: 'NOT_SEED',          label: '추적 시작점 아님', prop: 'isSeed', eq: false },
+          { id: 'TAINT_RATIO_HIGH',  label: '오염 비율 기준 이상', prop: 'taintRatio', gte: 'minTaintRatio' },
+          { id: 'FORWARD_RATIO_HIGH', label: '전달 비율 기준 이상', prop: 'forwardRatio', gte: 'minForwardRatio' }
+        ]
+      },
+      DeployerWallet: {
+        target: 'Wallet',
+        all: [
+          { id: 'HAS_DEPLOYS', label: '배포 관계 있음', relation: 'deploys', exists: true }
+        ]
+      },
+      // 기존 fraudTypes.MoneyLaundering.evasionSubclasses.HopLaundering.axiom을 대체한다.
+      HopLaundering: {
+        target: 'Contract',
+        label: '중간 경유 지갑형',
+        all: [
+          { id: 'CLASSIFIED_MONEY_LAUNDERING', label: '자금세탁으로 분류됨', contractClass: 'MoneyLaundering' },
+          { id: 'LAYERING_DOWNSTREAM', label: '수집 지갑 하류에 레이어링 경유 지갑 있음',
+            via: 'collectedBy', downstreamClass: 'LayeringWallet', maxHops: 'maxHops', minCount: 1 }
+        ]
+      }
+    },
+    // 추적 규칙. 시드에서 너비 우선으로 maxHops까지 따라가고, 서비스 주소에서 멈춘다.
+    traversal: {
+      seeds: ['collectedBy'],
+      stopAt: 'isKnownService',
+      maxHops: 'maxHops'
+    }
+  },
 
   preventionRules: {
     PonziScheme: {
