@@ -8,7 +8,7 @@
 //   passThroughEvents: number | null,
 //   failures: [], sources: [], reason
 // }
-import { INDICATOR_RULES as R, SCORE_MAX, SCORE_BANDS, FUND_FLOW, MIN_HISTORY_TXS } from "./config.js";
+import { INDICATOR_RULES as R, SCORE_MAX, SCORE_BANDS, FUND_FLOW, MIN_HISTORY_TXS, PAST_BEHAVIOR, WEAK_PAIR_TO_STRONG } from "./config.js";
 
 // 기간을 읽기 쉬운 말로: 60일 미만은 "N일", 그 이상은 "약 N개월"
 function gapText(fromTs, toDate) {
@@ -36,6 +36,8 @@ function summarize(level, f, evidence, scams, short) {
     }
     if (keys.has("past_scam_deployments") && !scams.length && f.goplus?.deployer?.maliciousContracts > 0)
       parts.push(`보안 서비스(GoPlus) 기준으로 이 배포자가 만든 악성 컨트랙트가 ${f.goplus.deployer.maliciousContracts}개 있습니다`);
+    if (evidence.some(e => e.tag === "past_net_back" && e.strength === "strong"))
+      parts.push("이 배포자는 이전에 만든 컨트랙트들에서 넣은 돈보다 훨씬 많이 돌려받았고, 받은 돈을 곧바로 다른 곳으로 보내는 일이 반복됩니다");
     if (keys.has("first_funding")) parts.push(f.firstFunding?.category === "malicious"
       ? `이 배포자가 처음 받은 돈을 보낸 지갑은 ${funderText(f.firstFunding.knownAs).replace(/입니다$/, "")}입니다`
       : "이 배포자가 처음 받은 돈은 믹서에서 왔습니다");
@@ -44,8 +46,8 @@ function summarize(level, f, evidence, scams, short) {
     return parts.join(". ");
   }
   if (level === "some") {
-    const names = { fund_flow: "받은 돈을 바로 내보내는 패턴", external_flags: "보안 서비스의 의심 표시" };
-    return `뚜렷한 위험 근거는 없지만 확인이 필요한 신호가 있습니다: ${[...keys].map(k => names[k] ?? k).join(", ")}`;
+    const names = { fund_flow: "받은 돈을 바로 내보내는 패턴", past_net_back: "이전 컨트랙트에서 넣은 돈보다 많이 돌려받음", external_flags: "보안 서비스의 의심 표시" };
+    return `뚜렷한 위험 근거는 없지만 확인이 필요한 신호가 있습니다: ${evidence.map(e => names[e.tag] ?? names[e.indicator_key] ?? e.indicator_key).join(", ")}`;
   }
   if (short) return `확인할 기록이 거의 없어(거래 ${f.activity.txCount}건) 판단 근거가 부족합니다. 위험 근거가 없다는 뜻이 아닙니다`;
   const past = Array.isArray(f.pastDeployments) ? `, 이전 배포 ${f.pastDeployments.length}개` : "";
@@ -62,7 +64,8 @@ export function scoreDeployer(f) {
   const add = (key, points, ev) => {
     const cap = R[key].cap;
     indicators.push({ key, points: Math.min(points, cap), cap });
-    if (ev) evidence.push({ indicator_key: key, points: Math.min(points, cap), source: ev.source ?? null, strength: ev.strength, text: ev.text });
+    if (ev) evidence.push({ indicator_key: key, points: Math.min(points, cap), source: ev.source ?? null, strength: ev.strength, text: ev.text,
+      ...(ev.label_based ? { label_based: true } : {}), ...(ev.tag ? { tag: ev.tag } : {}) });
   };
 
   // 1. 첫 자금원
@@ -86,20 +89,27 @@ export function scoreDeployer(f) {
       note: `${isYoung ? "새 지갑" : "새 지갑 아님"}: 이 컨트랙트를 만들 때 지갑을 쓴 지 ${f.activity.days}일. 정상 배포자에게도 흔해(사기 배포자와 1.3배 차이) 점수에는 넣지 않습니다` });
   }
 
-  // 3. 과거 사기 배포: 분석 대상이 아닌, 24시간 이상 앞선 배포 중 공개 라벨이 사기인 것(같은 날 재배포는 제외)
+  // 3. 전에 만든 컨트랙트: ① 24시간 이상 앞선 사기 라벨 배포(XBlock) 또는 GoPlus 악성 컨트랙트 수 → 강함
+  //    ② 이전 컨트랙트에서 넣은 돈보다 많이 돌려받음(라벨 없음) → 약함. 한 지표 안에서 점수는 상한까지 더한다
   const scams = (f.pastDeployments ?? []).filter(p => p.publicLabel === "scam" && !p.sameDay);
   if (Array.isArray(f.pastDeployments)) {
     const rule = R.past_scam_deployments.any;
     const gpCount = f.goplus?.deployer?.maliciousContracts ?? 0;
-    if (scams.length >= rule.minCount) {
-      add("past_scam_deployments", rule.points, { strength: rule.strength,
-        text: `이 컨트랙트보다 하루 이상 앞서 만든 컨트랙트 중 ${scams.length}개가 연구 데이터(XBlock)에서 폰지로 분류되어 있습니다 (처음 만든 날 ${scams[0].deployedAt})`,
-        source: "XBlock 연구 데이터, Etherscan", label_based: true });
-    } else if (gpCount > 0) {
-      add("past_scam_deployments", rule.points, { strength: rule.strength,
-        text: `보안 서비스(GoPlus) 기준으로 이 배포자가 만든 악성 컨트랙트가 ${gpCount}개 있습니다 (현재 시점 정보)`,
-        source: "GoPlus" });
-    } else add("past_scam_deployments", 0);
+    const items = [];
+    if (scams.length >= rule.minCount) items.push({ points: rule.points, strength: rule.strength, label_based: true,
+      text: `이 컨트랙트보다 하루 이상 앞서 만든 컨트랙트 중 ${scams.length}개가 연구 데이터(XBlock)에서 폰지로 분류되어 있습니다 (처음 만든 날 ${scams[0].deployedAt})`,
+      source: "XBlock 연구 데이터, Etherscan" });
+    else if (gpCount > 0) items.push({ points: rule.points, strength: rule.strength,
+      text: `보안 서비스(GoPlus) 기준으로 이 배포자가 만든 악성 컨트랙트가 ${gpCount}개 있습니다 (현재 시점 정보)`, source: "GoPlus" });
+    const pb = f.pastBehavior;
+    if (pb && pb.backEth >= PAST_BEHAVIOR.minBackEth && pb.backEth >= PAST_BEHAVIOR.backMultiple * pb.sentEth)
+      items.push({ points: R.past_scam_deployments.netBack.points, strength: R.past_scam_deployments.netBack.strength, tag: "past_net_back",
+        text: `이전에 만든 컨트랙트들에 넣은 돈은 ${pb.sentEth.toFixed(2)} ETH인데, 그 컨트랙트들에서 ${pb.backEth.toFixed(2)} ETH를 돌려받았습니다`,
+        source: "Etherscan" });
+    const cap = R.past_scam_deployments.cap;
+    indicators.push({ key: "past_scam_deployments", points: Math.min(cap, items.reduce((s, x) => s + x.points, 0)), cap });
+    for (const x of items) evidence.push({ indicator_key: "past_scam_deployments", points: Math.min(cap, x.points), source: x.source, strength: x.strength, text: x.text,
+      ...(x.label_based ? { label_based: true } : {}), ...(x.tag ? { tag: x.tag } : {}) });
   }
 
   // 4. 외부 위험 플래그: GoPlus를 조회했을 때만(실주소 분석). 조회하지 않았으면 데이터 없음
@@ -116,11 +126,16 @@ export function scoreDeployer(f) {
   if (typeof f.passThroughEvents === "number") {
     const rule = R.fund_flow.passThrough;
     if (f.passThroughEvents >= rule.minEvents) {
-      add("fund_flow", rule.points, { strength: rule.strength,
+      add("fund_flow", rule.points, { strength: rule.strength, tag: "fund_flow",
         text: `받은 돈의 ${FUND_FLOW.shareOut * 100}% 이상을 ${FUND_FLOW.withinSeconds / 60}분 안에 다른 곳으로 보낸 일이 ${f.passThroughEvents}번 있습니다`, source: "Etherscan" });
     } else add("fund_flow", 0);
   }
 
+  // 라벨 없는 약한 근거 두 개가 함께 나타나면 둘 다 강한 근거로 올린다(config.js WEAK_PAIR_TO_STRONG의 근거 참고)
+  const pa = evidence.find(e => e.tag === WEAK_PAIR_TO_STRONG.a), pbEv = evidence.find(e => e.tag === WEAK_PAIR_TO_STRONG.b);
+  if (pa && pbEv && pa.strength === "weak" && pbEv.strength === "weak") {
+    for (const e of [pa, pbEv]) { e.strength = "strong"; e.text += " (이전 컨트랙트 수익과 받자마자 보내는 패턴이 함께 나타나 강한 근거로 봅니다)"; }
+  }
   const level = evidence.some(e => e.strength === "strong") ? "strong" : evidence.length ? "some" : "none";
   // 점수: 단계 구간의 시작점 + 구간 안에서 근거가 많을수록 높게(가장 강한 근거 하나는 구간 시작점에 이미 반영)
   const raw = indicators.reduce((s, i) => s + (typeof i.points === "number" ? i.points : 0), 0);

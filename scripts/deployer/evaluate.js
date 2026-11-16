@@ -92,11 +92,23 @@ async function main() {
     ...dist(test, "level"),
     `| 평균 점수 | ${avg(test, "scam")} | ${avg(test, "normal")} |`,
     ``,
-    `## ③ 평가용 절반: 라벨과 독립인 근거만 (과거 사기 배포·첫 자금원 사기 배포자 제외)`,
+    `## ③ 평가용 절반: 라벨과 독립인 근거만 (XBlock 라벨을 쓰는 근거 제외)`,
     ``,
     `| 단계 | 폰지 | 정상 |`,
     `|---|---|---|`,
     ...dist(test, "levelIndependent"),
+    ``,
+    `## ④ 평가용 절반: 배포자 기준 (같은 배포자의 여러 컨트랙트를 한 번만 셈)`,
+    ``,
+    `컨트랙트 기준은 폰지를 여러 번 배포한 배포자가 크게 반영되므로, 배포자마다 "강한 근거가 한 번이라도 나왔나"로 다시 셈.`,
+    ``,
+    `| 강한 근거 | 폰지 배포자 | 정상 배포자 |`,
+    `|---|---|---|`,
+    ...[["level", "현재 기준 전체"], ["levelIndependent", "라벨과 독립인 근거만"]].map(([field, name]) => {
+      const by = lab => { const m = new Map(); for (const r of test.filter(r => r.label === lab)) m.set(r.deployer, (m.get(r.deployer) || false) || r[field] === "strong"); return [[...m.values()].filter(Boolean).length, m.size]; };
+      const [a, n] = by("scam"), [b, m] = by("normal");
+      return `| ${name} | ${pct(a, n)} | ${pct(b, m)} |`;
+    }),
     ``,
     `## 참고: 전체 500개 단계 분포`,
     ``,

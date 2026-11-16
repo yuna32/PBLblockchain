@@ -36,6 +36,13 @@
         "sameDay": true
       }
     ],
+    "pastBehavior": {
+      "backEth": 1.01,
+      "sentEth": 1.01,
+      "checked": 2,
+      "drained": [],
+      "skipped": 0
+    },
     "passThroughEvents": 0,
     "goplus": null,
     "failures": [],

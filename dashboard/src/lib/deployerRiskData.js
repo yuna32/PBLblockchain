@@ -42,7 +42,8 @@ export const DEPLOYER_RISK_BY_SCENARIO = {
         "points": 30,
         "source": "XBlock 연구 데이터, Etherscan",
         "strength": "strong",
-        "text": "이 컨트랙트보다 하루 이상 앞서 만든 컨트랙트 중 1개가 연구 데이터(XBlock)에서 폰지로 분류되어 있습니다 (처음 만든 날 2017-05-10)"
+        "text": "이 컨트랙트보다 하루 이상 앞서 만든 컨트랙트 중 1개가 연구 데이터(XBlock)에서 폰지로 분류되어 있습니다 (처음 만든 날 2017-05-10)",
+        "label_based": true
       }
     ],
     "first_funding": {

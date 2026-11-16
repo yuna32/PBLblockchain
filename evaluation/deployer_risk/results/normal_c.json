@@ -470,6 +470,13 @@
         "sameDay": false
       }
     ],
+    "pastBehavior": {
+      "backEth": 0,
+      "sentEth": 1e-7,
+      "checked": 5,
+      "drained": [],
+      "skipped": 59
+    },
     "passThroughEvents": 0,
     "goplus": null,
     "failures": [],

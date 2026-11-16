@@ -14,10 +14,15 @@ export const RULES_VERSION = "v1 (조정용 절반으로 정한 기준)";
 export const INDICATOR_RULES = {
   first_funding:         { cap: 30, mixer: { strength: "strong", points: 30 }, malicious: { strength: "strong", points: 30 } },
   wallet_maturity:       { cap: 20, young: { maxDays: 7, info: true } }, // 구분력이 낮아(1.3배) 점수에 넣지 않고 참고로만
-  past_scam_deployments: { cap: 30, any:   { strength: "strong", points: 30, minCount: 1 } },
+  past_scam_deployments: { cap: 30, any:   { strength: "strong", points: 30, minCount: 1 },
+                           netBack: { strength: "weak", points: 10 } }, // 이전 컨트랙트에서 넣은 돈보다 많이 돌려받음(라벨 없음, 2.6배)
   external_flags:        { cap: 10, direct: { strength: "strong", points: 10 }, doubt: { strength: "weak", points: 10 } }, // GoPlus(실주소 분석에서만)
   fund_flow:             { cap: 10, passThrough: { strength: "weak", points: 10, minEvents: 2 } }
 };
+
+// 라벨 없는 약한 근거 두 개가 함께 나타나면 강한 근거로 올린다(조정용 33.5배: 폰지 12 vs 정상 0, 평가용 7.0배)
+//   이전 컨트랙트에서 넣은 돈보다 많이 돌려받음 + 받은 돈을 바로 보냄
+export const WEAK_PAIR_TO_STRONG = { a: "past_net_back", b: "fund_flow" };
 
 // 점수 구간(onchainrisk 방식): 단계마다 구간을 정하고, 구간 안에서는 발견된 근거가 많을수록 높게.
 //   근거 없음 0 · 근거 있음 26~50 · 강한 근거 76~100
