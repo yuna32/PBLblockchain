@@ -17,7 +17,8 @@
     "firstFunding": {
       "from": "0xd58550a50161edf805a25431fc0bb850ff160bad",
       "category": "other",
-      "date": "2017-06-07"
+      "date": "2017-06-07",
+      "knownAs": null
     },
     "pastDeployments": [
       {
@@ -470,6 +471,7 @@
       }
     ],
     "passThroughEvents": 0,
+    "goplus": null,
     "failures": [],
     "sources": [
       "Etherscan(이더리움 메인넷)",

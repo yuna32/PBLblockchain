@@ -1,0 +1,149 @@
+{
+  "contract": "0x7a250d5630b4cf539739df2c5dacb4c659f2488d",
+  "at": "now",
+  "rules": "v1 (조정용 절반으로 정한 기준)",
+  "facts": {
+    "deployer": "0x9c33eacc2f50e39940d3afaf2c7b8246b681a374",
+    "contract": "0x7a250d5630b4cf539739df2c5dacb4c659f2488d",
+    "asOf": {
+      "block": 999999999,
+      "date": "2026-11-16"
+    },
+    "activity": {
+      "firstTxDate": "2020-05-04",
+      "days": 2386,
+      "txCount": 27,
+      "counterparties": 1
+    },
+    "firstFunding": {
+      "from": "0x8688a84fcfd84d8f78020d0fc0b35987cc58911f",
+      "category": "other",
+      "date": "2020-05-04",
+      "knownAs": null
+    },
+    "pastDeployments": [
+      {
+        "contract": "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f",
+        "deployedAt": "2020-05-04",
+        "deployedTs": 1588610042,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0xf164fc0ec4e93095b804a4795bbe1e041497b92a",
+        "deployedAt": "2020-05-05",
+        "deployedTs": 1588694788,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x16d4f26c15f3658ec65b1126ff27dd3df2a2996b",
+        "deployedAt": "2020-05-05",
+        "deployedTs": 1588695471,
+        "publicLabel": null,
+        "sameDay": false
+      }
+    ],
+    "passThroughEvents": 0,
+    "goplus": {
+      "deployer": {
+        "direct": [],
+        "doubt": [],
+        "mixer": false,
+        "maliciousContracts": 0,
+        "source": "GoPlus"
+      },
+      "funder": {
+        "direct": [],
+        "doubt": [],
+        "mixer": false,
+        "maliciousContracts": 0,
+        "source": "GoPlus"
+      }
+    },
+    "failures": [],
+    "sources": [
+      "Etherscan(이더리움 메인넷)",
+      "XBlock 폰지 라벨"
+    ],
+    "reason": "실제 컨트랙트의 배포자를, 지금까지의 기록과 보안 서비스의 현재 정보로 분석했습니다."
+  },
+  "result": {
+    "level": "none",
+    "score": 0,
+    "score_max": 100,
+    "summary": "확인한 범위(활동 2386일, 이전 배포 3개)에서 이 배포자의 위험 근거는 보이지 않습니다. 안전하다는 뜻은 아닙니다",
+    "target": {
+      "deployer": "0x9c33eacc2f50e39940d3afaf2c7b8246b681a374",
+      "contract": "0x7a250d5630b4cf539739df2c5dacb4c659f2488d"
+    },
+    "indicators": [
+      {
+        "key": "first_funding",
+        "points": 0,
+        "cap": 30
+      },
+      {
+        "key": "wallet_maturity",
+        "status": "info",
+        "points": null,
+        "cap": 20,
+        "note": "새 지갑 아님: 이 컨트랙트를 만들 때 지갑을 쓴 지 2386일. 정상 배포자에게도 흔해(사기 배포자와 1.3배 차이) 점수에는 넣지 않습니다"
+      },
+      {
+        "key": "past_scam_deployments",
+        "points": 0,
+        "cap": 30
+      },
+      {
+        "key": "external_flags",
+        "points": 0,
+        "cap": 10
+      },
+      {
+        "key": "fund_flow",
+        "points": 0,
+        "cap": 10
+      }
+    ],
+    "evidence": [],
+    "first_funding": {
+      "hops": 1,
+      "category": "other"
+    },
+    "past_deployments": [
+      {
+        "contract": "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f",
+        "deployedAt": "2020-05-04",
+        "deployedTs": 1588610042,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0xf164fc0ec4e93095b804a4795bbe1e041497b92a",
+        "deployedAt": "2020-05-05",
+        "deployedTs": 1588694788,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x16d4f26c15f3658ec65b1126ff27dd3df2a2996b",
+        "deployedAt": "2020-05-05",
+        "deployedTs": 1588695471,
+        "publicLabel": null,
+        "sameDay": false
+      }
+    ],
+    "scope": {
+      "activity_days": 2386,
+      "tx_count": 27,
+      "as_of": "2026-11-16 (지금)",
+      "failures": [],
+      "sources": [
+        "Etherscan(이더리움 메인넷)",
+        "XBlock 폰지 라벨"
+      ],
+      "reason": "실제 컨트랙트의 배포자를, 지금까지의 기록과 보안 서비스의 현재 정보로 분석했습니다."
+    }
+  }
+}

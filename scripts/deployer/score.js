@@ -17,6 +17,14 @@ function gapText(fromTs, toDate) {
   return days < 60 ? `${days}일` : `약 ${Math.round(days / 30)}개월`;
 }
 
+// 첫 자금을 보낸 지갑이 어떤 위험 주소인지 사용자 말로
+function funderText(k) {
+  if (k?.kind === "scam_deployer") return "그 전에 사기(폰지) 컨트랙트를 배포한 적이 있는 지갑입니다";
+  if (k?.kind === "hack") return `해킹 사건에 쓰인 주소로 알려진 지갑입니다(${k.name})`;
+  if (k?.kind === "goplus") return `보안 서비스(GoPlus)가 위험 주소(${k.name})로 표시한 지갑입니다`;
+  return "알려진 위험 주소입니다";
+}
+
 // 화면 맨 위의 결론 한 문장. 어떤 근거인지 사용자 말로 바로 보이게 쓴다("안전"이라는 말은 쓰지 않는다).
 function summarize(level, f, evidence, scams, short) {
   const keys = new Set(evidence.map(e => e.indicator_key));
@@ -26,13 +34,17 @@ function summarize(level, f, evidence, scams, short) {
       const gap = f.asOf ? gapText(scams[0].deployedTs, f.asOf.date) : null;
       parts.push(`이 배포자는 이 컨트랙트를 배포하기 ${gap ? gap + " " : ""}전, 사기(폰지)로 확인된 컨트랙트를 ${scams.length > 1 ? scams.length + "개 " : ""}만든 적이 있습니다`);
     }
+    if (keys.has("past_scam_deployments") && !scams.length && f.goplus?.deployer?.maliciousContracts > 0)
+      parts.push(`보안 서비스(GoPlus) 기준으로 이 배포자가 만든 악성 컨트랙트가 ${f.goplus.deployer.maliciousContracts}개 있습니다`);
     if (keys.has("first_funding")) parts.push(f.firstFunding?.category === "malicious"
-      ? "이 배포자가 처음 받은 돈은 사기(폰지) 컨트랙트를 배포한 적이 있는 지갑에서 왔습니다"
-      : "이 배포자가 처음 받은 돈은 믹서(Tornado Cash)에서 왔습니다");
+      ? `이 배포자가 처음 받은 돈을 보낸 지갑은 ${funderText(f.firstFunding.knownAs).replace(/입니다$/, "")}입니다`
+      : "이 배포자가 처음 받은 돈은 믹서에서 왔습니다");
+    if (keys.has("external_flags") && f.goplus?.deployer?.direct.length)
+      parts.push(`이 배포자 주소는 보안 서비스(GoPlus)에서 ${f.goplus.deployer.direct.join(", ")}(으)로 표시되어 있습니다`);
     return parts.join(". ");
   }
   if (level === "some") {
-    const names = { fund_flow: "받은 돈을 바로 내보내는 패턴" };
+    const names = { fund_flow: "받은 돈을 바로 내보내는 패턴", external_flags: "보안 서비스의 의심 표시" };
     return `뚜렷한 위험 근거는 없지만 확인이 필요한 신호가 있습니다: ${[...keys].map(k => names[k] ?? k).join(", ")}`;
   }
   if (short) return `확인할 기록이 거의 없어(거래 ${f.activity.txCount}건) 판단 근거가 부족합니다. 위험 근거가 없다는 뜻이 아닙니다`;
@@ -58,11 +70,11 @@ export function scoreDeployer(f) {
     const ff = f.firstFunding;
     if (ff.category === "mixer") {
       add("first_funding", R.first_funding.mixer.points, { strength: R.first_funding.mixer.strength,
-        text: `처음 받은 돈이 믹서(Tornado Cash)에서 왔습니다 (${ff.date})`, source: "Etherscan" });
+        text: `처음 받은 돈이 믹서에서 왔습니다 (${ff.date})`, source: f.goplus?.funder?.mixer ? "GoPlus, Etherscan" : "Tornado Cash 주소 목록, Etherscan" });
     } else if (ff.category === "malicious") {
       add("first_funding", R.first_funding.malicious.points, { strength: R.first_funding.malicious.strength,
-        text: `처음 받은 돈을 보낸 지갑이 그 전에 사기(폰지) 컨트랙트를 배포한 적이 있는 지갑입니다 (${ff.date})`,
-        source: "XBlock 연구 데이터, Etherscan" });
+        text: `처음 받은 돈을 보낸 지갑이 ${funderText(ff.knownAs)} (${ff.date})`,
+        source: `${ff.knownAs?.source ?? "알려진 위험 주소"}, Etherscan`, label_based: ff.knownAs?.kind === "scam_deployer" });
     } else add("first_funding", 0);
   } // 없으면 지표를 넣지 않아 "데이터 없음"
 
@@ -78,14 +90,27 @@ export function scoreDeployer(f) {
   const scams = (f.pastDeployments ?? []).filter(p => p.publicLabel === "scam" && !p.sameDay);
   if (Array.isArray(f.pastDeployments)) {
     const rule = R.past_scam_deployments.any;
+    const gpCount = f.goplus?.deployer?.maliciousContracts ?? 0;
     if (scams.length >= rule.minCount) {
       add("past_scam_deployments", rule.points, { strength: rule.strength,
         text: `이 컨트랙트보다 하루 이상 앞서 만든 컨트랙트 중 ${scams.length}개가 연구 데이터(XBlock)에서 폰지로 분류되어 있습니다 (처음 만든 날 ${scams[0].deployedAt})`,
-        source: "XBlock 연구 데이터, Etherscan" });
+        source: "XBlock 연구 데이터, Etherscan", label_based: true });
+    } else if (gpCount > 0) {
+      add("past_scam_deployments", rule.points, { strength: rule.strength,
+        text: `보안 서비스(GoPlus) 기준으로 이 배포자가 만든 악성 컨트랙트가 ${gpCount}개 있습니다 (현재 시점 정보)`,
+        source: "GoPlus" });
     } else add("past_scam_deployments", 0);
   }
 
-  // 4. 외부 위험 플래그: GoPlus 미연결(데이터 없음)
+  // 4. 외부 위험 플래그: GoPlus를 조회했을 때만(실주소 분석). 조회하지 않았으면 데이터 없음
+  const gd = f.goplus?.deployer;
+  if (gd) {
+    if (gd.direct.length) add("external_flags", R.external_flags.direct.points, { strength: R.external_flags.direct.strength,
+      text: `배포자 주소가 보안 서비스에서 ${gd.direct.join(", ")}(으)로 표시되어 있습니다 (현재 시점 정보)`, source: gd.source });
+    else if (gd.doubt.length) add("external_flags", R.external_flags.doubt.points, { strength: R.external_flags.doubt.strength,
+      text: `배포자 주소에 보안 서비스의 의심 표시가 있습니다: ${gd.doubt.join(", ")} (현재 시점 정보)`, source: gd.source });
+    else add("external_flags", 0);
+  }
 
   // 5. 자금 이동 패턴
   if (typeof f.passThroughEvents === "number") {

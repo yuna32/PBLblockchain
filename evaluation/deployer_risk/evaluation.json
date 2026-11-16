@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-16T14:31:11.084Z",
+  "generatedAt": "2026-11-16T14:38:26.038Z",
   "rules": "v1 (조정용 절반으로 정한 기준)",
   "rows": [
     {
@@ -64,7 +64,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2017-09-01",
       "failures": []
     },
@@ -86,7 +86,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2017-08-31",
       "failures": []
     },
@@ -108,7 +108,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2017-08-28",
       "failures": []
     },
@@ -196,7 +196,7 @@
       },
       "level": "strong",
       "score": 100,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2017-08-24",
       "failures": []
     },
@@ -328,7 +328,7 @@
       },
       "level": "strong",
       "score": 100,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2017-08-21",
       "failures": []
     },
@@ -350,7 +350,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2017-08-21",
       "failures": []
     },
@@ -372,7 +372,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2017-08-21",
       "failures": []
     },
@@ -416,7 +416,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2017-08-20",
       "failures": []
     },
@@ -438,7 +438,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2017-08-14",
       "failures": []
     },
@@ -680,7 +680,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2017-07-14",
       "failures": []
     },
@@ -702,7 +702,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2017-07-14",
       "failures": []
     },
@@ -878,7 +878,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2017-07-03",
       "failures": []
     },
@@ -922,7 +922,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2017-07-01",
       "failures": []
     },
@@ -1010,7 +1010,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2017-06-26",
       "failures": []
     },
@@ -1604,7 +1604,7 @@
       },
       "level": "strong",
       "score": 86,
-      "levelIndependent": "some",
+      "levelIndependent": "strong",
       "asOf": "2017-02-15",
       "failures": []
     },
@@ -1626,7 +1626,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2017-01-03",
       "failures": []
     },
@@ -1758,7 +1758,7 @@
       },
       "level": "strong",
       "score": 86,
-      "levelIndependent": "some",
+      "levelIndependent": "strong",
       "asOf": "2016-11-30",
       "failures": []
     },
@@ -1956,7 +1956,7 @@
       },
       "level": "strong",
       "score": 86,
-      "levelIndependent": "some",
+      "levelIndependent": "strong",
       "asOf": "2016-08-25",
       "failures": []
     },
@@ -2022,7 +2022,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2016-07-25",
       "failures": []
     },
@@ -2088,7 +2088,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2016-05-11",
       "failures": []
     },
@@ -2110,7 +2110,7 @@
       },
       "level": "strong",
       "score": 86,
-      "levelIndependent": "some",
+      "levelIndependent": "strong",
       "asOf": "2016-04-28",
       "failures": []
     },
@@ -2154,7 +2154,7 @@
       },
       "level": "strong",
       "score": 86,
-      "levelIndependent": "some",
+      "levelIndependent": "strong",
       "asOf": "2016-04-23",
       "failures": []
     },
@@ -2220,7 +2220,7 @@
       },
       "level": "strong",
       "score": 100,
-      "levelIndependent": "some",
+      "levelIndependent": "strong",
       "asOf": "2016-04-20",
       "failures": []
     },
@@ -2352,7 +2352,7 @@
       },
       "level": "strong",
       "score": 86,
-      "levelIndependent": "some",
+      "levelIndependent": "strong",
       "asOf": "2016-04-14",
       "failures": []
     },
@@ -2418,7 +2418,7 @@
       },
       "level": "strong",
       "score": 86,
-      "levelIndependent": "some",
+      "levelIndependent": "strong",
       "asOf": "2016-04-12",
       "failures": []
     },
@@ -2484,7 +2484,7 @@
       },
       "level": "strong",
       "score": 86,
-      "levelIndependent": "some",
+      "levelIndependent": "strong",
       "asOf": "2016-04-11",
       "failures": []
     },
@@ -2506,7 +2506,7 @@
       },
       "level": "strong",
       "score": 100,
-      "levelIndependent": "some",
+      "levelIndependent": "strong",
       "asOf": "2016-04-11",
       "failures": []
     },
@@ -2528,7 +2528,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2016-04-11",
       "failures": []
     },
@@ -2594,7 +2594,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2016-04-10",
       "failures": []
     },
@@ -2616,7 +2616,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2016-04-10",
       "failures": []
     },
@@ -2682,7 +2682,7 @@
       },
       "level": "strong",
       "score": 86,
-      "levelIndependent": "some",
+      "levelIndependent": "strong",
       "asOf": "2016-04-09",
       "failures": []
     },
@@ -2748,7 +2748,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2016-04-09",
       "failures": []
     },
@@ -2814,7 +2814,7 @@
       },
       "level": "strong",
       "score": 86,
-      "levelIndependent": "some",
+      "levelIndependent": "strong",
       "asOf": "2016-04-09",
       "failures": []
     },
@@ -2836,7 +2836,7 @@
       },
       "level": "strong",
       "score": 86,
-      "levelIndependent": "some",
+      "levelIndependent": "strong",
       "asOf": "2016-04-09",
       "failures": []
     },
@@ -2858,7 +2858,7 @@
       },
       "level": "strong",
       "score": 86,
-      "levelIndependent": "some",
+      "levelIndependent": "strong",
       "asOf": "2016-04-09",
       "failures": []
     },
@@ -2880,7 +2880,7 @@
       },
       "level": "strong",
       "score": 86,
-      "levelIndependent": "some",
+      "levelIndependent": "strong",
       "asOf": "2016-04-08",
       "failures": []
     },
@@ -2902,7 +2902,7 @@
       },
       "level": "strong",
       "score": 86,
-      "levelIndependent": "some",
+      "levelIndependent": "strong",
       "asOf": "2016-04-08",
       "failures": []
     },
@@ -2924,7 +2924,7 @@
       },
       "level": "strong",
       "score": 86,
-      "levelIndependent": "some",
+      "levelIndependent": "strong",
       "asOf": "2016-04-08",
       "failures": []
     },
@@ -2946,7 +2946,7 @@
       },
       "level": "strong",
       "score": 86,
-      "levelIndependent": "some",
+      "levelIndependent": "strong",
       "asOf": "2016-04-08",
       "failures": []
     },
@@ -2968,7 +2968,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2016-04-08",
       "failures": []
     },
@@ -2990,7 +2990,7 @@
       },
       "level": "strong",
       "score": 86,
-      "levelIndependent": "some",
+      "levelIndependent": "strong",
       "asOf": "2016-04-08",
       "failures": []
     },
@@ -3012,7 +3012,7 @@
       },
       "level": "strong",
       "score": 86,
-      "levelIndependent": "some",
+      "levelIndependent": "strong",
       "asOf": "2016-04-07",
       "failures": []
     },
@@ -3034,7 +3034,7 @@
       },
       "level": "strong",
       "score": 86,
-      "levelIndependent": "some",
+      "levelIndependent": "strong",
       "asOf": "2016-04-07",
       "failures": []
     },
@@ -3056,7 +3056,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2016-04-07",
       "failures": []
     },
@@ -3078,7 +3078,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2016-04-07",
       "failures": []
     },
@@ -3166,7 +3166,7 @@
       },
       "level": "strong",
       "score": 86,
-      "levelIndependent": "some",
+      "levelIndependent": "strong",
       "asOf": "2016-04-06",
       "failures": []
     },
@@ -3210,7 +3210,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2016-04-06",
       "failures": []
     },
@@ -3232,7 +3232,7 @@
       },
       "level": "strong",
       "score": 86,
-      "levelIndependent": "some",
+      "levelIndependent": "strong",
       "asOf": "2016-04-06",
       "failures": []
     },
@@ -3254,7 +3254,7 @@
       },
       "level": "strong",
       "score": 86,
-      "levelIndependent": "some",
+      "levelIndependent": "strong",
       "asOf": "2016-04-06",
       "failures": []
     },
@@ -3276,7 +3276,7 @@
       },
       "level": "strong",
       "score": 86,
-      "levelIndependent": "some",
+      "levelIndependent": "strong",
       "asOf": "2016-04-06",
       "failures": []
     },
@@ -3298,7 +3298,7 @@
       },
       "level": "strong",
       "score": 86,
-      "levelIndependent": "some",
+      "levelIndependent": "strong",
       "asOf": "2016-04-06",
       "failures": []
     },
@@ -3320,7 +3320,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2016-04-06",
       "failures": []
     },
@@ -3342,7 +3342,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2016-04-06",
       "failures": []
     },
@@ -3364,7 +3364,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2016-04-06",
       "failures": []
     },
@@ -3386,7 +3386,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2016-04-06",
       "failures": []
     },
@@ -3408,7 +3408,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2016-04-06",
       "failures": []
     },
@@ -3430,7 +3430,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2016-04-06",
       "failures": []
     },
@@ -3452,7 +3452,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2016-04-06",
       "failures": []
     },
@@ -3474,7 +3474,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2016-04-06",
       "failures": []
     },
@@ -3496,7 +3496,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2016-04-06",
       "failures": []
     },
@@ -3562,7 +3562,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2016-04-05",
       "failures": []
     },
@@ -4178,7 +4178,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2016-03-26",
       "failures": []
     },
@@ -4948,7 +4948,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2017-07-03",
       "failures": []
     },
@@ -6576,7 +6576,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2017-01-03",
       "failures": []
     },
@@ -6730,7 +6730,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2017-07-04",
       "failures": []
     },
@@ -7192,7 +7192,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2017-07-21",
       "failures": []
     },
@@ -7258,7 +7258,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2016-05-25",
       "failures": []
     },
@@ -7434,7 +7434,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2017-08-31",
       "failures": []
     },
@@ -7632,7 +7632,7 @@
       },
       "level": "strong",
       "score": 76,
-      "levelIndependent": "none",
+      "levelIndependent": "strong",
       "asOf": "2017-08-14",
       "failures": []
     },
@@ -9656,7 +9656,7 @@
       },
       "level": "strong",
       "score": 86,
-      "levelIndependent": "some",
+      "levelIndependent": "strong",
       "asOf": "2017-08-31",
       "failures": []
     },

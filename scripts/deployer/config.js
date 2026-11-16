@@ -15,7 +15,7 @@ export const INDICATOR_RULES = {
   first_funding:         { cap: 30, mixer: { strength: "strong", points: 30 }, malicious: { strength: "strong", points: 30 } },
   wallet_maturity:       { cap: 20, young: { maxDays: 7, info: true } }, // 구분력이 낮아(1.3배) 점수에 넣지 않고 참고로만
   past_scam_deployments: { cap: 30, any:   { strength: "strong", points: 30, minCount: 1 } },
-  external_flags:        { cap: 10 }, // GoPlus 미연결: 데이터 없음
+  external_flags:        { cap: 10, direct: { strength: "strong", points: 10 }, doubt: { strength: "weak", points: 10 } }, // GoPlus(실주소 분석에서만)
   fund_flow:             { cap: 10, passThrough: { strength: "weak", points: 10, minEvents: 2 } }
 };
 
@@ -35,6 +35,11 @@ export const FUND_FLOW = { minInEth: 0.1, shareOut: 0.8, withinSeconds: 30 * 60 
 
 // 같은 날 재배포는 별개의 사기로 세지 않는다: 기준 시점보다 이만큼 이상 앞선 배포만 "과거 사기 배포"로 본다
 export const PAST_SCAM_MIN_GAP_SECONDS = 24 * 3600;
+
+// 이전 컨트랙트 행동: 배포자가 이전에 만든 컨트랙트 중 최근 maxContracts개를 직접 확인한다(라벨 없이).
+//   drained: 다른 사람 minDepositors명 이상이 넣은 돈(minInEth 이상)의 drainShare 이상을 배포자가 가져감
+//   netBack: 이전 컨트랙트들에서 배포자가 넣은 돈의 backMultiple배 이상, minBackEth 이상을 돌려받음
+export const PAST_BEHAVIOR = { maxContracts: 5, minDepositors: 3, minInEth: 0.1, drainShare: 0.5, backMultiple: 2, minBackEth: 0.5 };
 
 // 이력 부족: 기준 시점 이전 거래가 이보다 적으면 "판단 근거 부족"으로 표시한다(근거 없음이 안전처럼 보이지 않게)
 export const MIN_HISTORY_TXS = 5;

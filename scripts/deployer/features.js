@@ -4,7 +4,8 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { collectFacts, knownBadFromCandidates } from "./collect.js";
+import { collectFacts } from "./collect.js";
+import { loadKnownBad } from "./knowledge.js";
 import { loadLabels } from "./build_demo.js";
 import { MIN_HISTORY_TXS } from "./config.js";
 
@@ -27,6 +28,9 @@ export function featuresOf(facts) {
     low_interaction: facts.activity.counterparties < 3,
     new_and_low: facts.activity.days < 7 && facts.activity.counterparties < 3,
     pass_through: (facts.passThroughEvents ?? 0) >= 2,
+    net_back: (facts.pastBehavior?.backEth ?? 0) >= 0.5 && facts.pastBehavior.backEth >= 2 * facts.pastBehavior.sentEth,
+    past_drained: (facts.pastBehavior?.drained?.length ?? 0) >= 1,
+    past_drained_or_back: (facts.pastBehavior?.drained?.length ?? 0) >= 1 || ((facts.pastBehavior?.backEth ?? 0) >= 0.5 && facts.pastBehavior.backEth >= 2 * facts.pastBehavior.sentEth),
     history_short: facts.activity.txCount < MIN_HISTORY_TXS
   };
 }
@@ -35,12 +39,15 @@ export async function loadAll() {
   const cand = JSON.parse(fs.readFileSync(path.join(DIR, "candidates.json"), "utf8"));
   const targets = cand.contracts.filter(c => c.deployer && c.blockNumber && c.timestamp);
   const labels = loadLabels();
-  const knownBad = knownBadFromCandidates(cand.contracts);
+  const knownBad = loadKnownBad(ROOT, cand.contracts);
   const rows = [];
+  let k = 0;
   for (const c of targets) {
-    const facts = await collectFacts({ deployer: c.deployer, contract: c.address, asOfBlock: c.blockNumber, asOfTimestamp: c.timestamp }, labels, CACHE, knownBad);
+    process.stdout.write(`\r컨트랙트 분석 ${++k}/${targets.length}`);
+    const facts = await collectFacts({ deployer: c.deployer, contract: c.address, asOfBlock: c.blockNumber, asOfTimestamp: c.timestamp }, labels, CACHE, knownBad, { historical: true });
     rows.push({ contract: c.address, deployer: c.deployer, label: c.label, split: splitOf(c.deployer), facts, f: featuresOf(facts) });
   }
+  process.stdout.write("\n");
   return rows;
 }
 

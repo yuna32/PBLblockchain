@@ -4,6 +4,7 @@
 //
 // 출력  evaluation/deployer_risk/evaluation.json, evaluation_summary.md
 // 실행(저장소 루트): node --env-file=.env scripts/deployer/evaluate.js   (이력은 cache/에 저장되어 다시 실행하면 바로 끝남)
+// 처음 실행할 때는 배포자마다 이전 컨트랙트 최대 5개의 입금 내역도 받아서 10~15분 걸릴 수 있다.
 //
 // 누수 주의: 과거 사기 배포·첫 자금원(사기 배포자)은 평가 라벨과 같은 XBlock 라벨을 쓴다.
 //   그래서 그 두 근거를 뺀 "라벨과 독립인 근거만"의 결과도 함께 보고한다.
@@ -16,7 +17,7 @@ import { scoreDeployer } from "./score.js";
 import { RULES_VERSION } from "./config.js";
 
 const pct = (a, b) => (b ? `${a}/${b} (${((100 * a) / b).toFixed(1)}%)` : "—");
-const LABEL_BASED = e => e.indicator_key === "past_scam_deployments" || (e.indicator_key === "first_funding" && /사기\(폰지\) 컨트랙트를 배포/.test(e.text));
+const LABEL_BASED = e => e.label_based === true;
 
 async function main() {
   requireKey();
@@ -49,6 +50,9 @@ async function main() {
     ["funder_malicious", "첫 자금원: 사기 배포자에게서 받음"],
     ["funder_mixer", "첫 자금원: 믹서"],
     ["pass_through", "받은 돈을 30분 안에 대부분 보냄 (2번 이상)"],
+    ["net_back", "이전 컨트랙트에서 넣은 돈의 2배 이상 돌려받음 (라벨 없음)"],
+    ["past_drained", "이전 컨트랙트에 남의 돈이 들어왔고 배포자가 절반 이상 가져감 (라벨 없음)"],
+    ["past_drained_or_back", "위 둘 중 하나 (라벨 없음)"],
     ["new_wallet", "새 지갑 (7일 미만)"],
     ["low_interaction", "상호작용 적음 (상대 주소 3개 미만)"],
     ["new_and_low", "새 지갑 + 상호작용 적음"],

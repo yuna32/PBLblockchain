@@ -9,7 +9,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { requireKey, getContractCreation } from "./etherscan.js";
-import { collectFacts, knownBadFromCandidates } from "./collect.js";
+import { collectFacts } from "./collect.js";
+import { loadKnownBad } from "./knowledge.js";
 import { scoreDeployer } from "./score.js";
 import { RULES_VERSION } from "./config.js";
 
@@ -44,14 +45,14 @@ async function main() {
   const cand = JSON.parse(fs.readFileSync(path.join(DIR, "candidates.json"), "utf8"));
   const candidates = new Map(cand.contracts.map(c => [c.address, c]));
   const labels = loadLabels();
-  const knownBad = knownBadFromCandidates(cand.contracts);
+  const knownBad = loadKnownBad(ROOT, cand.contracts);
   fs.mkdirSync(path.join(DIR, "results"), { recursive: true });
 
   const byScenario = {};
   for (const k of cases) {
     const contract = k.contract.toLowerCase();
     const cr = await creationOf(contract, candidates);
-    const facts = await collectFacts({ deployer: cr.deployer, contract, asOfBlock: cr.blockNumber, asOfTimestamp: cr.timestamp, reason: k.reason }, labels, CACHE, knownBad);
+    const facts = await collectFacts({ deployer: cr.deployer, contract, asOfBlock: cr.blockNumber, asOfTimestamp: cr.timestamp, reason: k.reason }, labels, CACHE, knownBad, { historical: true });
     const result = scoreDeployer(facts);
     fs.writeFileSync(path.join(DIR, "results", `${k.id}.json`), JSON.stringify({ id: k.id, rules: RULES_VERSION, facts, result }, null, 2) + "\n");
     const ev = result.evidence?.map(e => `${e.strength === "strong" ? "강" : "약"}:${e.indicator_key}`).join(", ") || "근거 없음";
