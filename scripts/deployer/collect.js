@@ -4,12 +4,24 @@
 import fs from "node:fs";
 import path from "node:path";
 import { getTxList, getInternalTxList } from "./etherscan.js";
-import { FUND_FLOW, MIXER_ADDRESSES, PAST_SCAM_MIN_GAP_SECONDS, PAST_BEHAVIOR } from "./config.js";
+import { FUND_FLOW, MIXER_ADDRESSES, PAST_SCAM_MIN_GAP_SECONDS, PAST_BEHAVIOR, WETH } from "./config.js";
 import { goplusAddress, parseGoplus } from "./goplus.js";
 
 const day = ts => new Date(Number(ts) * 1000).toISOString().slice(0, 10);
 const eth = wei => Number(BigInt(wei || "0")) / 1e18;
 const lc = s => String(s ?? "").toLowerCase();
+
+// DEX 라우터 유동성 함수 호출 → { kind: add|remove, tokens, ts }. 첫 인자(ETH 쌍) 또는 첫 두 인자(토큰 쌍)가 토큰 주소다.
+function liquidityEvent(t) {
+  const fn = String(t.functionName || "").split("(")[0];
+  const kind = /^addLiquidity/.test(fn) ? "add" : /^removeLiquidity/.test(fn) ? "remove" : null;
+  if (!kind) return null;
+  const input = String(t.input || "");
+  const arg = i => "0x" + input.slice(10 + 64 * i + 24, 10 + 64 * (i + 1)).toLowerCase();
+  const raw = /ETH/.test(fn) ? [arg(0)] : [arg(0), arg(1)];
+  const tokens = raw.filter(a => /^0x[0-9a-f]{40}$/.test(a) && a !== WETH);
+  return tokens.length ? { kind, tokens, ts: Number(t.timeStamp), hash: t.hash } : null;
+}
 
 async function cached(cacheDir, name, fn) {
   const file = path.join(cacheDir, `${name}.json`);
@@ -101,6 +113,18 @@ export async function collectFacts({ deployer, contract, asOfBlock, asOfTimestam
     // 같은 날 재배포 표시: 기준 시점과 24시간 안쪽이면 sameDay(별개의 사기로 세지 않음)
     .map(p => ({ ...p, sameDay: Number(asOfTimestamp) - p.deployedTs < PAST_SCAM_MIN_GAP_SECONDS }));
 
+  // 유동성 회수: 배포자가 직접 호출한 add/removeLiquidity(분석 대상 토큰 제외). remove마다 같은 토큰에 마지막으로 넣은 뒤 몇 초 만인지(gap)
+  const liqEvents = txs.filter(t => lc(t.from) === deployer).map(liquidityEvent).filter(Boolean).filter(e => !e.tokens.includes(contract));
+  const ownTokens = new Set(pastDeployments.map(p => p.contract));
+  const liqAdds = liqEvents.filter(e => e.kind === "add");
+  const liquidity = {
+    adds: liqAdds.length,
+    removes: liqEvents.filter(e => e.kind === "remove").map(r => {
+      const prior = liqAdds.filter(a => a.ts <= r.ts && a.tokens.some(x => r.tokens.includes(x)));
+      return { tokens: r.tokens, date: day(r.ts), hash: r.hash, gap: prior.length ? r.ts - Math.max(...prior.map(a => a.ts)) : null, own: r.tokens.some(x => ownTokens.has(x)) };
+    })
+  };
+
   // 이전 컨트랙트 행동(라벨 없이): ① 넣은 돈보다 많이 돌려받았나 ② 남의 돈이 들어온 컨트랙트에서 배포자가 그 돈을 가져갔나
   const pastSet = new Set(pastDeployments.map(p => p.contract));
   const back = itxs.filter(t => lc(t.to) === deployer && pastSet.has(lc(t.from))).reduce((s, t) => s + eth(t.value), 0);
@@ -136,7 +160,7 @@ export async function collectFacts({ deployer, contract, asOfBlock, asOfTimestam
   }
 
   return {
-    deployer, contract, asOf, activity, firstFunding, pastDeployments, pastBehavior, passThroughEvents, goplus, failures,
+    deployer, contract, asOf, activity, firstFunding, pastDeployments, pastBehavior, passThroughEvents, liquidity, goplus, failures,
     sources: ["Etherscan(이더리움 메인넷)", "XBlock 폰지 라벨"],
     reason
   };

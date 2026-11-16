@@ -46,7 +46,7 @@ function summarize(level, f, evidence, scams, short) {
     return parts.join(". ");
   }
   if (level === "some") {
-    const names = { fund_flow: "받은 돈을 바로 내보내는 패턴", past_net_back: "이전 컨트랙트에서 넣은 돈보다 많이 돌려받음", external_flags: "보안 서비스의 의심 표시" };
+    const names = { fund_flow: "받은 돈을 바로 내보내는 패턴", past_net_back: "이전 컨트랙트에서 넣은 돈보다 많이 돌려받음", past_liquidity_pull: "이전 토큰의 유동성을 직접 빼낸 기록", external_flags: "보안 서비스의 의심 표시" };
     return `뚜렷한 위험 근거는 없지만 확인이 필요한 신호가 있습니다: ${evidence.map(e => names[e.tag] ?? names[e.indicator_key] ?? e.indicator_key).join(", ")}`;
   }
   if (short) return `확인할 기록이 거의 없어(거래 ${f.activity.txCount}건) 판단 근거가 부족합니다. 위험 근거가 없다는 뜻이 아닙니다`;
@@ -106,6 +106,13 @@ export function scoreDeployer(f) {
       items.push({ points: R.past_scam_deployments.netBack.points, strength: R.past_scam_deployments.netBack.strength, tag: "past_net_back",
         text: `이전에 만든 컨트랙트들에 넣은 돈은 ${pb.sentEth.toFixed(2)} ETH인데, 그 컨트랙트들에서 ${pb.backEth.toFixed(2)} ETH를 돌려받았습니다`,
         source: "Etherscan" });
+    const pulls = (f.liquidity?.removes ?? []).filter(r => r.own);
+    if (pulls.length) {
+      const fast = pulls.filter(r => r.gap !== null && r.gap <= 7 * 86400).length;
+      items.push({ points: R.past_scam_deployments.liquidityPull.points, strength: R.past_scam_deployments.liquidityPull.strength, tag: "past_liquidity_pull",
+        text: `이전에 만든 토큰의 거래 자금(유동성)을 직접 빼낸 적이 ${pulls.length}번 있습니다${fast ? ` (그중 ${fast}번은 넣은 지 7일 안에)` : ""} (처음 ${pulls[0].date})`,
+        source: "Etherscan(DEX 거래 기록)" });
+    }
     const cap = R.past_scam_deployments.cap;
     indicators.push({ key: "past_scam_deployments", points: Math.min(cap, items.reduce((s, x) => s + x.points, 0)), cap });
     for (const x of items) evidence.push({ indicator_key: "past_scam_deployments", points: Math.min(cap, x.points), source: x.source, strength: x.strength, text: x.text,

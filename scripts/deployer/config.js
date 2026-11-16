@@ -4,7 +4,7 @@
 //   확인했지만 근거 없음 → none, 배포자 데이터를 못 받음 → nodata.
 // - 값은 실데이터 검증 전 임시 기준이다. 검증 후 이 파일만 고친다.
 
-export const RULES_VERSION = "v1 (조정용 절반으로 정한 기준)";
+export const RULES_VERSION = "v1.1 (조정용 절반으로 정한 기준 + 토큰 유동성 회수)";
 
 // 지표 5개. key는 대시보드 lib/risk.js INDICATORS와 같아야 한다.
 // 강함·약함은 조정용 절반(배포자 기준 분할, scripts/deployer/evaluate.js)에서 "정상 대비 사기에서 몇 배 더 자주 나오나"로 정했다:
@@ -15,7 +15,8 @@ export const INDICATOR_RULES = {
   first_funding:         { cap: 30, mixer: { strength: "strong", points: 30 }, malicious: { strength: "strong", points: 30 } },
   wallet_maturity:       { cap: 20, young: { maxDays: 7, info: true } }, // 구분력이 낮아(1.3배) 점수에 넣지 않고 참고로만
   past_scam_deployments: { cap: 30, any:   { strength: "strong", points: 30, minCount: 1 },
-                           netBack: { strength: "weak", points: 10 } }, // 이전 컨트랙트에서 넣은 돈보다 많이 돌려받음(라벨 없음, 2.6배)
+                           netBack: { strength: "weak", points: 10 },   // 이전 컨트랙트에서 넣은 돈보다 많이 돌려받음(라벨 없음, 2.6배)
+                           liquidityPull: { strength: "weak", points: 10 } }, // 자기가 만든 이전 토큰의 유동성을 직접 뺌(라벨 없음, 토큰 데이터 조정용 2.1배·평가용 1.8배)
   external_flags:        { cap: 10, direct: { strength: "strong", points: 10 }, doubt: { strength: "weak", points: 10 } }, // GoPlus(실주소 분석에서만)
   fund_flow:             { cap: 10, passThrough: { strength: "weak", points: 10, minEvents: 2 } }
 };
@@ -48,6 +49,12 @@ export const PAST_BEHAVIOR = { maxContracts: 5, minDepositors: 3, minInEth: 0.1,
 
 // 이력 부족: 기준 시점 이전 거래가 이보다 적으면 "판단 근거 부족"으로 표시한다(근거 없음이 안전처럼 보이지 않게)
 export const MIN_HISTORY_TXS = 5;
+
+// 유동성 회수(토큰 러그풀 행동): 배포자가 기준 시점 전에 DEX 라우터(Uniswap V2 계열)로
+//   다른 토큰에 유동성을 넣었다가(addLiquidity*) 빼낸(removeLiquidity*) 기록. 함수 이름과 입력값의 토큰 주소로 판단(추가 조회 없음).
+//   분석 대상 토큰 자신의 유동성 거래는 뺀다. quickSeconds: "금방 뺐다"로 보는 기간
+export const LIQUIDITY = { quickSeconds: 7 * 86400, fastSeconds: 86400 };
+export const WETH = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 
 // 첫 자금원 분류용 믹서 주소(Tornado Cash ETH 풀). v0에서는 믹서만 분류하고 나머지는 "기타".
 export const MIXER_ADDRESSES = new Set([

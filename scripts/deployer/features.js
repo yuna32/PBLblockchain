@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { collectFacts } from "./collect.js";
 import { loadKnownBad } from "./knowledge.js";
 import { loadLabels } from "./build_demo.js";
-import { MIN_HISTORY_TXS } from "./config.js";
+import { MIN_HISTORY_TXS, LIQUIDITY } from "./config.js";
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 export const DIR = path.join(ROOT, "evaluation/deployer_risk");
@@ -30,22 +30,34 @@ export function featuresOf(facts) {
     pass_through: (facts.passThroughEvents ?? 0) >= 2,
     net_back: (facts.pastBehavior?.backEth ?? 0) >= 0.5 && facts.pastBehavior.backEth >= 2 * facts.pastBehavior.sentEth,
     past_drained: (facts.pastBehavior?.drained?.length ?? 0) >= 1,
+    both_weak: ((facts.passThroughEvents ?? 0) >= 2) && (facts.pastBehavior?.backEth ?? 0) >= 0.5 && facts.pastBehavior.backEth >= 2 * facts.pastBehavior.sentEth,
     past_drained_or_back: (facts.pastBehavior?.drained?.length ?? 0) >= 1 || ((facts.pastBehavior?.backEth ?? 0) >= 0.5 && facts.pastBehavior.backEth >= 2 * facts.pastBehavior.sentEth),
-    history_short: facts.activity.txCount < MIN_HISTORY_TXS
+    history_short: facts.activity.txCount < MIN_HISTORY_TXS,
+    // 유동성(토큰): 넣은 적 있음 / 뺀 적 있음 / 넣고 7일·1일 안에 뺌 / 자기가 만든 토큰의 유동성을 뺌
+    liq_add_any: (facts.liquidity?.adds ?? 0) >= 1,
+    liq_remove_any: (facts.liquidity?.removes?.length ?? 0) >= 1,
+    liq_quick_7d: (facts.liquidity?.removes ?? []).some(r => r.gap !== null && r.gap <= LIQUIDITY.quickSeconds),
+    liq_quick_1d: (facts.liquidity?.removes ?? []).some(r => r.gap !== null && r.gap <= LIQUIDITY.fastSeconds),
+    liq_own_remove: (facts.liquidity?.removes ?? []).some(r => r.own),
+    liq_own_quick: (facts.liquidity?.removes ?? []).some(r => r.own && r.gap !== null && r.gap <= LIQUIDITY.quickSeconds),
+    liq_quick_or_mixer: facts.firstFunding?.category === "mixer" || (facts.liquidity?.removes ?? []).some(r => r.gap !== null && r.gap <= LIQUIDITY.quickSeconds)
   };
 }
 
-export async function loadAll() {
-  const cand = JSON.parse(fs.readFileSync(path.join(DIR, "candidates.json"), "utf8"));
+// file: 평가할 정답 데이터(candidates.json = XBlock, candidates_sok.json = SoK 등)
+// 근거 지식(알려진 위험 주소, 과거 배포 라벨)은 항상 XBlock + 해킹 주소만 쓴다 → 외부 데이터 평가에서는 정답과 근거 출처가 분리된다
+export async function loadAll({ file = "candidates.json", split = null } = {}) {
+  const cand = JSON.parse(fs.readFileSync(path.join(DIR, file), "utf8"));
+  const xblock = JSON.parse(fs.readFileSync(path.join(DIR, "candidates.json"), "utf8"));
   const targets = cand.contracts.filter(c => c.deployer && c.blockNumber && c.timestamp);
   const labels = loadLabels();
-  const knownBad = loadKnownBad(ROOT, cand.contracts);
+  const knownBad = loadKnownBad(ROOT, xblock.contracts);
   const rows = [];
   let k = 0;
   for (const c of targets) {
     process.stdout.write(`\r컨트랙트 분석 ${++k}/${targets.length}`);
     const facts = await collectFacts({ deployer: c.deployer, contract: c.address, asOfBlock: c.blockNumber, asOfTimestamp: c.timestamp }, labels, CACHE, knownBad, { historical: true });
-    rows.push({ contract: c.address, deployer: c.deployer, label: c.label, split: splitOf(c.deployer), facts, f: featuresOf(facts) });
+    rows.push({ contract: c.address, deployer: c.deployer, label: c.label, source: c.source ?? null, split: split ?? splitOf(c.deployer), facts, f: featuresOf(facts) });
   }
   process.stdout.write("\n");
   return rows;
