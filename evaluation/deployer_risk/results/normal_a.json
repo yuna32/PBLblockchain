@@ -1,0 +1,119 @@
+{
+  "id": "normal_a",
+  "rules": "v0 (시연용 임시 기준, 검증 전)",
+  "facts": {
+    "deployer": "0xd2d641977d21a1dc7758eb619dd5960423ade86e",
+    "contract": "0x00674045bb7c17f0aa1cde34780d6c51af548728",
+    "asOf": {
+      "block": 4132036,
+      "date": "2017-08-08"
+    },
+    "activity": {
+      "firstTxDate": "2017-08-07",
+      "days": 0,
+      "txCount": 4
+    },
+    "firstFunding": {
+      "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88",
+      "category": "other",
+      "date": "2017-08-07"
+    },
+    "pastDeployments": [
+      {
+        "contract": "0x089a6d83282fb8988a656189f1e7a73fa6c1cac2",
+        "deployedAt": "2017-08-08",
+        "publicLabel": "normal"
+      },
+      {
+        "contract": "0x1eb0d4794d4067ed004c9d55ff6eb50620b27c58",
+        "deployedAt": "2017-08-08",
+        "publicLabel": "normal"
+      },
+      {
+        "contract": "0x9c40531a9df59a2b548fb659af6ff48d80d5d035",
+        "deployedAt": "2017-08-08",
+        "publicLabel": "normal"
+      }
+    ],
+    "passThroughEvents": 0,
+    "failures": [],
+    "sources": [
+      "Etherscan(이더리움 메인넷)",
+      "XBlock 폰지 라벨"
+    ],
+    "reason": "정상으로 분류된 실제 컨트랙트의 배포자입니다(후보). 활동 0일 신규 지갑이라 약한 근거가 잡힌 사례."
+  },
+  "result": {
+    "level": "some",
+    "score": 10,
+    "summary": "뚜렷한 위험 근거는 없지만 확인이 필요한 신호가 있습니다: 새로 만든 지갑",
+    "score_max": 100,
+    "target": {
+      "deployer": "0xd2d641977d21a1dc7758eb619dd5960423ade86e",
+      "contract": "0x00674045bb7c17f0aa1cde34780d6c51af548728"
+    },
+    "indicators": [
+      {
+        "key": "first_funding",
+        "points": 0,
+        "cap": 30
+      },
+      {
+        "key": "wallet_maturity",
+        "points": 10,
+        "cap": 20
+      },
+      {
+        "key": "past_scam_deployments",
+        "points": 0,
+        "cap": 30
+      },
+      {
+        "key": "fund_flow",
+        "points": 0,
+        "cap": 10
+      }
+    ],
+    "evidence": [
+      {
+        "indicator_key": "wallet_maturity",
+        "points": 10,
+        "source": "Etherscan",
+        "strength": "weak",
+        "text": "이 컨트랙트를 만들 때 지갑을 쓴 지 0일밖에 되지 않았습니다 (7일 미만)"
+      }
+    ],
+    "first_funding": {
+      "hops": 1,
+      "category": "other"
+    },
+    "past_deployments": [
+      {
+        "contract": "0x089a6d83282fb8988a656189f1e7a73fa6c1cac2",
+        "deployedAt": "2017-08-08",
+        "publicLabel": "normal"
+      },
+      {
+        "contract": "0x1eb0d4794d4067ed004c9d55ff6eb50620b27c58",
+        "deployedAt": "2017-08-08",
+        "publicLabel": "normal"
+      },
+      {
+        "contract": "0x9c40531a9df59a2b548fb659af6ff48d80d5d035",
+        "deployedAt": "2017-08-08",
+        "publicLabel": "normal"
+      }
+    ],
+    "scope": {
+      "activity_days": 0,
+      "tx_count": 4,
+      "as_of": "2017-08-08 (컨트랙트 배포 직전)",
+      "failures": [],
+      "sources": [
+        "Etherscan(이더리움 메인넷)",
+        "XBlock 폰지 라벨"
+      ],
+      "reason": "정상으로 분류된 실제 컨트랙트의 배포자입니다(후보). 활동 0일 신규 지갑이라 약한 근거가 잡힌 사례."
+    }
+  }
+}

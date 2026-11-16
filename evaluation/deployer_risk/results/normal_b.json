@@ -1,0 +1,109 @@
+{
+  "id": "normal_b",
+  "rules": "v0 (시연용 임시 기준, 검증 전)",
+  "facts": {
+    "deployer": "0xaf773cb251d81178a611ba74e279bbaddce560c2",
+    "contract": "0x006bea43baa3f7a6f765f14f10a1a1b08334ef45",
+    "asOf": {
+      "block": 4105157,
+      "date": "2017-08-01"
+    },
+    "activity": {
+      "firstTxDate": "2017-08-01",
+      "days": 0,
+      "txCount": 5
+    },
+    "firstFunding": {
+      "from": "0x35073e202bd06ae21ee115b0503d2938bec1c082",
+      "category": "other",
+      "date": "2017-08-01"
+    },
+    "pastDeployments": [
+      {
+        "contract": "0x3dd88b391fe62a91436181ed2d43e20b86cde60c",
+        "deployedAt": "2017-08-01",
+        "publicLabel": "normal"
+      },
+      {
+        "contract": "0x79562b577e2f397c980f058e7a6d48fa41acea88",
+        "deployedAt": "2017-08-01",
+        "publicLabel": null
+      }
+    ],
+    "passThroughEvents": 0,
+    "failures": [],
+    "sources": [
+      "Etherscan(이더리움 메인넷)",
+      "XBlock 폰지 라벨"
+    ],
+    "reason": "정상으로 분류된 실제 컨트랙트의 배포자입니다(후보)."
+  },
+  "result": {
+    "level": "some",
+    "score": 10,
+    "summary": "뚜렷한 위험 근거는 없지만 확인이 필요한 신호가 있습니다: 새로 만든 지갑",
+    "score_max": 100,
+    "target": {
+      "deployer": "0xaf773cb251d81178a611ba74e279bbaddce560c2",
+      "contract": "0x006bea43baa3f7a6f765f14f10a1a1b08334ef45"
+    },
+    "indicators": [
+      {
+        "key": "first_funding",
+        "points": 0,
+        "cap": 30
+      },
+      {
+        "key": "wallet_maturity",
+        "points": 10,
+        "cap": 20
+      },
+      {
+        "key": "past_scam_deployments",
+        "points": 0,
+        "cap": 30
+      },
+      {
+        "key": "fund_flow",
+        "points": 0,
+        "cap": 10
+      }
+    ],
+    "evidence": [
+      {
+        "indicator_key": "wallet_maturity",
+        "points": 10,
+        "source": "Etherscan",
+        "strength": "weak",
+        "text": "이 컨트랙트를 만들 때 지갑을 쓴 지 0일밖에 되지 않았습니다 (7일 미만)"
+      }
+    ],
+    "first_funding": {
+      "hops": 1,
+      "category": "other"
+    },
+    "past_deployments": [
+      {
+        "contract": "0x3dd88b391fe62a91436181ed2d43e20b86cde60c",
+        "deployedAt": "2017-08-01",
+        "publicLabel": "normal"
+      },
+      {
+        "contract": "0x79562b577e2f397c980f058e7a6d48fa41acea88",
+        "deployedAt": "2017-08-01",
+        "publicLabel": null
+      }
+    ],
+    "scope": {
+      "activity_days": 0,
+      "tx_count": 5,
+      "as_of": "2017-08-01 (컨트랙트 배포 직전)",
+      "failures": [],
+      "sources": [
+        "Etherscan(이더리움 메인넷)",
+        "XBlock 폰지 라벨"
+      ],
+      "reason": "정상으로 분류된 실제 컨트랙트의 배포자입니다(후보)."
+    }
+  }
+}

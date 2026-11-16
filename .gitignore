@@ -11,3 +11,5 @@ dashboard/dist/
 !.env.example
 
 *Zone.Identifier
+evaluation/deployer_risk/cache/
+evaluation/deployer_risk/_preview/
