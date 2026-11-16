@@ -1,6 +1,6 @@
 {
   "id": "normal_a",
-  "rules": "v0 (시연용 임시 기준, 검증 전)",
+  "rules": "v1 (조정용 절반으로 정한 기준)",
   "facts": {
     "deployer": "0xd2d641977d21a1dc7758eb619dd5960423ade86e",
     "contract": "0x00674045bb7c17f0aa1cde34780d6c51af548728",
@@ -11,7 +11,8 @@
     "activity": {
       "firstTxDate": "2017-08-07",
       "days": 0,
-      "txCount": 4
+      "txCount": 4,
+      "counterparties": 0
     },
     "firstFunding": {
       "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88",
@@ -22,17 +23,23 @@
       {
         "contract": "0x089a6d83282fb8988a656189f1e7a73fa6c1cac2",
         "deployedAt": "2017-08-08",
-        "publicLabel": "normal"
+        "deployedTs": 1502181471,
+        "publicLabel": "normal",
+        "sameDay": true
       },
       {
         "contract": "0x1eb0d4794d4067ed004c9d55ff6eb50620b27c58",
         "deployedAt": "2017-08-08",
-        "publicLabel": "normal"
+        "deployedTs": 1502181829,
+        "publicLabel": "normal",
+        "sameDay": true
       },
       {
         "contract": "0x9c40531a9df59a2b548fb659af6ff48d80d5d035",
         "deployedAt": "2017-08-08",
-        "publicLabel": "normal"
+        "deployedTs": 1502182167,
+        "publicLabel": "normal",
+        "sameDay": true
       }
     ],
     "passThroughEvents": 0,
@@ -44,10 +51,10 @@
     "reason": "정상으로 분류된 실제 컨트랙트의 배포자입니다(후보). 활동 0일 신규 지갑이라 약한 근거가 잡힌 사례."
   },
   "result": {
-    "level": "some",
-    "score": 10,
-    "summary": "뚜렷한 위험 근거는 없지만 확인이 필요한 신호가 있습니다: 새로 만든 지갑",
+    "level": "none",
+    "score": 0,
     "score_max": 100,
+    "summary": "확인할 기록이 거의 없어(거래 4건) 판단 근거가 부족합니다. 위험 근거가 없다는 뜻이 아닙니다",
     "target": {
       "deployer": "0xd2d641977d21a1dc7758eb619dd5960423ade86e",
       "contract": "0x00674045bb7c17f0aa1cde34780d6c51af548728"
@@ -60,8 +67,10 @@
       },
       {
         "key": "wallet_maturity",
-        "points": 10,
-        "cap": 20
+        "status": "info",
+        "points": null,
+        "cap": 20,
+        "note": "새 지갑: 이 컨트랙트를 만들 때 지갑을 쓴 지 0일. 정상 배포자에게도 흔해(사기 배포자와 1.3배 차이) 점수에는 넣지 않습니다"
       },
       {
         "key": "past_scam_deployments",
@@ -74,15 +83,7 @@
         "cap": 10
       }
     ],
-    "evidence": [
-      {
-        "indicator_key": "wallet_maturity",
-        "points": 10,
-        "source": "Etherscan",
-        "strength": "weak",
-        "text": "이 컨트랙트를 만들 때 지갑을 쓴 지 0일밖에 되지 않았습니다 (7일 미만)"
-      }
-    ],
+    "evidence": [],
     "first_funding": {
       "hops": 1,
       "category": "other"
@@ -91,24 +92,32 @@
       {
         "contract": "0x089a6d83282fb8988a656189f1e7a73fa6c1cac2",
         "deployedAt": "2017-08-08",
-        "publicLabel": "normal"
+        "deployedTs": 1502181471,
+        "publicLabel": "normal",
+        "sameDay": true
       },
       {
         "contract": "0x1eb0d4794d4067ed004c9d55ff6eb50620b27c58",
         "deployedAt": "2017-08-08",
-        "publicLabel": "normal"
+        "deployedTs": 1502181829,
+        "publicLabel": "normal",
+        "sameDay": true
       },
       {
         "contract": "0x9c40531a9df59a2b548fb659af6ff48d80d5d035",
         "deployedAt": "2017-08-08",
-        "publicLabel": "normal"
+        "deployedTs": 1502182167,
+        "publicLabel": "normal",
+        "sameDay": true
       }
     ],
     "scope": {
       "activity_days": 0,
       "tx_count": 4,
       "as_of": "2017-08-08 (컨트랙트 배포 직전)",
-      "failures": [],
+      "failures": [
+        "기록 부족(거래 5건 미만)"
+      ],
       "sources": [
         "Etherscan(이더리움 메인넷)",
         "XBlock 폰지 라벨"

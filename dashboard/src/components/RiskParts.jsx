@@ -156,8 +156,8 @@ const pointsText = ind => (ind.status === "nodata" || typeof ind.points !== "num
   : typeof ind.cap === "number" ? `${ind.points} / ${ind.cap}` : `${ind.points}`);
 
 // ④ 확인한 항목(토큰 검사 사이트처럼): 발견된 항목을 맨 위로, 한 줄씩. 점수는 여기서 함께 보여 준다.
-const STATUS_ICON = { evidence: CircleAlert, none: Circle, nodata: CircleDashed };
-const STATUS_ORDER = { evidence: 0, none: 1, nodata: 2 };
+const STATUS_ICON = { evidence: CircleAlert, none: Circle, info: Info, nodata: CircleDashed };
+const STATUS_ORDER = { evidence: 0, none: 1, info: 2, nodata: 3 };
 export function EvidenceList({ risk }) {
   const evidence = risk.evidence ?? [];
   const partial = partialScore(risk);
@@ -197,6 +197,7 @@ export function EvidenceList({ risk }) {
                     {ind.label}
                   </span>
                   {ind.desc && <p className="risk-ind-desc">{ind.desc}</p>}
+                  {ind.note && <p className="risk-ind-note">{ind.note}</p>}
                 </div>
                 <Badge tone={strong ? "danger" : st.tone}>{st.label}</Badge>
                 <span className="risk-ind-points num">{pointsText(ind)}</span>

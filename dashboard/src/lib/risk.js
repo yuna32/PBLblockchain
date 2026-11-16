@@ -55,7 +55,8 @@ export const INDICATORS = [
 export const INDICATOR_STATUS = {
   evidence: { label: "발견",        tone: "caution" },
   none:     { label: "발견 안 됨",  tone: "neutral" }, // 초록(안전)으로 읽히지 않게 회색
-  nodata:   { label: "확인 안 함",  tone: "neutral" }
+  nodata:   { label: "확인 안 함",  tone: "neutral" },
+  info:     { label: "참고",        tone: "neutral" }  // 구분력이 낮아 점수·단계에 넣지 않고 사실만 보여 주는 지표
 };
 export const STRENGTH_LABELS = { strong: "강한 근거", weak: "약한 근거" };
 export const FUNDING_CATEGORIES = { exchange: "거래소", mixer: "믹서", malicious: "악성 주소", other: "일반 지갑" };
@@ -63,7 +64,7 @@ export const PUBLIC_LABELS = { scam: "사기", normal: "정상" };
 
 export const RISK_COPY = {
   scoreUnit: "높을수록 위험",
-  scoreNote: "단계는 가장 강한 근거 하나로 정하고, 점수는 발견된 근거를 모두 더한 값입니다. 결정적인 근거는 하나만 있어도 강한 근거 단계가 됩니다",
+  scoreNote: "점수는 단계별 구간 안에서 정합니다: 근거 없음 0 · 근거 있음 26~50 · 강한 근거 76~100. 구간 안에서는 발견된 근거가 많을수록 높습니다. 결정적인 근거는 하나만 있어도 강한 근거 단계입니다",
   partialBadge: "일부 항목 미확인",
   basisLabel: "이렇게 판단한 이유",
   estimateTag: "규칙 기반 추정",
@@ -236,6 +237,7 @@ export function normalizeRisk(raw) {
     const i = byKey.get(d.key);
     const base = { key: d.key, label: d.label, desc: d.desc ?? null, extension: Boolean(d.extension) };
     if (!i) return { ...base, status: "nodata", points: null, cap: null };
+    if (pick(i, FIELDS.indStatus) === "info") return { ...base, status: "info", points: null, cap: num(pick(i, FIELDS.cap), `${d.label} 상한`), note: str(pick(i, ["note"])) };
     const points = num(pick(i, FIELDS.points), d.label);
     const cap = num(pick(i, FIELDS.cap), `${d.label} 상한`);
     const explicitNoData = alias({ nodata: LEVEL_ALIASES.nodata }, pick(i, FIELDS.indStatus)) === "nodata";

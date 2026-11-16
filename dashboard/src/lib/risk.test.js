@@ -304,15 +304,20 @@ describe("배포자 위험도: 같은 유형의 실제 사례", () => {
   };
   const raw = scoreDeployer(facts);
 
-  it("계산: 0점에서 시작해 근거마다 더함, 강한 근거면 strong, GoPlus는 데이터 없음", () => {
+  it("계산: 단계별 점수 구간, 강한 근거면 strong(76점부터), GoPlus는 데이터 없음", () => {
     expect(raw.level).toBe("strong");
-    expect(raw.score).toBe(30);
+    expect(raw.score).toBe(76); // 강한 근거 구간(76~100)의 시작점
     expect(raw.score_max).toBe(100);
     const r = normalizeRisk(raw);
     expect(r.status).toBe("ready");
     expect(r.indicators.map(i => i.key)).toEqual(INDICATORS.map(i => i.key));
     expect(r.indicators.find(i => i.key === "external_flags").status).toBe("nodata");
     expect(r.indicators.find(i => i.key === "past_scam_deployments").status).toBe("evidence");
+    // 지갑 성숙도는 구분력이 낮아 점수에 넣지 않고 참고로만
+    const wm = r.indicators.find(i => i.key === "wallet_maturity");
+    expect(wm.status).toBe("info");
+    expect(wm.points).toBe(null);
+    expect(wm.note).toContain("점수에는 넣지 않습니다");
   });
 
   it("시나리오에 실제 사례가 있으면 그 결과, 없으면 기본값(데이터 없음)", () => {

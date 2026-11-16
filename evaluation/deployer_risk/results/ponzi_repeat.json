@@ -1,6 +1,6 @@
 {
   "id": "ponzi_repeat",
-  "rules": "v0 (시연용 임시 기준, 검증 전)",
+  "rules": "v1 (조정용 절반으로 정한 기준)",
   "facts": {
     "deployer": "0x7df1702da741da556d57646bbb8bb8026d0082c2",
     "contract": "0x75f97d98eb49989f9af40c49a7a1eb32767214f5",
@@ -11,7 +11,8 @@
     "activity": {
       "firstTxDate": "2017-05-09",
       "days": 96,
-      "txCount": 3
+      "txCount": 3,
+      "counterparties": 1
     },
     "firstFunding": {
       "from": "0x0ac166d2fa107c8794fdb7111e12bbe01ac10ca6",
@@ -22,7 +23,9 @@
       {
         "contract": "0x1ce7986760ade2bf0f322f5ef39ce0de3bd0c82b",
         "deployedAt": "2017-05-10",
-        "publicLabel": "scam"
+        "deployedTs": 1494398241,
+        "publicLabel": "scam",
+        "sameDay": false
       }
     ],
     "passThroughEvents": 0,
@@ -35,9 +38,9 @@
   },
   "result": {
     "level": "strong",
-    "score": 30,
-    "summary": "이 배포자는 이 컨트랙트를 배포하기 약 3개월 전, 사기(폰지)로 확인된 컨트랙트를 만든 적이 있습니다",
+    "score": 76,
     "score_max": 100,
+    "summary": "이 배포자는 이 컨트랙트를 배포하기 약 3개월 전, 사기(폰지)로 확인된 컨트랙트를 만든 적이 있습니다",
     "target": {
       "deployer": "0x7df1702da741da556d57646bbb8bb8026d0082c2",
       "contract": "0x75f97d98eb49989f9af40c49a7a1eb32767214f5"
@@ -50,8 +53,10 @@
       },
       {
         "key": "wallet_maturity",
-        "points": 0,
-        "cap": 20
+        "status": "info",
+        "points": null,
+        "cap": 20,
+        "note": "새 지갑 아님: 이 컨트랙트를 만들 때 지갑을 쓴 지 96일. 정상 배포자에게도 흔해(사기 배포자와 1.3배 차이) 점수에는 넣지 않습니다"
       },
       {
         "key": "past_scam_deployments",
@@ -70,7 +75,7 @@
         "points": 30,
         "source": "XBlock 연구 데이터, Etherscan",
         "strength": "strong",
-        "text": "이 컨트랙트 전에 만든 컨트랙트 1개 중 1개가 연구 데이터(XBlock)에서 폰지로 분류되어 있습니다 (처음 만든 날 2017-05-10)"
+        "text": "이 컨트랙트보다 하루 이상 앞서 만든 컨트랙트 중 1개가 연구 데이터(XBlock)에서 폰지로 분류되어 있습니다 (처음 만든 날 2017-05-10)"
       }
     ],
     "first_funding": {
@@ -81,14 +86,18 @@
       {
         "contract": "0x1ce7986760ade2bf0f322f5ef39ce0de3bd0c82b",
         "deployedAt": "2017-05-10",
-        "publicLabel": "scam"
+        "deployedTs": 1494398241,
+        "publicLabel": "scam",
+        "sameDay": false
       }
     ],
     "scope": {
       "activity_days": 96,
       "tx_count": 3,
       "as_of": "2017-08-14 (컨트랙트 배포 직전)",
-      "failures": [],
+      "failures": [
+        "기록 부족(거래 5건 미만)"
+      ],
       "sources": [
         "Etherscan(이더리움 메인넷)",
         "XBlock 폰지 라벨"
