@@ -2,17 +2,33 @@
 import { term } from "./terms.js";
 import { fmtDateTime, shortMiddle } from "./format.js";
 
-// 기록 필드 7개 (demo/lib/attest/schema.js FIELD_NAMES와 같은 순서)
-export const FIELD_ORDER = ["contractAddress", "reportHash", "codeRiskGrade", "trustScore", "minWalletTrustScore", "scanTimestamp", "analyzerVersion"];
+// 기록 필드 12개 (스키마 v2, demo/lib/attest/schema.js FIELD_NAMES와 같은 순서).
+// 코드·거래·지갑 레이어를 따로 적는다. 종합 등급과 옛 지갑 신뢰 점수는 기록하지 않는다.
+export const FIELD_ORDER = [
+  "schemaVersion", "subjectChainId", "contractAddress", "reportHash", "inputHash",
+  "codeRiskLevel", "txPatternHint", "walletLayerStatus", "walletRiskScore", "walletRiskAvailable",
+  "scanTimestamp", "analyzerVersion"
+];
 export const FIELD_LABELS = {
+  schemaVersion: "기록 형식 버전",
+  subjectChainId: "분석 대상 네트워크",
   contractAddress: "컨트랙트 주소",
-  reportHash: "리포트 해시",
-  codeRiskGrade: "코드 위험 등급",
-  trustScore: "신뢰 점수",
-  minWalletTrustScore: "최저 지갑 신뢰 점수",
-  scanTimestamp: "스캔 시각",
+  reportHash: "분석 결과 지문(리포트 해시)",
+  inputHash: "입력 자료 지문(입력 해시)",
+  codeRiskLevel: "코드 위험 수준",
+  txPatternHint: "거래 패턴",
+  walletLayerStatus: "지갑 분석",
+  walletRiskScore: "배포자 위험 점수",
+  walletRiskAvailable: "배포자 위험 자료",
+  scanTimestamp: "분석 시각",
   analyzerVersion: "분석기 버전"
 };
+
+// 분석 대상 네트워크(체인 ID) 이름. 31337은 시연용 로컬 체인이라 그 주소는 실제 이더리움 주소가 아니다.
+export const SUBJECT_CHAIN_NAMES = { 1: "이더리움 메인넷", 31337: "시연용 로컬 체인", 11155111: "Sepolia 테스트넷" };
+export const SIMULATION_CHAIN_ID = 31337;
+export const LOCAL_ADDRESS_NOTE = "시연용 로컬 주소입니다. 이 예시는 연습용 블록체인에서 만든 가상의 컨트랙트라서, 주소는 실제 이더리움 주소가 아닙니다.";
+const WALLET_LAYER_LABELS = { not_applicable: "해당 없음", evaluated: "분석함" };
 
 export const BACKEND_NAMES = { local: "로컬 시연 체인", "eas-sepolia": "EAS (Sepolia 테스트넷)" };
 // 서버가 로컬 체인을 띄우는 동안 local 백엔드의 reason (demo/lib/attest/index.js)
@@ -47,12 +63,14 @@ export function backendOptions(backends) {
   });
 }
 
-// 기록의 탐색기 링크. local은 없음. attestation 경로 형식은 문서로 확인하지 못해 verified=false로 온다.
+// 기록의 탐색기 링크. local은 없음.
+// 탐색기(easscan) 경로는 문서로 확인하지 못했다. 첫 실제 기록 뒤 사람이 경로를 확인해
+// demo/lib/attest/config.js EXPLORER_ATTESTATION_PATH_VERIFIED를 true로 바꾸기 전까지는 링크를 보여 주지 않는다(null).
 export function explorerLinks(record) {
-  if (!record?.explorerUrl) return null;
+  if (!record?.explorerUrl || record.meta?.explorerUrlVerified !== true) return null;
   return {
     attestation: record.explorerUrl,
-    verified: record.meta?.explorerUrlVerified ?? null,
+    verified: true,
     schema: record.meta?.schemaUrl ?? null
   };
 }
@@ -97,8 +115,8 @@ export const PHASE_LABELS = {
   prerecorded: "사전 기록",
   error: "기록 실패",
   // 정적 모드 (state/StaticAttest.jsx): 상태 A / 상태 B
-  attested: "Sepolia 기록 있음",
-  pending_onchain: "온체인 기록 대기 중"
+  attested: "블록체인에 기록됨",
+  pending_onchain: "기록 대기"
 };
 
 // 진행 표시의 "온체인 기록" 단계
@@ -110,8 +128,8 @@ export function onchainFlowState(phase) {
     case "error": return { state: "error", sub: "기록 실패" };
     case "unavailable": return { state: "disabled", sub: "사용 불가" };
     case "readonly": return { state: "disabled", sub: "읽기 전용" };
-    case "attested": return { state: "done", sub: "Sepolia 기록 있음" };
-    case "pending_onchain": return { state: "pending", sub: "기록 대기 중" };
+    case "attested": return { state: "done", sub: "블록체인에 기록됨" };
+    case "pending_onchain": return { state: "pending", sub: "기록 대기" };
     default: return { state: "pending", sub: PHASE_LABELS[phase] ?? "기록 전" };
   }
 }
@@ -121,8 +139,8 @@ export function onchainBadge(phase, chainName = "로컬 체인") {
   if (phase === "recorded" || phase === "prerecorded") {
     return { tone: "primary", label: "온체인 기록됨", extra: phase === "prerecorded" ? "사전 기록" : null };
   }
-  if (phase === "attested") return { tone: "primary", label: "Sepolia 기록 있음", extra: null };
-  if (phase === "pending_onchain") return { tone: "neutral", label: "온체인 기록 대기 중", extra: null };
+  if (phase === "attested") return { tone: "primary", label: "블록체인에 기록됨", extra: null };
+  if (phase === "pending_onchain") return { tone: "neutral", label: "기록 대기", extra: null };
   if (phase === "running") return { tone: "neutral", label: "기록 중", extra: null };
   if (phase === "error") return { tone: "danger", label: "기록 실패", extra: null };
   const extra = phase === "unavailable" ? `${chainName} 사용 불가` : phase === "offline" ? "서버 끊김" : phase === "readonly" ? "읽기 전용" : null;
@@ -136,8 +154,23 @@ export function verifySummary(entry) {
   if (!entry || entry.status !== "done" || !entry.result) return null;
   const ok = entry.result.verified;
   const label = ok ? "일치" : "불일치";
-  const text = entry.kind === "integrity" ? `무결성 검증 ${label}` : entry.kind === "onchain" ? `온체인 기록과 ${label}` : `검증 ${label}`;
+  const text = entry.kind === "integrity" ? `무결성 검증 ${label}` : entry.kind === "onchain" ? `블록체인 기록과 ${label}` : `검증 ${label}`;
   return { tone: ok ? "safe" : "danger", label, text, tamperDemo: Boolean(entry.result.tamperDemo) };
+}
+
+// 개요 요약 박스의 "블록체인 기록" 한 줄. phase: 정적 모드 attested | pending_onchain | checking, 서버 모드 attestPhase()
+//   verifyEntry: 이번 화면에서 한 체인 검증 결과(정적 onchain, 서버 server). 파일 무결성 검증(integrity)은 따로 있어 쓰지 않는다.
+export function onchainSummary(phase, verifyEntry = null) {
+  // 변조 시연(메모리 사본) 결과는 실제 상태가 아니므로 쓰지 않는다
+  if (verifyEntry && (verifyEntry.kind ?? "server") !== "integrity" && verifyEntry.status === "done" && verifyEntry.result && !verifyEntry.result.tamperDemo) {
+    return verifyEntry.result.verified
+      ? { tone: "safe", text: "기록과 일치", key: "same" }
+      : { tone: "danger", text: "기록과 다름", key: "different" };
+  }
+  if (phase === "attested" || phase === "recorded" || phase === "prerecorded") return { tone: "primary", text: "블록체인에 기록됨", key: "recorded" };
+  if (phase === "checking" || phase === "starting" || phase === "running" || !phase) return { tone: "neutral", text: "확인 중", key: "checking" };
+  if (phase === "error" || phase === "offline") return { tone: "caution", text: "지금은 확인 못 함", key: "error" };
+  return { tone: "neutral", text: "기록 대기", key: "pending" };
 }
 
 // 기록 카드의 메타 행 (hex 값은 앞뒤만 보이고 복사 버튼을 단다)
@@ -154,19 +187,29 @@ export function recordRows(record) {
 }
 
 // 기록 필드 값 표시: { text, full, mono }
-export function formatField(name, value, glossary) {
+//   ctx.walletRiskAvailable === false면 배포자 위험 점수는 "데이터 없음"으로 보인다(기록값 0은 자리 채움).
+export function formatField(name, value, glossary, ctx = {}) {
   if (value === null || value === undefined) return { text: "-", full: null, mono: false };
+  const named = v => { const t = term(glossary, v); return t.known && t.label !== v ? `${v} · ${t.label}` : String(v); };
   switch (name) {
     case "contractAddress":
     case "reportHash":
+    case "inputHash":
       return { text: shortMiddle(value), full: value, mono: true };
-    case "codeRiskGrade": {
-      const t = term(glossary, value);
-      return { text: t.known && t.label !== value ? `${value} · ${t.label}` : String(value), full: null, mono: false };
+    case "subjectChainId": {
+      const n = SUBJECT_CHAIN_NAMES[value];
+      return { text: n ? `${n} (${value})` : String(value), full: null, mono: false };
     }
-    case "trustScore":
-    case "minWalletTrustScore":
-      return { text: `${value}점`, full: null, mono: false };
+    case "codeRiskLevel":
+      return { text: named(value), full: null, mono: false };
+    case "txPatternHint":
+      return { text: value === "" ? "없음" : named(value), full: null, mono: false };
+    case "walletLayerStatus":
+      return { text: value === "" ? "없음" : WALLET_LAYER_LABELS[value] ? `${WALLET_LAYER_LABELS[value]} (${value})` : String(value), full: null, mono: false };
+    case "walletRiskScore":
+      return { text: ctx.walletRiskAvailable === false ? "데이터 없음" : `${value}점 · 높을수록 위험`, full: null, mono: false };
+    case "walletRiskAvailable":
+      return { text: value ? "있음" : "데이터 없음", full: null, mono: false };
     case "scanTimestamp":
       return { text: fmtDateTime(Number(value) * 1000), full: String(value), mono: false };
     default:
@@ -176,7 +219,13 @@ export function formatField(name, value, glossary) {
 
 export function payloadRows(payload, glossary) {
   if (!payload) return [];
-  return FIELD_ORDER.map(name => ({ name, label: FIELD_LABELS[name], ...formatField(name, payload[name], glossary) }));
+  const ctx = { walletRiskAvailable: payload.walletRiskAvailable };
+  return FIELD_ORDER.map(name => ({ name, label: FIELD_LABELS[name], ...formatField(name, payload[name], glossary, ctx) }));
+}
+
+// 기록의 대상이 시연용 로컬 체인(31337)의 주소인지 (화면에 "시연용 로컬 주소" 안내를 붙인다)
+export function isSimulationSubject(payload) {
+  return Number(payload?.subjectChainId) === SIMULATION_CHAIN_ID;
 }
 
 // 리포트 경로 → 한글 라벨. 용어집에 있으면 용어집 라벨, 없으면 기록 필드 라벨, 둘 다 없으면 null.
@@ -186,8 +235,9 @@ const PATH_TERMS = {
   "dynamic.evasion_subclass": "evasion_subclass"
 };
 const PATH_FIELDS = {
-  "trust.overall_trust_score": "trustScore",
-  "prevention.risk_level": "codeRiskGrade",
+  "prevention.risk_level": "codeRiskLevel",
+  "dynamic.fraud_type_hint": "txPatternHint",
+  "wallet_layer.status": "walletLayerStatus",
   timestamp: "scanTimestamp"
 };
 export function pathLabel(path, glossary) {
@@ -217,8 +267,10 @@ function kindTexts(kind, verified, hashMatch, attested) {
   const recordedLabel = { recorded: "온체인에 기록된 리포트 해시", current: "현재 리포트에서 계산한 해시" };
   if (kind === "onchain") {
     return {
-      label: verified ? "온체인 기록과 일치" : "온체인 기록과 불일치",
-      summary: verified ? "온체인 기록과 일치: Sepolia에 기록된 값과 배포된 리포트가 같습니다." : "검증 실패(불일치): 체인에 기록된 값과 배포된 리포트가 다릅니다.",
+      label: verified ? "기록과 일치" : "기록과 다름",
+      summary: verified
+        ? "기록과 일치합니다. 블록체인(Sepolia 테스트넷)에 남긴 값과 지금 보는 분석 결과가 같습니다."
+        : "기록과 다릅니다. 이 결과는 블록체인에 기록한 뒤에 바뀌었습니다.",
       hashLabels: recordedLabel,
       tamperScope: "브라우저 메모리"
     };
@@ -238,13 +290,14 @@ function kindTexts(kind, verified, hashMatch, attested) {
 // 검증 결과 → 화면용. options: { kind: "server" | "integrity" | "onchain", attested }
 export function verifyView(result, glossary, { kind = "server", attested = false } = {}) {
   if (!result) return null;
+  const avail = (result.fields ?? []).find(f => f.name === "walletRiskAvailable");
   const rows = (result.fields ?? []).map(f => ({
     name: f.name,
     label: FIELD_LABELS[f.name] ?? f.name,
     informational: Boolean(f.informational),
     match: Boolean(f.match),
-    onChain: formatField(f.name, f.onChain, glossary),
-    current: formatField(f.name, f.current, glossary)
+    onChain: formatField(f.name, f.onChain, glossary, { walletRiskAvailable: avail?.onChain }),
+    current: formatField(f.name, f.current, glossary, { walletRiskAvailable: avail?.current })
   }));
   const verified = Boolean(result.verified);
   const texts = kindTexts(kind, verified, Boolean(result.hashMatch), attested);
@@ -287,16 +340,14 @@ export function tamperPresets(report, glossary) {
     if (!cur.exists || cur.value === value || value === undefined) return;
     out.push({ id, label, path, from: cur.value, value, fromText: show(cur.value), toText: show(value) });
   };
-  const score = v => `${v}점`;
+  const eth = v => `${v} ETH`;
   const named = v => { const t = term(glossary, v); return t.known && t.label !== v ? `${t.label} (${v})` : String(v); };
 
-  const trust = getPath(report, "trust.overall_trust_score").value;
-  if (typeof trust === "number") add("trust", "신뢰 점수를 다른 값으로", "trust.overall_trust_score", trust >= 80 ? Math.round(trust) - 40 : 95, score);
-
+  // 옛 지갑 신뢰 점수(trust.*)는 화면에서 쓰지 않으므로 변조 예시에서도 뺐다.
   const level = getPath(report, "prevention.risk_level").value;
   if (typeof level === "string") {
     const to = level === "LOW" ? "CRITICAL" : "LOW";
-    add("risk", `코드 위험 등급을 ${to}로`, "prevention.risk_level", to, named);
+    add("risk", `코드 위험 수준을 ${to}로`, "prevention.risk_level", to, named);
   }
 
   const hint = getPath(report, "dynamic.fraud_type_hint").value;
@@ -305,17 +356,9 @@ export function tamperPresets(report, glossary) {
     add("type", `감지 유형을 ${term(glossary, to).label}(으)로`, "dynamic.fraud_type_hint", to, named);
   }
 
-  const wallets = getPath(report, "trust.wallet_scores").value;
-  if (Array.isArray(wallets) && wallets.length) {
-    let idx = -1;
-    wallets.forEach((w, i) => {
-      if (typeof w?.trust_score === "number" && (idx < 0 || w.trust_score < wallets[idx].trust_score)) idx = i;
-    });
-    if (idx >= 0) {
-      const v = wallets[idx].trust_score;
-      add("wallet", "최저 지갑 신뢰 점수를 다른 값으로", `trust.wallet_scores.${idx}.trust_score`, v < 90 ? 95 : 10, score);
-    }
-  }
+  // 체인에 따로 적지 않은 값도 지문(리포트 해시)으로 잡힌다는 것을 보여 주는 예시
+  const outflow = getPath(report, "dynamic.metrics.total_out_eth").value;
+  if (typeof outflow === "number") add("outflow", "출금 합계를 다른 값으로", "dynamic.metrics.total_out_eth", outflow + 1, eth);
   return out;
 }
 

@@ -74,8 +74,9 @@ function IntegrityIcon({ k }) {
   return Icon ? <Icon {...ICON} size={15} className={k === "checking" ? "spin" : ""} aria-hidden="true" /> : null;
 }
 
-// 요약 박스: 이상이 처음 보인 때 · 분석한 거래 · 리포트 변조 확인. integrity: lib/overview.js integrityStatus()
-export function SummaryBox({ summary, integrity, reportAction = null }) {
+// 요약 박스: 이상이 처음 보인 때 · 분석한 거래 · 리포트 변조 확인 · 블록체인 기록.
+//   integrity: lib/overview.js integrityStatus(), onchain: lib/attest.js onchainSummary() (없으면 줄을 그리지 않는다)
+export function SummaryBox({ summary, integrity, reportAction = null, onchain = null, onchainAction = null }) {
   return (
     <section className="card summary-box">
       <dl className="summary-list">
@@ -87,6 +88,14 @@ export function SummaryBox({ summary, integrity, reportAction = null }) {
             <IntegrityIcon k={integrity.key} />{integrity.text}{reportAction}
           </dd>
         </div>
+        {onchain && (
+          <div>
+            <dt>블록체인 기록</dt>
+            <dd className={`integrity integrity-${onchain.key} text-${onchain.tone === "neutral" ? "muted" : onchain.tone}`}>
+              <IntegrityIcon k={onchain.key} />{onchain.text}{onchainAction}
+            </dd>
+          </div>
+        )}
       </dl>
     </section>
   );

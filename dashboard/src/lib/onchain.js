@@ -1,13 +1,15 @@
 // 온체인 조회 (정적 모드, 상태 A일 때만 verifyBrowser.js가 동적 import한다 → viem은 이 청크에만 들어간다).
 // 읽기 전용: 공개 RPC로 EAS.getAttestation(uid)를 호출하고 payload를 해독한다. 서명·키 관련 코드는 없다.
 // createPublicClient 대신 기본 client + 필요한 action(getChainId, readContract)만 써서, 서명 검증용 타원곡선 코드가 번들에 들어오지 않게 한다.
-// ABI와 스키마 문자열은 demo/lib/attest/abi.js·schema.js와 같고, src/lib/verifyBrowser.test.js가 비교한다.
+// ABI와 스키마 문자열(v2)은 demo/lib/attest/abi.js·schema.js와 같고, src/lib/verifyBrowser.test.js가 비교한다.
 import { createClient, decodeAbiParameters, http, parseAbi, parseAbiParameters, zeroHash } from "viem";
 import { getChainId, readContract } from "viem/actions";
 
+export const SCHEMA_VERSION = 2;
 export const SCHEMA =
-  "address contractAddress,bytes32 reportHash,string codeRiskGrade,uint8 trustScore," +
-  "uint8 minWalletTrustScore,uint64 scanTimestamp,string analyzerVersion";
+  "uint16 schemaVersion,uint64 subjectChainId,address contractAddress,bytes32 reportHash,bytes32 inputHash," +
+  "string codeRiskLevel,string txPatternHint,string walletLayerStatus,uint16 walletRiskScore,bool walletRiskAvailable," +
+  "uint64 scanTimestamp,string analyzerVersion";
 const SCHEMA_PARAMS = parseAbiParameters(SCHEMA);
 
 export const EAS_READ_ABI = parseAbi([
@@ -20,13 +22,18 @@ const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
 export function decodePayload(data) {
   const v = decodeAbiParameters(SCHEMA_PARAMS, data);
   return {
-    contractAddress: v[0].toLowerCase(),
-    reportHash: v[1].toLowerCase(),
-    codeRiskGrade: v[2],
-    trustScore: Number(v[3]),
-    minWalletTrustScore: Number(v[4]),
-    scanTimestamp: Number(v[5]),
-    analyzerVersion: v[6]
+    schemaVersion: Number(v[0]),
+    subjectChainId: Number(v[1]),
+    contractAddress: v[2].toLowerCase(),
+    reportHash: v[3].toLowerCase(),
+    inputHash: v[4].toLowerCase(),
+    codeRiskLevel: v[5],
+    txPatternHint: v[6],
+    walletLayerStatus: v[7],
+    walletRiskScore: Number(v[8]),
+    walletRiskAvailable: v[9],
+    scanTimestamp: Number(v[10]),
+    analyzerVersion: v[11]
   };
 }
 
@@ -39,7 +46,7 @@ export function createReader({ rpcUrl, easAddress }) {
     async getAttestation(uid) {
       const att = await readContract(client, { address: easAddress, abi: EAS_READ_ABI, functionName: "getAttestation", args: [uid] });
       if (!att || att.uid === zeroHash) return null;
-      return { uid: att.uid, schema: att.schema, attester: att.attester.toLowerCase(), revoked: att.revocationTime !== 0n, data: att.data };
+      return { uid: att.uid, schema: att.schema, attester: att.attester.toLowerCase(), revoked: att.revocationTime !== 0n, refUID: att.refUID, data: att.data };
     }
   };
 }

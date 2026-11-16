@@ -11,7 +11,7 @@ import { REPORT_HELP } from "../lib/reportHelp.js";
 import { SourceBadge } from "../components/SidePanel.jsx";
 import { CopyValue, HashLine, TamperPanel, VerifyResult } from "../components/AttestParts.jsx";
 import { StaticIntegrityCard, StaticProofCard } from "./ReportStatic.jsx";
-import { attestError, BACKEND_NAMES, explorerLinks, PHASE_LABELS, payloadRows, recordRows, tamperPresets, verifyView } from "../lib/attest.js";
+import { attestError, BACKEND_NAMES, explorerLinks, FIELD_ORDER, isSimulationSubject, LOCAL_ADDRESS_NOTE, PHASE_LABELS, payloadRows, recordRows, tamperPresets, verifyView } from "../lib/attest.js";
 import { fmtDateTime } from "../lib/format.js";
 
 export default function Report() {
@@ -238,7 +238,8 @@ function RecordDetails({ record, reused }) {
           </ul>
         </div>
         <div>
-          <h3 className="sub-title">기록한 값 (7개 필드)</h3>
+          <h3 className="sub-title">기록한 값 ({FIELD_ORDER.length}개 필드)</h3>
+          {isSimulationSubject(record.payload) && <p className="small backend-note">{LOCAL_ADDRESS_NOTE}</p>}
           <ul className="rows rows-static">
             {payloadRows(record.payload, glossary).map(f => (
               <li key={f.name} className="row">
@@ -254,11 +255,6 @@ function RecordDetails({ record, reused }) {
           <a className="link" href={links.attestation} target="_blank" rel="noreferrer">
             탐색기에서 기록 보기 <ExternalLink {...ICON} size={14} />
           </a>
-          {links.verified === false && (
-            <span title="탐색기의 기록 화면 경로(/attestation/view/<uid>)는 문서로 확인하지 못한 추정 형식입니다. 열리지 않으면 탐색기에서 UID로 검색하세요.">
-              <EstimateTag>형식 미확인</EstimateTag>
-            </span>
-          )}
           {links.schema && (
             <a className="link" href={links.schema} target="_blank" rel="noreferrer">
               스키마 보기 <ExternalLink {...ICON} size={14} />

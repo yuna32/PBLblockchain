@@ -6,6 +6,8 @@ import { Link, NavLink, useLocation } from "react-router-dom";
 import { ArrowLeftRight, ChevronDown, ChevronRight, FileCode, UserSearch } from "lucide-react";
 import { useApp } from "../state/AppContext.jsx";
 import { useIntegrity } from "../state/useIntegrity.js";
+import { useAttest } from "../state/AttestContext.jsx";
+import { onchainSummary } from "../lib/attest.js";
 import { ICON, ReportGate } from "../components/ui.jsx";
 import BalanceStory from "../components/BalanceStory.jsx";
 import { HeadlineCard, JudgeCard, RiskActionCard, SummaryBox } from "../components/OverviewParts.jsx";
@@ -26,6 +28,9 @@ function OverviewBody({ data }) {
   const { search } = useLocation();
   const query = selected ? `?scenario=${selected}` : search;
   const integrity = useIntegrity(data, current.reportId);
+  // 블록체인 기록 상태(기록 대기 / 기록됨 / 이번에 확인한 결과). 조회는 하지 않고 이미 아는 상태만 보여 준다.
+  const attest = useAttest();
+  const onchain = onchainSummary(attest.currentPhase, attest.verifyOf?.(current.reportId));
   const points = useMemo(() => buildBlockSeries(timeseries).points, [timeseries]);
   const [codeNotice, setCodeNotice] = useState(false);
 
@@ -42,7 +47,9 @@ function OverviewBody({ data }) {
         <div className="overview-side">
           <RiskActionCard conclusion={decision.conclusion} />
           <SummaryBox summary={decision.copy.summary} integrity={integrity}
-            reportAction={<Link className="summary-link" to={`${pagePath("report")}${query}`} aria-label="리포트 변조 확인 화면으로"><ChevronRight {...ICON} size={15} /></Link>} />
+            reportAction={<Link className="summary-link" to={`${pagePath("report")}${query}`} aria-label="리포트 변조 확인 화면으로"><ChevronRight {...ICON} size={15} /></Link>}
+            onchain={onchain}
+            onchainAction={<Link className="summary-link" to={`${pagePath("report")}${query}`} aria-label="블록체인 기록 화면으로"><ChevronRight {...ICON} size={15} /></Link>} />
         </div>
       </div>
 
