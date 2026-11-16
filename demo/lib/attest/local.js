@@ -6,6 +6,7 @@ import { fileURLToPath } from "url";
 import { createPublicClient, createWalletClient, decodeEventLog, http, zeroAddress, zeroHash } from "viem";
 import { SCHEMA, encodePayload } from "./schema.js";
 import { readAttestation } from "./verify.js";
+import { checkRefUID } from "./eas.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CHAIN_DIR = path.resolve(__dirname, "..", "..", "chain");
@@ -70,10 +71,12 @@ export async function createLocalBackend({ rpcUrl, chainId }) {
     easAddress,
     registryAddress,
 
-    async attest(payload) {
+    // options.refUID: 이전 기록 UID(생애주기 확장 자리, eas.js와 같음). 생략하면 0.
+    async attest(payload, { refUID = zeroHash } = {}) {
+      checkRefUID(refUID);
       const receipt = await wait(await wallet.writeContract({
         address: easAddress, abi: easArt.abi, functionName: "attest",
-        args: [{ schema: schemaUID, data: { recipient: zeroAddress, expirationTime: 0n, revocable: true, refUID: zeroHash, data: encodePayload(payload), value: 0n } }]
+        args: [{ schema: schemaUID, data: { recipient: zeroAddress, expirationTime: 0n, revocable: true, refUID, data: encodePayload(payload), value: 0n } }]
       }));
       const ev = findEvent(easArt.abi, receipt.logs, "Attested");
       if (!ev) throw new Error("Attested 이벤트를 찾을 수 없습니다.");
@@ -89,6 +92,7 @@ export async function createLocalBackend({ rpcUrl, chainId }) {
         blockNumber: Number(receipt.blockNumber),
         recordedAt: new Date(Number(block.timestamp) * 1000).toISOString(),
         explorerUrl: null,
+        refUID: refUID.toLowerCase(),
         payload
       };
     },

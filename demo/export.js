@@ -20,7 +20,7 @@
 //   기록만 attestation.json으로 낸다. 그 밖(로컬 hardhat 31337 등)은 공개 사이트에서 검증할 수 없는 값이므로 빼고 로그를 남긴다.
 //
 // 끝에 출력물을 스스로 검사한다(있으면 실패): "alchemy", "PRIVATE_KEY", 환경 변수의 비밀 값(이름이 키·RPC 규칙에 맞는 것),
-//   허용 필드(uid, txHash, schemaUID, reportHash) 밖의 0x+64자리 16진수. 위치만 출력하고 값은 출력하지 않는다.
+//   허용 필드(uid, txHash, schemaUID, reportHash, inputHash, explorerUrl) 밖의 0x+64자리 16진수. 위치만 출력하고 값은 출력하지 않는다.
 //   .env 파일은 읽지 않는다.
 //
 // 사용: node demo/export.js [--out <dir>] [--attestations <file>] [--source-commit <sha>]
@@ -36,7 +36,9 @@ import { buildViewModel } from "./lib/viewmodel.js";
 import { buildOntologyGraph } from "./lib/ontologygraph.js";
 import { contractSource } from "./lib/source.js";
 import { GLOSSARY } from "./lib/glossary.js";
-import { EAS_FIXTURES_BASENAME } from "./lib/attest/config.js";
+import { EAS_FIXTURES_BASENAME, EXPLORER_ATTESTATION_PATH_VERIFIED } from "./lib/attest/config.js";
+import { FIELD_NAMES, SCHEMA_VERSION, schemaUID as currentSchemaUID } from "./lib/attest/schema.js";
+import { ATTESTATION_PATH } from "./lib/attest/eas.js";
 import { runFixture } from "../server/fixture_run.js";
 import { SCENARIO_LIST } from "../server/scenarios.js";
 import { attestStatusOf, SEPOLIA_CHAIN_ID, EAS_EXPLORER_BASE } from "../dashboard/src/lib/attestStatus.js";
@@ -50,9 +52,10 @@ const OWL_RESULTS_PATH = path.join(PROJECT_ROOT, "ontology", "owl_results.json")
 
 const HEX32 = /^0x[0-9a-fA-F]{64}$/;
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
-const PAYLOAD_FIELDS = ["contractAddress", "reportHash", "codeRiskGrade", "trustScore", "minWalletTrustScore", "scanTimestamp", "analyzerVersion"];
-// 0x+64자리 16진수가 의도된 값으로 들어갈 수 있는 필드 이름
-export const HEX64_ALLOWED_KEYS = new Set(["uid", "txHash", "schemaUID", "reportHash"]);
+// 기록 필드는 스키마 v2 순서 그대로 (demo/lib/attest/schema.js). 그 밖의 값은 버린다.
+const PAYLOAD_FIELDS = FIELD_NAMES;
+// 0x+64자리 16진수가 의도된 값으로 들어갈 수 있는 필드 이름 (explorerUrl은 경로 확인 뒤 UID가 들어간 링크)
+export const HEX64_ALLOWED_KEYS = new Set(["uid", "txHash", "schemaUID", "reportHash", "inputHash", "explorerUrl"]);
 
 export function sortKeys(value) {
   if (Array.isArray(value)) return value.map(sortKeys);
@@ -91,7 +94,11 @@ export function publicAttestation(name, entry, reportHashHex) {
   if (!HEX32.test(entry.schemaUID ?? "") || !ADDRESS.test(entry.attester ?? "") || !ADDRESS.test(entry.contract ?? "") || !entry.payload) {
     return { attestation: null, excluded: "schemaUID·attester·contract·payload 형식이 올바르지 않음" };
   }
+  if (entry.schemaUID.toLowerCase() !== currentSchemaUID().toLowerCase()) {
+    return { attestation: null, excluded: `이전 형식(스키마 v${SCHEMA_VERSION}가 아님)의 기록이라 비교할 수 없음 — record-fixtures로 다시 기록` };
+  }
   const payload = Object.fromEntries(PAYLOAD_FIELDS.map(f => [f, entry.payload[f]]));
+  const explorerUrl = EXPLORER_ATTESTATION_PATH_VERIFIED ? `${EAS_EXPLORER_BASE}${ATTESTATION_PATH}${entry.uid}` : null;
   return {
     excluded: null,
     attestation: {
@@ -100,6 +107,7 @@ export function publicAttestation(name, entry, reportHashHex) {
       txHash: entry.txHash,
       chainId: entry.chainId,
       schemaUID: entry.schemaUID,
+      schemaVersion: SCHEMA_VERSION,
       attester: entry.attester.toLowerCase(),
       contract: entry.contract.toLowerCase(),
       blockNumber: Number.isSafeInteger(entry.blockNumber) ? entry.blockNumber : null,
@@ -108,8 +116,10 @@ export function publicAttestation(name, entry, reportHashHex) {
       matchesSnapshotReport: String(entry.reportHash).toLowerCase() === `0x${reportHashHex}`,
       payload,
       explorerBase: EAS_EXPLORER_BASE,
-      // 탐색기의 기록 화면 경로는 문서로 확인하지 못했다 → 화면은 탐색기 주소와 UID만 보여 준다
-      explorerPathVerified: false
+      // 탐색기의 기록 화면 경로는 문서로 확인하지 못했다(config.js EXPLORER_ATTESTATION_PATH_VERIFIED).
+      // false면 explorerUrl은 null이고 화면은 탐색기 링크를 보여 주지 않는다.
+      explorerPathVerified: EXPLORER_ATTESTATION_PATH_VERIFIED,
+      explorerUrl
     }
   };
 }

@@ -19,6 +19,8 @@ export async function readAttestation({ client, easAddress, schemaUID, uid }) {
     attester: att.attester.toLowerCase(),
     time: new Date(Number(att.time) * 1000).toISOString(),
     revoked: att.revocationTime !== 0n,
+    // 생애주기 연결용(지금은 늘 0x0…0). 이전 기록과 잇는 기능은 docs/ONCHAIN_ATTESTATION.md A-4.
+    refUID: att.refUID,
     schemaMatches,
     payload: schemaMatches ? decodePayload(att.data) : null
   };
@@ -31,7 +33,7 @@ export class TamperError extends Error {
   }
 }
 
-// tamper = { path: "trust.overall_trust_score", value: 50 }. path는 리포트에 실제 있는 경로만 허용한다.
+// tamper = { path: "prevention.risk_level", value: "LOW" }. path는 리포트에 실제 있는 경로만 허용한다.
 export function applyTamper(report, tamper) {
   if (!tamper || typeof tamper !== "object" || Array.isArray(tamper)) throw new TamperError("tamper는 { path, value } 객체여야 합니다.", "invalid_tamper");
   if (typeof tamper.path !== "string" || !tamper.path) throw new TamperError("tamper.path가 필요합니다.", "invalid_tamper");
@@ -74,13 +76,14 @@ export function diffPaths(a, b, prefix = "", out = [], limit = 100) {
   return out;
 }
 
-// onChain: 체인에서 디코딩한 payload, snapshot: 기록 당시 canonical 문자열(없으면 null)
-export function verifyAgainstChain({ report, rows, onChain, snapshot = null, tamper = null, analyzerVersion }) {
+// onChain: 체인에서 디코딩한 payload, envelope: 현재 리포트의 envelope(입력 해시·대상 체인),
+// snapshot: 기록 당시 canonical 문자열(없으면 null), walletRisk: buildPayload와 같음
+export function verifyAgainstChain({ report, envelope, rows, onChain, snapshot = null, tamper = null, analyzerVersion, walletRisk = null }) {
   const current = tamper ? applyTamper(report, tamper) : report;
   const currentHash = reportHash(current);
   let currentPayload;
   try {
-    currentPayload = buildPayload({ report: current, rows, analyzerVersion, reportHashHex: currentHash });
+    currentPayload = buildPayload({ report: current, envelope, rows, analyzerVersion, reportHashHex: currentHash, walletRisk });
   } catch (err) {
     if (tamper) throw new TamperError(`변조한 값으로 기록 필드를 만들 수 없습니다: ${err.message}`, "invalid_tamper");
     throw err;
