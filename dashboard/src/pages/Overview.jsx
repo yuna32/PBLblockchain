@@ -16,6 +16,7 @@ import { codeConclusion, codeLines, flowLine } from "../lib/overview.js";
 import { DETAIL_PAGES, pagePath, term } from "../lib/terms.js";
 import { deployerCard, deployerPath, riskForScenario } from "../lib/risk.js";
 import { RiskBadge } from "../components/RiskParts.jsx";
+import { checkItems } from "../lib/mitigation.js";
 
 export default function Overview() {
   return <ReportGate>{data => <OverviewBody key={data.envelope.report_sha256 + data.view.scenario} data={data} />}</ReportGate>;
@@ -39,13 +40,18 @@ function OverviewBody({ data }) {
   const codeText = codeLines(code, codeC, term(glossary, code.preventionRiskLevel).label);
   // 배포자 수준은 riskForScenario 한 곳에서만 읽는다(실제 데이터가 연결되면 그 함수만 바뀐다)
   const deployer = useMemo(() => deployerCard(riskForScenario(view, timeseries)), [view, timeseries]);
+  // 완화 레이어: 결론별 "확인해 볼 것" (스냅샷 값만, lib/mitigation.js)
+  const checks = useMemo(() => checkItems({ view, risk: riskForScenario(view, timeseries), glossary }), [view, timeseries, glossary]);
+  const checkLink = item => (
+    <Link className="link" to={`${item.link.path}${query}`}>{item.link.label} <ChevronRight {...ICON} size={15} /></Link>
+  );
 
   return (
     <div className="page overview">
       <div className="overview-top">
         <HeadlineCard decision={decision} />
         <div className="overview-side">
-          <RiskActionCard conclusion={decision.conclusion} />
+          <RiskActionCard conclusion={decision.conclusion} checks={checks} renderLink={checkLink} />
           <SummaryBox summary={decision.copy.summary} integrity={integrity}
             reportAction={<Link className="summary-link" to={`${pagePath("report")}${query}`} aria-label="리포트 변조 확인 화면으로"><ChevronRight {...ICON} size={15} /></Link>}
             onchain={onchain}
