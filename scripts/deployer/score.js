@@ -40,7 +40,7 @@ function summarize(level, f, evidence, scams, short) {
       parts.push("이 배포자는 이전에 만든 컨트랙트들에서 넣은 돈보다 훨씬 많이 돌려받았고, 받은 돈을 곧바로 다른 곳으로 보내는 일이 반복됩니다");
     if (keys.has("first_funding")) parts.push(f.firstFunding?.category === "malicious"
       ? `이 배포자가 처음 받은 돈을 보낸 지갑은 ${funderText(f.firstFunding.knownAs).replace(/입니다$/, "")}입니다`
-      : "이 배포자가 처음 받은 돈은 믹서에서 왔습니다");
+      : "이 배포자가 처음 받은 돈은 믹서(여러 사람의 돈을 섞어 출처를 숨기는 서비스)에서 왔습니다");
     if (keys.has("external_flags") && f.goplus?.deployer?.direct.length)
       parts.push(`이 배포자 주소는 보안 서비스(GoPlus)에서 ${f.goplus.deployer.direct.join(", ")}(으)로 표시되어 있습니다`);
     return parts.join(". ");
@@ -73,7 +73,7 @@ export function scoreDeployer(f) {
     const ff = f.firstFunding;
     if (ff.category === "mixer") {
       add("first_funding", R.first_funding.mixer.points, { strength: R.first_funding.mixer.strength,
-        text: `처음 받은 돈이 믹서에서 왔습니다 (${ff.date})`, source: f.goplus?.funder?.mixer ? "GoPlus, Etherscan" : "Tornado Cash 주소 목록, Etherscan" });
+        text: `처음 받은 돈이 믹서(Tornado Cash)에서 왔습니다 (${ff.date})`, source: f.goplus?.funder?.mixer ? "GoPlus, Etherscan" : "Tornado Cash 주소 목록, Etherscan" });
     } else if (ff.category === "malicious") {
       add("first_funding", R.first_funding.malicious.points, { strength: R.first_funding.malicious.strength,
         text: `처음 받은 돈을 보낸 지갑이 ${funderText(ff.knownAs)} (${ff.date})`,

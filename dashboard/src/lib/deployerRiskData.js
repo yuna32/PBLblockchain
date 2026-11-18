@@ -1,7 +1,7 @@
 // 자동 생성 파일: scripts/deployer/build_demo.js가 만든다. 직접 고치지 말고 스크립트를 다시 실행한다.
 // 시연 시나리오별로 보여 줄 "같은 유형의 실제 사례" 배포자 분석 결과(lib/risk.js normalizeRisk 입력 형식).
-// 기준: v1 (조정용 절반으로 정한 기준)
-export const DEPLOYER_RISK_RULES = "v1 (조정용 절반으로 정한 기준)";
+// 기준: v1.1 (조정용 절반으로 정한 기준 + 토큰 유동성 회수)
+export const DEPLOYER_RISK_RULES = "v1.1 (조정용 절반으로 정한 기준 + 토큰 유동성 회수)";
 export const DEPLOYER_RISK_BY_SCENARIO = {
   "ponzi": {
     "level": "strong",
@@ -71,6 +71,65 @@ export const DEPLOYER_RISK_BY_SCENARIO = {
         "XBlock 폰지 라벨"
       ],
       "reason": "XBlock 연구용 데이터에서 폰지로 분류된 실제 컨트랙트의 배포자입니다."
+    }
+  },
+  "rugpull": {
+    "level": "strong",
+    "score": 76,
+    "score_max": 100,
+    "summary": "이 배포자가 처음 받은 돈은 믹서(여러 사람의 돈을 섞어 출처를 숨기는 서비스)에서 왔습니다",
+    "target": {
+      "deployer": "0x5de5207a1d4c71e611bb5214b93cebed3de715ab",
+      "contract": "0x4690d8f53e0d367f5b68f7f571e6eb4b72d39ace"
+    },
+    "indicators": [
+      {
+        "key": "first_funding",
+        "points": 30,
+        "cap": 30
+      },
+      {
+        "key": "wallet_maturity",
+        "status": "info",
+        "points": null,
+        "cap": 20,
+        "note": "새 지갑 아님: 이 컨트랙트를 만들 때 지갑을 쓴 지 8일. 정상 배포자에게도 흔해(사기 배포자와 1.3배 차이) 점수에는 넣지 않습니다"
+      },
+      {
+        "key": "past_scam_deployments",
+        "points": 0,
+        "cap": 30
+      },
+      {
+        "key": "fund_flow",
+        "points": 0,
+        "cap": 10
+      }
+    ],
+    "evidence": [
+      {
+        "indicator_key": "first_funding",
+        "points": 30,
+        "source": "Tornado Cash 주소 목록, Etherscan",
+        "strength": "strong",
+        "text": "처음 받은 돈이 믹서(Tornado Cash)에서 왔습니다 (2020-09-07)"
+      }
+    ],
+    "first_funding": {
+      "hops": 1,
+      "category": "mixer"
+    },
+    "past_deployments": [],
+    "scope": {
+      "activity_days": 8,
+      "tx_count": 9,
+      "as_of": "2020-09-16 (컨트랙트 배포 직전)",
+      "failures": [],
+      "sources": [
+        "Etherscan(이더리움 메인넷)",
+        "XBlock 폰지 라벨"
+      ],
+      "reason": "RPHunter 연구 데이터에서 러그풀로 분류된 실제 토큰의 배포자입니다(2020년 9월 배포)."
     }
   },
   "normal": {

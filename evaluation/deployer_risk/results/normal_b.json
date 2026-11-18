@@ -1,6 +1,6 @@
 {
   "id": "normal_b",
-  "rules": "v1 (조정용 절반으로 정한 기준)",
+  "rules": "v1.1 (조정용 절반으로 정한 기준 + 토큰 유동성 회수)",
   "facts": {
     "deployer": "0xaf773cb251d81178a611ba74e279bbaddce560c2",
     "contract": "0x006bea43baa3f7a6f765f14f10a1a1b08334ef45",
@@ -44,6 +44,10 @@
       "skipped": 0
     },
     "passThroughEvents": 0,
+    "liquidity": {
+      "adds": 0,
+      "removes": []
+    },
     "goplus": null,
     "failures": [],
     "sources": [

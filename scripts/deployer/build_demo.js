@@ -43,7 +43,10 @@ async function main() {
   requireKey();
   const { cases } = JSON.parse(fs.readFileSync(path.join(DIR, "demo_cases.json"), "utf8"));
   const cand = JSON.parse(fs.readFileSync(path.join(DIR, "candidates.json"), "utf8"));
-  const candidates = new Map(cand.contracts.map(c => [c.address, c]));
+  // 생성 정보는 XBlock(candidates.json)과 외부 데이터(candidates_<name>.json)에서 찾는다. 근거 지식은 XBlock·해킹 주소만
+  const candidates = new Map();
+  for (const f of fs.readdirSync(DIR).filter(f => /^candidates(_[a-z_]+)?\.json$/.test(f)))
+    for (const c of JSON.parse(fs.readFileSync(path.join(DIR, f), "utf8")).contracts ?? []) if (!candidates.has(c.address)) candidates.set(c.address, c);
   const labels = loadLabels();
   const knownBad = loadKnownBad(ROOT, cand.contracts);
   fs.mkdirSync(path.join(DIR, "results"), { recursive: true });

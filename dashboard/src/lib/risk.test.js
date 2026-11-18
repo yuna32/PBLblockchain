@@ -9,6 +9,7 @@ import {
   indicatorRatio, levelBasis, normalizeRisk, partialScore, riskForScenario, scoreText
 } from "./risk.js";
 import { PREVIEW_KEYS, RISK_FIXTURES, previewRisk } from "./riskFixtures.js";
+import { DEPLOYER_RISK_BY_SCENARIO } from "./deployerRiskData.js";
 import { codeConclusion, codeLines } from "./overview.js";
 import { term } from "./terms.js";
 import { CHECK_CARDS } from "./hero.js";
@@ -341,5 +342,16 @@ describe("배포자 위험도: 같은 유형의 실제 사례", () => {
     // 지표의 "근거 없음"은 회색(초록이 아님)
     expect(html).not.toMatch(/badge-safe">근거 없음/);
     expect(riskForScenario(view, rows, { normal: raw }).level).toBe("nodata");
+  });
+
+  it("생성된 실제 사례: 러그풀 시나리오는 믹서 자금원 배포자(라벨 없는 강한 근거), 폰지·정상도 연결", () => {
+    const { view, rows } = scenario("rugpull");
+    const real = riskForScenario(view, rows, DEPLOYER_RISK_BY_SCENARIO);
+    expect(real.level).toBe("strong");
+    expect(real.target.realCase).toBe(true);
+    expect(real.indicators.find(i => i.key === "first_funding").status).toBe("evidence");
+    expect(DEPLOYER_RISK_BY_SCENARIO.rugpull.evidence.every(e => !e.label_based)).toBe(true);
+    expect(real.summary).toContain("믹서");
+    expect(Object.keys(DEPLOYER_RISK_BY_SCENARIO).sort()).toEqual(["normal", "ponzi", "rugpull"]);
   });
 });

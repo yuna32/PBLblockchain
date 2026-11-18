@@ -1,6 +1,6 @@
 {
   "id": "ponzi_repeat",
-  "rules": "v1 (조정용 절반으로 정한 기준)",
+  "rules": "v1.1 (조정용 절반으로 정한 기준 + 토큰 유동성 회수)",
   "facts": {
     "deployer": "0x7df1702da741da556d57646bbb8bb8026d0082c2",
     "contract": "0x75f97d98eb49989f9af40c49a7a1eb32767214f5",
@@ -37,6 +37,10 @@
       "skipped": 0
     },
     "passThroughEvents": 0,
+    "liquidity": {
+      "adds": 0,
+      "removes": []
+    },
     "goplus": null,
     "failures": [],
     "sources": [
