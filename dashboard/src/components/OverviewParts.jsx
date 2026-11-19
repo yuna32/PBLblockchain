@@ -9,7 +9,8 @@ import { Badge, EstimateTag, ICON } from "./ui.jsx";
 const TONE_OF = c => CONCLUSIONS[c]?.tone ?? "neutral";
 
 // 판정 카드: 결론 배지 · 유형 · 휴리스틱 판정 태그 / 헤드라인 / 근거 3줄 (모두 view.decision)
-export function HeadlineCard({ decision }) {
+//   meta: 카드 하단 메타 정보(SummaryBox). 없으면 그리지 않는다.
+export function HeadlineCard({ decision, meta = null }) {
   const tag = typeTag(decision);
   return (
     <section className={`card verdict verdict-${TONE_OF(decision.conclusion)}`} data-conclusion={decision.conclusion}>
@@ -24,6 +25,7 @@ export function HeadlineCard({ decision }) {
           <li key={r}><CircleDot {...ICON} size={16} className="verdict-reason-icon" /><span>{r}</span></li>
         ))}
       </ul>
+      {meta}
     </section>
   );
 }
@@ -72,16 +74,14 @@ export function RiskActionCard({ conclusion, checks = [], renderLink = null }) {
         <div className="check-block">
           <div className="check-title">{CHECK_TITLE}</div>
           <ol className="check-list">
-            {checks.map(item => (
-              <li key={item.key} className={`check-item check-${item.status}`} data-check={item.key} data-status={item.status}>
-                <div className="check-head">
+            {checks.map((item, i) => (
+              <li key={item.key} className="check-item" data-check={item.key}>
+                <span className="check-num" aria-hidden="true">{i + 1}</span>
+                <div className="check-main">
                   <span className="check-question">{item.question}</span>
-                  <Badge tone={item.tone}>{item.statusLabel}</Badge>
+                  <p className="check-guide">{item.guide}</p>
+                  <div className="check-link">{renderLink ? renderLink(item) : item.link.label}</div>
                 </div>
-                {item.tag && <div className="check-tag">{item.tag}</div>}
-                <p className="check-value">{item.value}</p>
-                {item.sub && <p className="check-sub">{item.sub}</p>}
-                <div className="check-link">{renderLink ? renderLink(item) : item.link.label}</div>
               </li>
             ))}
           </ol>
@@ -97,11 +97,11 @@ function IntegrityIcon({ k }) {
   return Icon ? <Icon {...ICON} size={15} className={k === "checking" ? "spin" : ""} aria-hidden="true" /> : null;
 }
 
-// 요약 박스: 이상이 처음 보인 때 · 분석한 거래 · 리포트 변조 확인 · 블록체인 기록.
+// 요약 박스: 이상이 처음 보인 때 · 분석한 거래 · 리포트 변조 확인 · 블록체인 기록. (판정 카드 하단 2x2 메타 영역)
 //   integrity: lib/overview.js integrityStatus(), onchain: lib/attest.js onchainSummary() (없으면 줄을 그리지 않는다)
 export function SummaryBox({ summary, integrity, reportAction = null, onchain = null, onchainAction = null }) {
   return (
-    <section className="card summary-box">
+    <div className="summary-box">
       <dl className="summary-list">
         <div><dt>이상이 처음 보인 때</dt><dd>{summary.firstAnomaly}</dd></div>
         <div><dt>분석한 거래</dt><dd>{summary.analyzed}</dd></div>
@@ -120,7 +120,7 @@ export function SummaryBox({ summary, integrity, reportAction = null, onchain = 
           </div>
         )}
       </dl>
-    </section>
+    </div>
   );
 }
 

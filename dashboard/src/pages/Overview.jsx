@@ -1,4 +1,4 @@
-// 개요: 판정 카드(헤드라인·근거·결론 배지) | 위험 단계·확인 권고 + 요약 박스 → "이렇게 판단했습니다" 3카드 → 상세 분석 접이식 줄.
+// 개요: 판정 카드(헤드라인·근거·결론 배지·하단 요약 메타) | 위험 단계·확인 권고·확인해 볼 것 → "이렇게 판단했습니다" 3카드 → 상세 분석 접이식 줄.
 // 문구·숫자는 view.decision. 종합 등급(overall_grade)은 어디에도 표시하지 않는다.
 // 예전 분석 수치 블록(요약 띠·매트릭스·핵심 수치·패턴·경고)은 components/AnalysisNumbers.jsx에 보존했다(S7에서 원자료로 옮김).
 import { useMemo, useState } from "react";
@@ -49,16 +49,18 @@ function OverviewBody({ data }) {
   return (
     <div className="page overview">
       <div className="overview-top">
-        <HeadlineCard decision={decision} />
-        <div className="overview-side">
-          <RiskActionCard conclusion={decision.conclusion} checks={checks} renderLink={checkLink} />
+        <HeadlineCard decision={decision} meta={
           <SummaryBox summary={decision.copy.summary} integrity={integrity}
             reportAction={<Link className="summary-link" to={`${pagePath("report")}${query}`} aria-label="리포트 변조 확인 화면으로"><ChevronRight {...ICON} size={15} /></Link>}
             onchain={onchain}
             onchainAction={<Link className="summary-link" to={`${pagePath("report")}${query}`} aria-label="블록체인 기록 화면으로"><ChevronRight {...ICON} size={15} /></Link>} />
+        } />
+        <div className="overview-side">
+          <RiskActionCard conclusion={decision.conclusion} checks={checks} renderLink={checkLink} />
         </div>
       </div>
 
+      <section className="judge-section">
       <h2 className="section-title">이렇게 판단했습니다</h2>
       <div className="judge-grid">
         <JudgeCard icon={ArrowLeftRight} title="돈의 흐름" conclusion={decision.conclusion} text={flowLine(decision)}
@@ -79,6 +81,7 @@ function OverviewBody({ data }) {
           text={deployer.text} sub={deployer.sub}
           action={<Link className="link" to={deployerPath(selected ?? view.scenario)}>배포자 위험도 보기 <ChevronRight {...ICON} size={15} /></Link>} />
       </div>
+      </section>
 
       <DetailLinks query={query} />
     </div>

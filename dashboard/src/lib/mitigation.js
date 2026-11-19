@@ -29,6 +29,14 @@ export const ITEMS_BY_CONCLUSION = {
   undetermined: ["flow", "deployer"]
 };
 
+// 화면에 보여 줄 행동형 안내(항목별 한 줄). 결과 서술·수치·상태는 넣지 않는다(결과는 "이렇게 판단했습니다" 카드 몫).
+export const CHECK_GUIDE = {
+  flow:          "내가 넣은 돈이 운영자 등 특정 지갑으로 먼저 빠져나가는 구조인지, 출금 대상을 확인해 보세요.",
+  code:          "운영자가 전액을 인출할 수 있는 함수가 있는지 확인해 보세요.",
+  withdrawBlock: "잔고가 남아 있는데도 참여자 출금이 실패한 기록이 있는지 살펴보세요.",
+  deployer:      "배포한 지갑이 다른 컨트랙트에서 돈을 빼 간 이력이 있는지 살펴보세요."
+};
+
 const statusOfConclusion = c => (c === "risk" || c === "caution" ? "detected" : c === "no_evidence" ? "none" : "nodata");
 const warningOf = (warnings, source) => (warnings ?? []).find(w => w.source === source) ?? null;
 
@@ -108,7 +116,8 @@ function deployerItem({ risk }) {
 const BUILDERS = { flow: flowItem, code: codeItem, withdrawBlock: withdrawBlockItem, deployer: deployerItem };
 
 // view: 뷰모델, risk: lib/risk.js riskForScenario 결과, glossary: 용어집
-// → [{ key, question, tag?, status, statusLabel, tone, value, sub, link: { page, path, label } }]
+// → [{ key, question, guide, tag?, status, statusLabel, tone, value, sub, link: { page, path, label } }]
+//   화면(RiskActionCard)은 question·guide·link만 그린다. status·value·sub는 데이터로만 남긴다.
 export function checkItems({ view, risk, glossary }) {
   const decision = view?.decision;
   if (!decision) return [];
@@ -116,6 +125,6 @@ export function checkItems({ view, risk, glossary }) {
   return keys.map(k => {
     const item = BUILDERS[k]({ view, decision, risk, glossary });
     const s = CHECK_STATUS[item.status];
-    return { ...item, statusLabel: s.label, tone: s.tone, link: { ...item.link, path: pagePath(item.link.page) } };
+    return { ...item, guide: CHECK_GUIDE[k], statusLabel: s.label, tone: s.tone, link: { ...item.link, path: pagePath(item.link.page) } };
   });
 }
