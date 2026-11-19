@@ -16,6 +16,11 @@ export const SEPOLIA_DEFAULTS = {
   explorerBase: "https://sepolia.easscan.org"
 };
 
+// easscan의 기록 화면 경로(<탐색기>/attestation/view/<uid>)는 문서로 확인하지 못했다.
+// 첫 실제 기록 뒤 그 UID로 경로가 열리는 것을 사람이 확인하면 true로 바꾸고 npm run demo:export를 다시 실행한다
+// (docs/ONCHAIN_ATTESTATION.md T8). false인 동안 대시보드는 탐색기 링크를 보여 주지 않는다.
+export const EXPLORER_ATTESTATION_PATH_VERIFIED = false;
+
 // demo:eas:record-fixtures가 demo/fixtures/ 아래에 만드는 사전 기록 파일 이름 (비밀 정보 없음)
 export const EAS_FIXTURES_BASENAME = "attestations.sepolia.json";
 

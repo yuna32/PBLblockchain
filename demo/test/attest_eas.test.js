@@ -8,7 +8,7 @@ import net from "net";
 import os from "os";
 import path from "path";
 import { fileURLToPath } from "url";
-import { bytesToHex, createPublicClient, http, parseAbiItem } from "viem";
+import { bytesToHex, createPublicClient, http, parseAbiItem, zeroHash } from "viem";
 import { generatePrivateKey, mnemonicToAccount, privateKeyToAccount } from "viem/accounts";
 import { LocalChain } from "../lib/attest/chain.js";
 import { deployEasContracts } from "../lib/attest/local.js";
@@ -144,7 +144,10 @@ test("record-fixtures: 확인 없이는 취소, 기록·건너뛰기·--force, �
   const saved = JSON.parse(fs.readFileSync(outFile, "utf8"));
   assert.deepEqual(Object.keys(saved), Object.keys(CSV));
   for (const [name, e] of Object.entries(saved)) {
-    assert.deepEqual(Object.keys(e), ["scenario", "uid", "txHash", "chainId", "attester", "schemaUID", "contract", "blockNumber", "recordedAt", "reportHash", "payload"]);
+    assert.deepEqual(Object.keys(e), ["scenario", "uid", "txHash", "chainId", "attester", "schemaUID", "schemaVersion", "contract", "blockNumber", "recordedAt", "reportHash", "payload"]);
+    assert.equal(e.schemaVersion, 2);
+    assert.equal(e.payload.subjectChainId, 31337);
+    assert.ok(!("trustScore" in e.payload));
     assert.equal(e.scenario, name);
     assert.equal(e.reportHash, `0x${load(name).envelope.report_sha256}`);
     assert.equal(e.schemaUID, schemaUID());
@@ -185,6 +188,15 @@ test("check: 일치, fixture가 바뀌면 불일치와 --force 안내", async ()
   assert.equal((stale.text.match(/기록 \w+\s+일치/g) ?? []).length, 4);
   assert.match(stale.text, /fixture를 확정\(freeze\)한 뒤/);
   assert.match(stale.text, /npm run demo:eas:record-fixtures -- --force/);
+
+  // 이전 형식(스키마 UID가 v2가 아님)의 기록은 비교하지 않고 다시 기록하라고 안내
+  const oldFile = path.join(tmp, "old-schema.json");
+  const saved = JSON.parse(fs.readFileSync(outFile, "utf8"));
+  saved.ponzi.schemaUID = `0x${"77".repeat(32)}`;
+  fs.writeFileSync(oldFile, JSON.stringify(saved, null, 2));
+  const old = script(["check", "--yes", "--out", oldFile]);
+  assert.equal(old.code, 1);
+  assert.match(old.text, /기록 ponzi\s+이전 형식/);
 });
 
 test("백엔드 직접: 기록 → 조회 → 검증 일치, 변조 불일치, 탐색기 링크(형식 미확인)", async () => {
@@ -195,11 +207,15 @@ test("백엔드 직접: 기록 → 조회 → 검증 일치, 변조 불일치, �
   assert.equal(att.backend, "eas-sepolia");
   assert.equal(att.explorerUrl, `https://sepolia.easscan.org/attestation/view/${att.uid}`);
   assert.deepEqual(att.meta, { explorerUrlVerified: false, schemaUrl: `https://sepolia.easscan.org/schema/view/${schemaUID()}` });
+  // refUID는 자리만 있다: 기본값 0으로 기록되고, 형식이 틀리면 보내기 전에 거부
+  assert.equal(att.refUID, zeroHash);
+  await assert.rejects(b.attest(payload, { refUID: "0x12" }), e => e.code === "invalid_ref_uid");
   const ro = backendWith();
   const read = await ro.read(att.uid);
   assert.deepEqual(read.payload, payload);
-  assert.equal(verifyAgainstChain({ report, rows, onChain: read.payload, analyzerVersion: VERSION }).verified, true);
-  const t = verifyAgainstChain({ report, rows, onChain: read.payload, analyzerVersion: VERSION, tamper: { path: "prevention.risk_level", value: "LOW" } });
+  assert.equal(read.refUID, zeroHash);
+  assert.equal(verifyAgainstChain({ report, envelope, rows, onChain: read.payload, analyzerVersion: VERSION }).verified, true);
+  const t = verifyAgainstChain({ report, envelope, rows, onChain: read.payload, analyzerVersion: VERSION, tamper: { path: "prevention.risk_level", value: "LOW" } });
   assert.deepEqual([t.verified, t.hashMatch], [false, false]);
   assert.equal(await ro.read(`0x${"00".repeat(31)}01`), null);
   await assert.rejects(ro.attest(payload), e => e.code === "backend_read_only");

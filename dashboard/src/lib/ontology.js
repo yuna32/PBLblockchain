@@ -16,7 +16,8 @@ export const KIND_LABELS = {
   evidence:  "근거",
   evasion:   "회피",
   role:      "역할",
-  patch:     "권고 조치"
+  // 추론 그래프의 mitigatedBy 노드는 컨트랙트 개발자를 위한 코드 수정 권고다(투자자 행동 안내가 아님). 라벨만 바꾼다.
+  patch:     "개발자용 코드 수정 권고"
 };
 
 export function nodeState(node) {

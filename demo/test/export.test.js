@@ -33,7 +33,11 @@ function sepoliaEntry(reportHash, overrides = {}) {
   return {
     scenario: "ponzi", uid: UID, txHash: TX, chainId: 11155111, attester: "0x1111111111111111111111111111111111111111",
     schemaUID: schemaUID(), contract: "0xC2679fBD37d54388Ce493F1DB75320D236e1815e", blockNumber: 7, recordedAt: "2026-10-25T00:00:00.000Z",
-    reportHash, payload: { contractAddress: "0x5fbdb2315678afecb367f032d93f642f64180aa3", reportHash, codeRiskGrade: "CRITICAL", trustScore: 49, minWalletTrustScore: 8, scanTimestamp: 1, analyzerVersion: "x", extra: "버려야 함" },
+    reportHash, payload: {
+      schemaVersion: 2, subjectChainId: 31337, contractAddress: "0x5fbdb2315678afecb367f032d93f642f64180aa3", reportHash,
+      inputHash: `0x${"12".repeat(32)}`, codeRiskLevel: "CRITICAL", txPatternHint: "ponzi_scheme", walletLayerStatus: "not_applicable",
+      walletRiskScore: 0, walletRiskAvailable: false, scanTimestamp: 1, analyzerVersion: "x", extra: "버려야 함", trustScore: 49
+    },
     privateKey: "should-not-be-copied", rpcUrl: "https://should-not-be-copied", ...overrides
   };
 }
@@ -78,9 +82,16 @@ test("chainId 31337 기록은 제외(로그), 11155111 기록만 공개 값으�
   assert.ok(logs.some(l => /normal: 증명 제외 — chainId 31337/.test(l)));
   assert.equal(fs.existsSync(path.join(out, "normal", "attestation.json")), false);
   const att = JSON.parse(fs.readFileSync(path.join(out, "ponzi", "attestation.json"), "utf8"));
-  assert.deepEqual(Object.keys(att).sort(), ["attester", "blockNumber", "chainId", "contract", "explorerBase", "explorerPathVerified", "matchesSnapshotReport", "payload", "recordedAt", "reportHash", "scenario", "schemaUID", "txHash", "uid"]);
-  assert.deepEqual(Object.keys(att.payload).sort(), ["analyzerVersion", "codeRiskGrade", "contractAddress", "minWalletTrustScore", "reportHash", "scanTimestamp", "trustScore"]);
+  assert.deepEqual(Object.keys(att).sort(), ["attester", "blockNumber", "chainId", "contract", "explorerBase", "explorerPathVerified", "explorerUrl", "matchesSnapshotReport", "payload", "recordedAt", "reportHash", "scenario", "schemaUID", "schemaVersion", "txHash", "uid"]);
+  assert.deepEqual(Object.keys(att.payload).sort(), [
+    "analyzerVersion", "codeRiskLevel", "contractAddress", "inputHash", "reportHash", "scanTimestamp", "schemaVersion",
+    "subjectChainId", "txPatternHint", "walletLayerStatus", "walletRiskAvailable", "walletRiskScore"
+  ]);
+  assert.equal(att.schemaVersion, 2);
   assert.equal(att.matchesSnapshotReport, true);
+  // 탐색기 경로를 확인하기 전에는 링크를 내보내지 않는다 (config.js EXPLORER_ATTESTATION_PATH_VERIFIED)
+  assert.deepEqual([att.explorerPathVerified, att.explorerUrl], [false, null]);
+  assert.ok(!("trustScore" in att.payload), "옛 신뢰 점수는 내보내지 않는다");
   const all = digest(out).map(l => fs.readFileSync(path.join(out, l.split(" ")[0]), "utf8")).join("\n");
   assert.ok(!all.includes("should-not-be-copied") && !all.includes("버려야 함"));
   // 상태가 B로 돌아가면 옛 attestation.json이 남지 않는다
@@ -93,11 +104,13 @@ test("publicAttestation: 형식이 틀린 기록은 제외 사유와 함께 뺀�
   assert.match(publicAttestation("ponzi", sepoliaEntry("0x1", { uid: "0x12" }), "00").excluded, /형식/);
   assert.match(publicAttestation("ponzi", sepoliaEntry("0x1", { attester: "nope" }), "00").excluded, /attester/);
   assert.equal(publicAttestation("ponzi", sepoliaEntry(`0x${"ee".repeat(32)}`), "ff".repeat(32)).attestation.matchesSnapshotReport, false);
+  // 이전 형식(스키마 UID가 v2가 아님)의 기록은 비교할 수 없어 뺀다
+  assert.match(publicAttestation("ponzi", sepoliaEntry("0x1", { schemaUID: `0x${"77".repeat(32)}` }), "00").excluded, /이전 형식/);
 });
 
 test("출력물 자체 검사: 허용 필드 밖 0x+64, alchemy, PRIVATE_KEY, 환경 변수 값", () => {
   const hex = `0x${"5a".repeat(32)}`;
-  const ok = new Map([["a.json", JSON.stringify({ uid: hex, txHash: hex, schemaUID: hex, reportHash: hex, payload: { reportHash: hex } })]]);
+  const ok = new Map([["a.json", JSON.stringify({ uid: hex, txHash: hex, schemaUID: hex, reportHash: hex, explorerUrl: `https://x/attestation/view/${hex}`, payload: { reportHash: hex, inputHash: hex } })]]);
   assert.deepEqual(scanOutput(ok, {}), []);
   const bad = new Map([
     ["b.json", JSON.stringify({ meta: { privateKey: hex } })],

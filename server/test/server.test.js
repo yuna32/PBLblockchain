@@ -332,8 +332,9 @@ const fixtureEnvelope = name => JSON.parse(fs.readFileSync(path.join(ROOT, "demo
 
 let A;
 const PRERECORD_EXPECTED = {
-  normal: [86, 78, "LOW"], ponzi: [49, 8, "CRITICAL"], rugpull: [46, 8, "CRITICAL"],
-  laundering: [57, 30, "CRITICAL"], pumpdump: [73, 58, "CRITICAL"]
+  normal: ["LOW", "normal_staking", "not_applicable"], ponzi: ["CRITICAL", "ponzi_scheme", "not_applicable"],
+  rugpull: ["CRITICAL", "rug_pull", "not_applicable"], laundering: ["CRITICAL", "money_laundering", "evaluated"],
+  pumpdump: ["CRITICAL", "pump_and_dump", "not_applicable"]
 };
 
 test("온체인 기록: 로컬 체인 시작, fixture 5개 사전 기록과 조회", async () => {
@@ -359,16 +360,18 @@ test("온체인 기록: 로컬 체인 시작, fixture 5개 사전 기록과 조�
   assert.equal(status, 200);
   assert.deepEqual(Object.keys(pre), ["normal", "ponzi", "rugpull", "laundering", "pumpdump"]);
   const summary = [];
-  for (const [name, [trust, minWallet, grade]] of Object.entries(PRERECORD_EXPECTED)) {
+  for (const [name, [level, hint, layer]] of Object.entries(PRERECORD_EXPECTED)) {
     const r = pre[name];
     assert.match(r.uid, /^0x[0-9a-f]{64}$/);
     assert.deepEqual([r.backend, r.chainId, r.explorerUrl, r.prerecorded, r.canonicalSnapshot, r.scenario], ["local", 31337, null, true, true, name]);
     assert.equal(r.payload.reportHash, `0x${fixtureEnvelope(name).report_sha256}`);
-    assert.deepEqual([r.payload.trustScore, r.payload.minWalletTrustScore, r.payload.codeRiskGrade], [trust, minWallet, grade]);
+    assert.deepEqual([r.payload.schemaVersion, r.payload.subjectChainId, r.payload.codeRiskLevel, r.payload.txPatternHint, r.payload.walletLayerStatus], [2, 31337, level, hint, layer]);
+    assert.deepEqual([r.payload.walletRiskScore, r.payload.walletRiskAvailable], [0, false]);
+    assert.ok(!("trustScore" in r.payload) && !("minWalletTrustScore" in r.payload));
     assert.equal(r.payload.contractAddress, "0x5fbdb2315678afecb367f032d93f642f64180aa3");
     assert.match(r.payload.analyzerVersion, /^([0-9a-f]{7,}|unknown)\+jcs-rfc8785\/pbl-demo-v1$/);
     assert.ok(!("snapshot" in r));
-    summary.push(`${name} ${r.payload.reportHash.slice(2, 10)} trust=${trust} min=${minWallet} ${grade} uid=${r.uid.slice(0, 10)}`);
+    summary.push(`${name} ${r.payload.reportHash.slice(2, 10)} ${level} ${hint} ${layer} uid=${r.uid.slice(0, 10)}`);
   }
   assert.equal(new Set(Object.values(pre).map(r => r.uid)).size, 5);
   origConsole.log(`  [prerecord] ${summary.join(" | ")}`);
@@ -394,7 +397,8 @@ test("온체인 기록: fixture 리포트는 사전 기록과 연결, 재기록�
   assert.notEqual(forced.attestation.uid, pre.ponzi.uid);
   const now = await aapi(A.base, "GET", `/api/report/${id}/attestation`);
   assert.equal(now.body.uid, forced.attestation.uid);
-  assert.deepEqual(Object.keys(now.body).sort(), ["attester", "backend", "blockNumber", "canonicalSnapshot", "chainId", "contract", "explorerUrl", "payload", "prerecorded", "recordedAt", "reportId", "scenario", "schemaUID", "txHash", "uid"]);
+  assert.deepEqual(Object.keys(now.body).sort(), ["attester", "backend", "blockNumber", "canonicalSnapshot", "chainId", "contract", "explorerUrl", "payload", "prerecorded", "recordedAt", "refUID", "reportId", "scenario", "schemaUID", "txHash", "uid"]);
+  assert.equal(now.body.refUID, `0x${"00".repeat(32)}`, "refUID는 자리만 있고 0으로 기록");
   A.ponzi = { id, uid: forced.attestation.uid, prerecordUid: pre.ponzi.uid };
 });
 
@@ -403,18 +407,18 @@ test("온체인 기록: 검증 일치와 변조 시연(저장하지 않음)", as
   const ok = await aapi(A.base, "POST", `/api/report/${id}/verify`, {});
   assert.equal(ok.status, 200);
   assert.deepEqual([ok.body.verified, ok.body.hashMatch, ok.body.tamperDemo, ok.body.uid, ok.body.changedPaths], [true, true, false, uid, []]);
-  assert.equal(ok.body.fields.length, 7);
+  assert.equal(ok.body.fields.length, 12);
   assert.deepEqual(ok.body.fields.filter(f => f.informational).map(f => f.name), ["scanTimestamp", "analyzerVersion"]);
 
   const runsBefore = dirDigest(A.runsDir);
   const protectedBefore = protectedDigest();
   const reportBefore = (await aapi(A.base, "GET", `/api/report/${id}`)).body.report;
 
-  const t = await aapi(A.base, "POST", `/api/report/${id}/verify`, { tamper: { path: "trust.overall_trust_score", value: 50 } });
+  const t = await aapi(A.base, "POST", `/api/report/${id}/verify`, { tamper: { path: "prevention.risk_level", value: "LOW" } });
   assert.equal(t.status, 200);
   assert.deepEqual([t.body.verified, t.body.hashMatch, t.body.tamperDemo], [false, false, true]);
-  assert.deepEqual(t.body.changedPaths, ["trust.overall_trust_score"]);
-  assert.deepEqual(t.body.fields.filter(f => !f.match).map(f => [f.name, f.onChain, f.current]).filter(([n]) => n !== "reportHash"), [["trustScore", 49, 50]]);
+  assert.deepEqual(t.body.changedPaths, ["prevention.risk_level"]);
+  assert.deepEqual(t.body.fields.filter(f => !f.match).map(f => [f.name, f.onChain, f.current]).filter(([n]) => n !== "reportHash"), [["codeRiskLevel", "CRITICAL", "LOW"]]);
   origConsole.log(`  [tamper] verified=${t.body.verified} hashMatch=${t.body.hashMatch} changedPaths=${JSON.stringify(t.body.changedPaths)} ` +
     `onChain=${t.body.onChainReportHash.slice(0, 10)} current=${t.body.currentReportHash.slice(0, 10)}`);
 
@@ -434,7 +438,7 @@ test("온체인 기록: 검증 일치와 변조 시연(저장하지 않음)", as
 
   const cases = [
     [{ tamper: { path: "trust.nope", value: 1 } }, 400, "invalid_tamper_path"],
-    [{ tamper: { path: "trust.overall_trust_score", value: 999 } }, 400, "invalid_tamper"],
+    [{ tamper: { path: "timestamp", value: "not-a-date" } }, 400, "invalid_tamper"],
     [{ tamper: "x" }, 400, "invalid_tamper"],
     [{ uid: "0x1234" }, 400, "invalid_uid"],
     [{ uid: `0x${"ab".repeat(32)}` }, 404, "attestation_not_found_onchain"],

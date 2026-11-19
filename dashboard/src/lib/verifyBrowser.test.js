@@ -5,7 +5,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { attestStatusOf, SEPOLIA_CHAIN_ID } from "./attestStatus.js";
 import { canonicalize as browserCanonicalize, hashableReport as browserHashable, CANONICAL_VERSION as BROWSER_VERSION } from "./jcs.js";
-import { verifyIntegrity, verifyOnchain, currentFields, integrityResult, onchainResult, applyTamper, LOOKUP_MESSAGES, MISMATCH_MESSAGE } from "./verifyBrowser.js";
+import { verifyIntegrity, verifyOnchain, currentFields, inputHashOf, integrityResult, onchainResult, applyTamper, LOOKUP_MESSAGES, MISMATCH_MESSAGE, ONCHAIN_FIELDS } from "./verifyBrowser.js";
 import { decodePayload, SCHEMA as BROWSER_SCHEMA, EAS_READ_ABI } from "./onchain.js";
 import { verifyView, tamperPresets } from "./attest.js";
 import { createStaticApi } from "../api/static.js";
@@ -132,28 +132,45 @@ describe("verifyOnchain (모의 클라이언트)", () => {
     const loadModule = mockModule({ attestation: onChainOf("ponzi") });
     const r = await verifyOnchain(UID, snapshotOf("ponzi", sepoliaAttestation("ponzi")), { rpcUrl: "http://mock", loadModule });
     expect(r.status).toBe("match");
-    expect(r.fields.map(f => f.name)).toEqual(["reportHash", "contractAddress", "codeRiskGrade", "trustScore", "minWalletTrustScore"]);
+    expect(r.fields.map(f => f.name)).toEqual([
+      "schemaVersion", "subjectChainId", "contractAddress", "reportHash", "inputHash",
+      "codeRiskLevel", "txPatternHint", "walletLayerStatus", "walletRiskScore", "walletRiskAvailable"
+    ]);
     expect(r.fields.every(f => f.match)).toBe(true);
     expect(loadModule).toHaveBeenCalledTimes(1);
     const view = verifyView(onchainResult(r), GLOSSARY, { kind: "onchain" });
-    expect([view.label, view.verified]).toEqual(["온체인 기록과 일치", true]);
+    expect([view.label, view.verified]).toEqual(["기록과 일치", true]);
   });
 
-  it("필드 불일치 → 검증 실패(불일치)", async () => {
-    const loadModule = mockModule({ attestation: onChainOf("ponzi", { trustScore: 90 }) });
-    const r = await verifyOnchain(UID, snapshotOf("ponzi", sepoliaAttestation("ponzi")), { rpcUrl: "http://mock", loadModule });
-    expect([r.status, r.message]).toEqual(["mismatch", MISMATCH_MESSAGE]);
-    expect(r.fields.filter(f => !f.match).map(f => f.name)).toEqual(["trustScore"]);
+  it("필드 불일치 → 검증 실패(기록과 다름)", async () => {
+    for (const [override, field] of [[{ codeRiskLevel: "LOW" }, "codeRiskLevel"], [{ inputHash: `0x${"00".repeat(32)}` }, "inputHash"], [{ subjectChainId: 1 }, "subjectChainId"]]) {
+      const loadModule = mockModule({ attestation: onChainOf("ponzi", override) });
+      const r = await verifyOnchain(UID, snapshotOf("ponzi", sepoliaAttestation("ponzi")), { rpcUrl: "http://mock", loadModule });
+      expect([r.status, r.message]).toEqual(["mismatch", MISMATCH_MESSAGE]);
+      expect(r.fields.filter(f => !f.match).map(f => f.name)).toEqual([field]);
+    }
   });
 
-  it("UID 없음 / 네트워크 오류 / 체인 불일치 / 스키마 다름 → 조회 실패(메시지에 RPC 주소 없음)", async () => {
+  it("배포된 리포트를 바꾸면(기록 뒤 변조) 체인 기록과 다름", async () => {
+    const snap = snapshotOf("ponzi", sepoliaAttestation("ponzi"));
+    snap.report = structuredClone(snap.report);
+    snap.report.dynamic.metrics.total_out_eth += 1;
+    const r = await verifyOnchain(UID, snap, { rpcUrl: "http://mock", loadModule: mockModule({ attestation: onChainOf("ponzi") }) });
+    expect(r.status).toBe("mismatch");
+    expect(r.fields.filter(f => !f.match).map(f => f.name)).toEqual(["reportHash"]);
+  });
+
+  it("UID 없음 / 네트워크 오류 / 체인 불일치 / 스키마 다름 / 철회됨 → 조회 실패(메시지에 RPC 주소 없음)", async () => {
     const snap = snapshotOf("rugpull", sepoliaAttestation("rugpull"));
     const cases = [
       [{ attestation: null }, "uid_not_found"],
       [{ chainError: true }, "network"],
       [{ readError: true, attestation: onChainOf("rugpull") }, "network"],
       [{ chainId: 1 }, "chain_mismatch"],
-      [{ attestation: { ...onChainOf("rugpull"), schema: `0x${"99".repeat(32)}` } }, "schema_mismatch"]
+      [{ attestation: { ...onChainOf("rugpull"), schema: `0x${"99".repeat(32)}` } }, "schema_mismatch"],
+      [{ attestation: onChainOf("rugpull", { schemaVersion: 1 }) }, "schema_mismatch"],
+      [{ attestation: { ...onChainOf("rugpull"), revoked: true } }, "revoked"],
+      [{ attestation: { ...onChainOf("rugpull"), data: "0x1234" } }, "decode"]
     ];
     for (const [opts, reason] of cases) {
       const r = await verifyOnchain(UID, snap, { rpcUrl: "http://mock", loadModule: mockModule(opts) });
@@ -167,7 +184,8 @@ describe("verifyOnchain (모의 클라이언트)", () => {
     for (const name of SCENARIO_IDS) {
       const { report, envelope, rows } = loadFixture(name);
       const p = buildPayload({ report, envelope, rows, analyzerVersion: "x" });
-      const c = currentFields(report, rows, `0x${envelope.report_sha256}`);
+      const c = currentFields(report, rows, `0x${envelope.report_sha256}`, { envelope, inputHash: await inputHashOf(envelope) });
+      expect(Object.keys(c)).toEqual(ONCHAIN_FIELDS);
       for (const k of Object.keys(c)) expect(c[k], `${name}.${k}`).toEqual(p[k]);
     }
   });

@@ -87,31 +87,52 @@ export function integrityResult(r) {
   };
 }
 
-// 현재 리포트에서 다시 만든 비교 필드 (demo/lib/attest/schema.js buildPayload와 같은 규칙)
+// 현재 리포트에서 다시 만든 비교 필드 (demo/lib/attest/schema.js buildPayload와 같은 규칙, 스키마 v2)
+//   정보성 필드(scanTimestamp, analyzerVersion)는 비교하지 않는다. 종합 등급·옛 지갑 신뢰 점수는 스키마에 없다.
 const DEPOSIT_ACTIONS = new Set(["deposit", "stake", "fund_reward_pool"]);
-export const ONCHAIN_FIELDS = ["reportHash", "contractAddress", "codeRiskGrade", "trustScore", "minWalletTrustScore"];
-export function currentFields(report, rows, localHash) {
+export const SCHEMA_VERSION = 2;
+// 시연 시나리오의 컨트랙트는 로컬 hardhat 체인(31337)의 시뮬레이션 주소다 (schema.js SIMULATION_CHAIN_ID)
+export const SIMULATION_CHAIN_ID = 31337;
+export const ONCHAIN_FIELDS = [
+  "schemaVersion", "subjectChainId", "contractAddress", "reportHash", "inputHash",
+  "codeRiskLevel", "txPatternHint", "walletLayerStatus", "walletRiskScore", "walletRiskAvailable"
+];
+export async function inputHashOf(envelope) {
+  if (!envelope?.input || typeof envelope.input !== "object") return null;
+  return `0x${await sha256Hex(canonicalize(envelope.input))}`;
+}
+export function subjectChainIdOf(envelope) {
+  const id = envelope?.subject?.chainId;
+  return Number.isSafeInteger(id) && id > 0 ? id : SIMULATION_CHAIN_ID;
+}
+// inputHash: inputHashOf(envelope) 결과(0x 접두사). 배포자 Risk Score는 리포트에 아직 없으므로 "데이터 없음"(0, false).
+export function currentFields(report, rows, localHash, { envelope = null, inputHash = null } = {}) {
   const deposit = (rows ?? []).find(r => DEPOSIT_ACTIONS.has(r.action));
-  const wallets = report.trust?.wallet_scores ?? [];
   return {
-    reportHash: localHash.toLowerCase(),
+    schemaVersion: SCHEMA_VERSION,
+    subjectChainId: subjectChainIdOf(envelope),
     contractAddress: deposit ? String(deposit.to).toLowerCase() : null,
-    codeRiskGrade: String(report.prevention?.risk_level ?? ""),
-    trustScore: Math.round(Number(report.trust?.overall_trust_score)),
-    minWalletTrustScore: wallets.length ? Math.round(Math.min(...wallets.map(w => w.trust_score))) : null
+    reportHash: localHash.toLowerCase(),
+    inputHash: inputHash ? inputHash.toLowerCase() : null,
+    codeRiskLevel: String(report.prevention?.risk_level ?? ""),
+    txPatternHint: String(report.dynamic?.fraud_type_hint ?? ""),
+    walletLayerStatus: String(report.wallet_layer?.status ?? ""),
+    walletRiskScore: 0,
+    walletRiskAvailable: false
   };
 }
 
-// 조회 실패(상태 C) 메시지. RPC 주소나 원래 오류 문자열은 넣지 않는다.
+// 조회 실패(상태 C) 메시지. 일반 투자자용 쉬운 말로 쓰고, RPC 주소나 원래 오류 문자열은 넣지 않는다.
 export const LOOKUP_MESSAGES = {
-  rpc_not_configured: "RPC 미설정: 빌드할 때 VITE_SEPOLIA_RPC를 지정해야 온체인 조회를 할 수 있습니다.",
-  network: "조회 실패: RPC에 연결할 수 없습니다(네트워크 오류). 잠시 뒤 다시 시도하세요.",
-  chain_mismatch: "조회 실패: RPC가 Sepolia(체인 ID 11155111)가 아닙니다. VITE_SEPOLIA_RPC를 확인하세요.",
-  uid_not_found: "조회 실패: 이 UID의 기록이 체인에 없습니다.",
-  schema_mismatch: "조회 실패: 체인의 기록이 이 데모의 스키마와 다릅니다.",
-  decode: "조회 실패: 체인의 기록을 해석할 수 없습니다."
+  rpc_not_configured: "이 배포판에는 블록체인 조회 설정이 없어 기록을 확인할 수 없습니다.",
+  network: "블록체인에 연결하지 못했습니다. 잠시 뒤 다시 눌러 주세요.",
+  chain_mismatch: "연결된 네트워크가 Sepolia 테스트넷이 아니라서 확인할 수 없습니다.",
+  uid_not_found: "블록체인에서 이 기록을 찾지 못했습니다.",
+  schema_mismatch: "다른 형식으로 남긴 기록이라 비교하지 않습니다.",
+  decode: "블록체인의 기록 내용을 읽지 못했습니다.",
+  revoked: "이 기록은 기록한 쪽이 철회했습니다. 철회된 기록으로는 확인하지 않습니다."
 };
-export const MISMATCH_MESSAGE = "검증 실패(불일치): 체인에 기록된 값과 배포된 리포트가 다릅니다.";
+export const MISMATCH_MESSAGE = "기록과 다릅니다. 이 결과는 블록체인에 기록한 뒤에 바뀌었습니다.";
 
 const lookupFailed = (reason, extra = {}) => ({ status: "lookup_failed", reason, message: LOOKUP_MESSAGES[reason], ...extra });
 
@@ -139,14 +160,17 @@ export async function verifyOnchain(uid, snapshot, { rpcUrl = CONFIGURED_RPC, lo
   }
   if (!att) return lookupFailed("uid_not_found");
   if (String(att.schema).toLowerCase() !== String(snapshot.attestation.schemaUID).toLowerCase()) return lookupFailed("schema_mismatch");
+  if (att.revoked) return lookupFailed("revoked");
   let onChain;
   try {
     onChain = mod.decodePayload(att.data);
   } catch {
     return lookupFailed("decode");
   }
+  if (onChain.schemaVersion !== SCHEMA_VERSION) return lookupFailed("schema_mismatch");
   const { localHash } = await verifyIntegrity(snapshot);
-  const current = currentFields(snapshot.report, snapshot.timeseries, localHash);
+  const inputHash = await inputHashOf(snapshot.envelope);
+  const current = currentFields(snapshot.report, snapshot.timeseries, localHash, { envelope: snapshot.envelope, inputHash });
   const fields = ONCHAIN_FIELDS.map(name => {
     const a = onChain[name], b = current[name];
     const match = typeof a === "string" && typeof b === "string" ? a.toLowerCase() === b.toLowerCase() : a === b;

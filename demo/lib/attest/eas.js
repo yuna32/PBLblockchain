@@ -13,6 +13,7 @@ import { BackendError } from "./errors.js";
 import { redact } from "./redact.js";
 import { SCHEMA, SCHEMA_RESOLVER, SCHEMA_REVOCABLE, encodePayload, schemaUID as computeSchemaUID } from "./schema.js";
 import { readAttestation } from "./verify.js";
+import { EXPLORER_ATTESTATION_PATH_VERIFIED } from "./config.js";
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const RPC_ERROR_NAMES = new Set(["HttpRequestError", "TimeoutError", "WebSocketRequestError", "SocketClosedError", "AbortError"]);
@@ -29,6 +30,12 @@ export function isRpcError(err) {
 function hasErrorNamed(err, name) {
   for (let e = err, i = 0; e && i < 12; e = e.cause, i++) if (e.name === name) return true;
   return false;
+}
+
+const HEX32 = /^0x[0-9a-fA-F]{64}$/;
+export function checkRefUID(refUID) {
+  if (typeof refUID !== "string" || !HEX32.test(refUID)) throw new BackendError("invalid_ref_uid", "refUID는 0x로 시작하는 64자리 16진수여야 합니다.");
+  return refUID;
 }
 
 export const ATTESTATION_PATH = "/attestation/view/";
@@ -121,8 +128,9 @@ export function createEasBackend(config, tuning = {}) {
 
   const withMargin = (gas, fee) => (gas * fee * BigInt(Math.round(feeMargin * 100))) / 100n;
 
-  function attestArgs(payload) {
-    return [{ schema: schemaUID, data: { recipient: zeroAddress, expirationTime: 0n, revocable: SCHEMA_REVOCABLE, refUID: zeroHash, data: encodePayload(payload), value: 0n } }];
+  // refUID: 이전 기록과 잇는 자리(생애주기 확장, docs/ONCHAIN_ATTESTATION.md A-4). 지금은 호출하는 곳이 모두 기본값(0)을 쓴다.
+  function attestArgs(payload, refUID = zeroHash) {
+    return [{ schema: schemaUID, data: { recipient: zeroAddress, expirationTime: 0n, revocable: SCHEMA_REVOCABLE, refUID: checkRefUID(refUID), data: encodePayload(payload), value: 0n } }];
   }
 
   // 예상 수수료 (가스 × maxFeePerGas × 여유분)
@@ -138,8 +146,8 @@ export function createEasBackend(config, tuning = {}) {
     return { gas, feePerGas: fee, cost: withMargin(gas, fee) };
   }
 
-  const estimateAttestCost = payload => estimateCost(() => pub.estimateContractGas({
-    account, address: easAddress, abi: EAS_ABI, functionName: "attest", args: attestArgs(payload)
+  const estimateAttestCost = (payload, refUID) => estimateCost(() => pub.estimateContractGas({
+    account, address: easAddress, abi: EAS_ABI, functionName: "attest", args: attestArgs(payload, refUID)
   }));
   const estimateRegisterCost = () => estimateCost(() => pub.estimateContractGas({
     account, address: registryAddress, abi: SCHEMA_REGISTRY_ABI, functionName: "register", args: [SCHEMA, SCHEMA_RESOLVER, SCHEMA_REVOCABLE]
@@ -156,13 +164,13 @@ export function createEasBackend(config, tuning = {}) {
   }
 
   // 기록 전 점검. 통과하면 { balance, gas, feePerGas, cost }
-  async function preflight(payload) {
+  async function preflight(payload, refUID) {
     requireAccount();
     await ensureReady();
     if (!(await isSchemaRegistered())) {
       throw new BackendError("schema_not_registered", `스키마가 레지스트리에 등록되지 않았습니다 (${schemaUID}). npm run demo:eas:register로 먼저 등록하세요.`);
     }
-    return requireFunds(() => estimateAttestCost(payload));
+    return requireFunds(() => estimateAttestCost(payload, refUID));
   }
 
   // 보내고 영수증을 기다린다. 전송은 재시도하지 않는다.
@@ -201,8 +209,8 @@ export function createEasBackend(config, tuning = {}) {
 
   const explorerUrl = uid => `${explorerBase}${ATTESTATION_PATH}${uid}`;
   const schemaUrl = () => `${explorerBase}${SCHEMA_PATH}${schemaUID}`;
-  // 탐색기 attestation 경로는 문서로 확인하지 못했다(추정). 스키마 경로는 문서 확인.
-  const meta = () => ({ explorerUrlVerified: false, schemaUrl: schemaUrl() });
+  // 탐색기 attestation 경로는 문서로 확인하지 못했다(추정, config.js EXPLORER_ATTESTATION_PATH_VERIFIED).
+  const meta = () => ({ explorerUrlVerified: EXPLORER_ATTESTATION_PATH_VERIFIED, schemaUrl: schemaUrl() });
 
   return {
     id: "eas-sepolia",
@@ -228,10 +236,12 @@ export function createEasBackend(config, tuning = {}) {
     meta,
     redact: hide,
 
-    async attest(payload) {
-      await preflight(payload);
+    // options.refUID: 이전 기록 UID(생애주기 확장 자리). 생략하면 0.
+    async attest(payload, { refUID = zeroHash } = {}) {
+      checkRefUID(refUID);
+      await preflight(payload, refUID);
       const receipt = await sendAndWait(() => wallet.writeContract({
-        account, chain, address: easAddress, abi: EAS_ABI, functionName: "attest", args: attestArgs(payload)
+        account, chain, address: easAddress, abi: EAS_ABI, functionName: "attest", args: attestArgs(payload, refUID)
       }));
       const ev = findEvent(EAS_ABI, receipt.logs, easAddress, "Attested");
       if (!ev) throw new BackendError("tx_failed", `Attested 이벤트를 찾을 수 없습니다 (tx ${receipt.transactionHash}).`);
@@ -248,6 +258,7 @@ export function createEasBackend(config, tuning = {}) {
         recordedAt: new Date(Number(block.timestamp) * 1000).toISOString(),
         explorerUrl: explorerUrl(ev.args.uid),
         meta: meta(),
+        refUID: refUID.toLowerCase(),
         payload
       };
     },
@@ -298,7 +309,7 @@ export function createEasBackend(config, tuning = {}) {
         mode: account ? "readwrite" : "readonly",
         chainId,
         explorerBase,
-        explorerUrlVerified: false,
+        explorerUrlVerified: EXPLORER_ATTESTATION_PATH_VERIFIED,
         schemaUID,
         schemaRegistered,
         attester,

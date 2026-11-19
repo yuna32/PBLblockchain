@@ -5,7 +5,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { toEventSignature, toFunctionSignature } from "viem";
-import { SCHEMA, FIELD_NAMES, buildPayload, contractAddressOf, decodePayload, encodePayload, schemaUID } from "../lib/attest/schema.js";
+import { SCHEMA, SCHEMA_VERSION, SIMULATION_CHAIN_ID, FIELD_NAMES, buildPayload, contractAddressOf, decodePayload, encodePayload, schemaUID } from "../lib/attest/schema.js";
 import { applyTamper, diffPaths, TamperError, verifyAgainstChain } from "../lib/attest/verify.js";
 import { analyzerVersion } from "../lib/attest/version.js";
 import { redact, secretVariants } from "../lib/attest/redact.js";
@@ -22,6 +22,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..", "..");
 const CSV = { normal: "normal_log.csv", ponzi: "ponzi_log.csv", rugpull: "rugpull_log.csv", laundering: "laundering_log.csv", pumpdump: "pumpdump_log.csv" };
 const VERSION = "abc1234+jcs-rfc8785/pbl-demo-v1";
+// 스키마 v2 UID (resolver 없음, revocable). docs/ONCHAIN_ATTESTATION.md에 같은 값이 있다.
+const SCHEMA_V2_UID = "0x9b6bc478cbc260152d400da3c421649562f30e714307b1377888f72de94b1c19";
 
 function load(name) {
   const dir = path.join(ROOT, "demo", "fixtures", name);
@@ -32,40 +34,80 @@ function load(name) {
   };
 }
 
-// 시나리오별 기대값: [trustScore, minWalletTrustScore, codeRiskGrade]
+// 시나리오별 기대값: [codeRiskLevel, txPatternHint, walletLayerStatus]
 const EXPECTED = {
-  normal: [86, 78, "LOW"], ponzi: [49, 8, "CRITICAL"], rugpull: [46, 8, "CRITICAL"],
-  laundering: [57, 30, "CRITICAL"], pumpdump: [73, 58, "CRITICAL"]
+  normal: ["LOW", "normal_staking", "not_applicable"], ponzi: ["CRITICAL", "ponzi_scheme", "not_applicable"],
+  rugpull: ["CRITICAL", "rug_pull", "not_applicable"], laundering: ["CRITICAL", "money_laundering", "evaluated"],
+  pumpdump: ["CRITICAL", "pump_and_dump", "not_applicable"]
 };
 
-test("스키마: 7필드, 종합 등급 없음", () => {
-  assert.deepEqual(FIELD_NAMES, ["contractAddress", "reportHash", "codeRiskGrade", "trustScore", "minWalletTrustScore", "scanTimestamp", "analyzerVersion"]);
-  assert.ok(!/grade\b.*overall|overall/i.test(SCHEMA));
+test("스키마 v2: 12필드, 레이어별 분리, 종합 등급·옛 신뢰 점수 없음, UID 고정", () => {
+  assert.equal(SCHEMA_VERSION, 2);
+  assert.deepEqual(FIELD_NAMES, [
+    "schemaVersion", "subjectChainId", "contractAddress", "reportHash", "inputHash",
+    "codeRiskLevel", "txPatternHint", "walletLayerStatus", "walletRiskScore", "walletRiskAvailable",
+    "scanTimestamp", "analyzerVersion"
+  ]);
+  assert.ok(!/overall|grade|trust/i.test(SCHEMA), "종합 등급(overall_grade)·옛 신뢰 점수(trust) 필드가 없어야 함");
+  // 스키마 문자열이 바뀌면 이 값도 바뀐다(새로 등록해야 함). 바꿀 때는 docs/ONCHAIN_ATTESTATION.md도 고칠 것.
+  assert.equal(schemaUID(), SCHEMA_V2_UID);
 });
 
-for (const [name, [trust, minWallet, grade]] of Object.entries(EXPECTED)) {
+for (const [name, [level, hint, layer]] of Object.entries(EXPECTED)) {
   test(`payload ${name}: 값 출처와 인코딩 왕복`, () => {
     const { report, envelope, rows } = load(name);
     const p = buildPayload({ report, envelope, rows, analyzerVersion: VERSION });
+    assert.equal(p.schemaVersion, 2);
+    assert.equal(p.subjectChainId, SIMULATION_CHAIN_ID, "시연 시나리오는 로컬 hardhat 주소");
     assert.equal(p.contractAddress, "0x5fbdb2315678afecb367f032d93f642f64180aa3");
     assert.equal(p.contractAddress, contractAddressOf(rows));
     assert.equal(p.reportHash, `0x${envelope.report_sha256}`);
-    assert.equal(p.codeRiskGrade, grade);
-    assert.equal(p.trustScore, trust);
-    assert.equal(p.minWalletTrustScore, minWallet);
+    assert.equal(p.inputHash, `0x${jcs.sha256Hex(jcs.canonicalize(envelope.input))}`);
+    assert.equal(p.codeRiskLevel, level);
+    assert.equal(p.txPatternHint, hint);
+    assert.equal(p.walletLayerStatus, layer);
+    assert.deepEqual([p.walletRiskScore, p.walletRiskAvailable], [0, false], "배포자 Risk Score는 데이터 없음");
     assert.equal(p.scanTimestamp, Math.floor(Date.parse(report.timestamp) / 1000));
     assert.equal(p.analyzerVersion, VERSION);
+    assert.ok(!("trustScore" in p) && !("minWalletTrustScore" in p) && !("codeRiskGrade" in p));
     assert.deepEqual(decodePayload(encodePayload(p)), p);
   });
 }
 
+test("payload: 배포자 Risk Score 자리, 대상 체인 확장 지점", () => {
+  const { report, envelope, rows } = load("ponzi");
+  const withRisk = buildPayload({ report, envelope, rows, analyzerVersion: VERSION, walletRisk: { score: 40 } });
+  assert.deepEqual([withRisk.walletRiskScore, withRisk.walletRiskAvailable], [40, true]);
+  assert.deepEqual(decodePayload(encodePayload(withRisk)), withRisk);
+  assert.throws(() => buildPayload({ report, envelope, rows, analyzerVersion: VERSION, walletRisk: { score: -1 } }), /0~65535/);
+  const mainnet = buildPayload({ report, envelope: { ...envelope, subject: { chainId: 1 } }, rows, analyzerVersion: VERSION });
+  assert.equal(mainnet.subjectChainId, 1);
+});
+
 test("payload 입력 오류", () => {
   const { report, envelope, rows } = load("ponzi");
-  assert.throws(() => buildPayload({ report, envelope: { report_sha256: "xyz" }, rows, analyzerVersion: VERSION }), /reportHash/);
+  assert.throws(() => buildPayload({ report, envelope: { report_sha256: "xyz", input: envelope.input }, rows, analyzerVersion: VERSION }), /reportHash/);
   assert.throws(() => buildPayload({ report, envelope, rows: [], analyzerVersion: VERSION }), /주소/);
-  const bad = structuredClone(report);
-  bad.trust.overall_trust_score = 300;
-  assert.throws(() => buildPayload({ report: bad, envelope, rows, analyzerVersion: VERSION }), /0~255/);
+  assert.throws(() => buildPayload({ report, envelope: { report_sha256: envelope.report_sha256 }, rows, analyzerVersion: VERSION }), /envelope.input/);
+});
+
+test("해시 재현성: 같은 입력이면 같은 reportHash·inputHash (키 순서·줄바꿈과 무관)", () => {
+  for (const name of Object.keys(CSV)) {
+    const { report, envelope, rows } = load(name);
+    const a = buildPayload({ report, envelope, rows, analyzerVersion: VERSION });
+    // 키 순서를 뒤집은 사본, 해시에서 빠지는 실행 정보만 바꾼 사본
+    const reversed = obj => (obj && typeof obj === "object" && !Array.isArray(obj)
+      ? Object.fromEntries(Object.keys(obj).reverse().map(k => [k, reversed(obj[k])]))
+      : Array.isArray(obj) ? obj.map(reversed) : obj);
+    const r2 = reversed(report);
+    r2.dynamic.csv = "renamed.csv";
+    const b = buildPayload({ report: r2, envelope: reversed(envelope), rows, analyzerVersion: VERSION, reportHashHex: jcs.reportHash(r2) });
+    assert.equal(b.reportHash, a.reportHash, name);
+    assert.equal(b.inputHash, a.inputHash, name);
+    // Node 구현(canonical.js)과 순수 구현(jcs.js)이 같은 해시
+    assert.equal(jcs.reportHash(report), canonical.reportHash(report), name);
+    assert.equal(`0x${canonical.reportHash(report)}`, a.reportHash, name);
+  }
 });
 
 test("applyTamper: 사본만 바꾸고, 없는 경로는 거부", () => {
@@ -95,7 +137,7 @@ test("verifyAgainstChain: 일치, 변조, 정보성 필드", async () => {
   const { canonicalize, hashableReport } = await import("../lib/canonical.js");
   const snapshot = canonicalize(hashableReport(report));
 
-  const ok = verifyAgainstChain({ report, rows, onChain, snapshot, analyzerVersion: VERSION });
+  const ok = verifyAgainstChain({ report, envelope, rows, onChain, snapshot, analyzerVersion: VERSION });
   assert.equal(ok.verified, true);
   assert.equal(ok.hashMatch, true);
   assert.deepEqual(ok.changedPaths, []);
@@ -103,24 +145,34 @@ test("verifyAgainstChain: 일치, 변조, 정보성 필드", async () => {
   assert.ok(ok.fields.every(f => f.match));
   assert.deepEqual(ok.fields.filter(f => f.informational).map(f => f.name), ["scanTimestamp", "analyzerVersion"]);
 
-  const tampered = verifyAgainstChain({ report, rows, onChain, snapshot, analyzerVersion: VERSION, tamper: { path: "trust.overall_trust_score", value: 50 } });
+  const tampered = verifyAgainstChain({ report, envelope, rows, onChain, snapshot, analyzerVersion: VERSION, tamper: { path: "prevention.risk_level", value: "LOW" } });
   assert.equal(tampered.verified, false);
   assert.equal(tampered.hashMatch, false);
   assert.equal(tampered.tamperDemo, true);
-  assert.deepEqual(tampered.changedPaths, ["trust.overall_trust_score"]);
-  assert.deepEqual(tampered.fields.filter(f => !f.match).map(f => f.name), ["reportHash", "trustScore"]);
+  assert.deepEqual(tampered.changedPaths, ["prevention.risk_level"]);
+  assert.deepEqual(tampered.fields.filter(f => !f.match).map(f => f.name), ["reportHash", "codeRiskLevel"]);
+
+  // 체인에 따로 적지 않은 값(옛 신뢰 점수 포함)을 바꿔도 리포트 해시로 잡힌다
+  const trust = verifyAgainstChain({ report, envelope, rows, onChain, analyzerVersion: VERSION, tamper: { path: "trust.overall_trust_score", value: 50 } });
+  assert.deepEqual([trust.verified, trust.fields.filter(f => !f.match).map(f => f.name)], [false, ["reportHash"]]);
+
+  // 입력 자료(envelope.input)가 바뀌면 inputHash가 다르다
+  const otherInput = structuredClone(envelope);
+  otherInput.input.csv.sha256 = "0".repeat(64);
+  const inp = verifyAgainstChain({ report, envelope: otherInput, rows, onChain, analyzerVersion: VERSION });
+  assert.deepEqual([inp.verified, inp.hashMatch, inp.fields.filter(f => !f.match).map(f => f.name)], [false, true, ["inputHash"]]);
 
   // 해시에서 빠지는 timestamp만 바꾸면 해시는 같고, scanTimestamp 불일치는 정보성이라 verified 유지
-  const ts = verifyAgainstChain({ report, rows, onChain, snapshot, analyzerVersion: VERSION, tamper: { path: "timestamp", value: "2030-01-01T00:00:00.000Z" } });
+  const ts = verifyAgainstChain({ report, envelope, rows, onChain, snapshot, analyzerVersion: VERSION, tamper: { path: "timestamp", value: "2030-01-01T00:00:00.000Z" } });
   assert.equal(ts.hashMatch, true);
   assert.equal(ts.verified, true);
   assert.equal(ts.fields.find(f => f.name === "scanTimestamp").match, false);
 
   // 서버 분석기 버전이 달라도 verified 유지
-  assert.equal(verifyAgainstChain({ report, rows, onChain, analyzerVersion: "other+x" }).verified, true);
+  assert.equal(verifyAgainstChain({ report, envelope, rows, onChain, analyzerVersion: "other+x" }).verified, true);
 
   // 스냅샷이 없으면 changedPaths는 비고 snapshotAvailable=false
-  const noSnap = verifyAgainstChain({ report, rows, onChain, analyzerVersion: VERSION, tamper: { path: "dynamic.dynamic_risk_score", value: 1 } });
+  const noSnap = verifyAgainstChain({ report, envelope, rows, onChain, analyzerVersion: VERSION, tamper: { path: "dynamic.dynamic_risk_score", value: 1 } });
   assert.deepEqual([noSnap.hashMatch, noSnap.snapshotAvailable, noSnap.changedPaths], [false, false, []]);
 
   // 변조값이 기록 필드 범위를 벗어나면 invalid_tamper

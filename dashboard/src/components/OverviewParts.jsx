@@ -2,6 +2,7 @@
 import { Check, CircleAlert, CircleDot, LoaderCircle, TriangleAlert } from "lucide-react";
 import { CONCLUSIONS } from "../lib/conclusion.js";
 import { ACTION_TITLE, CONCLUSION_GUIDE, LADDER, typeTag } from "../lib/overview.js";
+import { CHECK_DISCLAIMER, CHECK_TITLE } from "../lib/mitigation.js";
 import ConclusionBadge from "./ConclusionBadge.jsx";
 import { Badge, EstimateTag, ICON } from "./ui.jsx";
 
@@ -40,7 +41,9 @@ function HandIcon() {
 }
 
 // 위험 단계 사다리(근거 없음/주의/위험, 현재 단계 강조, 판단 불가는 전부 회색) + 확인 권고
-export function RiskActionCard({ conclusion }) {
+//   checks: lib/mitigation.js checkItems() — 결론별 "확인해 볼 것"(완화 레이어). 없으면 목록을 그리지 않는다.
+//   renderLink(item): 항목의 근거 화면 링크(라우터는 페이지에서 넘긴다. 없으면 링크 이름만 글자로)
+export function RiskActionCard({ conclusion, checks = [], renderLink = null }) {
   const undetermined = !LADDER.includes(conclusion);
   return (
     <section className={`card action-card action-${TONE_OF(conclusion)}`} data-conclusion={conclusion}>
@@ -65,6 +68,26 @@ export function RiskActionCard({ conclusion }) {
           <p className="action-guide">{CONCLUSION_GUIDE[conclusion] ?? CONCLUSION_GUIDE.undetermined}</p>
         </div>
       </div>
+      {checks.length > 0 && (
+        <div className="check-block">
+          <div className="check-title">{CHECK_TITLE}</div>
+          <ol className="check-list">
+            {checks.map(item => (
+              <li key={item.key} className={`check-item check-${item.status}`} data-check={item.key} data-status={item.status}>
+                <div className="check-head">
+                  <span className="check-question">{item.question}</span>
+                  <Badge tone={item.tone}>{item.statusLabel}</Badge>
+                </div>
+                {item.tag && <div className="check-tag">{item.tag}</div>}
+                <p className="check-value">{item.value}</p>
+                {item.sub && <p className="check-sub">{item.sub}</p>}
+                <div className="check-link">{renderLink ? renderLink(item) : item.link.label}</div>
+              </li>
+            ))}
+          </ol>
+          <p className="check-disclaimer">{CHECK_DISCLAIMER}</p>
+        </div>
+      )}
     </section>
   );
 }
@@ -74,8 +97,9 @@ function IntegrityIcon({ k }) {
   return Icon ? <Icon {...ICON} size={15} className={k === "checking" ? "spin" : ""} aria-hidden="true" /> : null;
 }
 
-// 요약 박스: 이상이 처음 보인 때 · 분석한 거래 · 리포트 변조 확인. integrity: lib/overview.js integrityStatus()
-export function SummaryBox({ summary, integrity, reportAction = null }) {
+// 요약 박스: 이상이 처음 보인 때 · 분석한 거래 · 리포트 변조 확인 · 블록체인 기록.
+//   integrity: lib/overview.js integrityStatus(), onchain: lib/attest.js onchainSummary() (없으면 줄을 그리지 않는다)
+export function SummaryBox({ summary, integrity, reportAction = null, onchain = null, onchainAction = null }) {
   return (
     <section className="card summary-box">
       <dl className="summary-list">
@@ -87,6 +111,14 @@ export function SummaryBox({ summary, integrity, reportAction = null }) {
             <IntegrityIcon k={integrity.key} />{integrity.text}{reportAction}
           </dd>
         </div>
+        {onchain && (
+          <div>
+            <dt>블록체인 기록</dt>
+            <dd className={`integrity integrity-${onchain.key} text-${onchain.tone === "neutral" ? "muted" : onchain.tone}`}>
+              <IntegrityIcon k={onchain.key} />{onchain.text}{onchainAction}
+            </dd>
+          </div>
+        )}
       </dl>
     </section>
   );

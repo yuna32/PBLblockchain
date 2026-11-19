@@ -28,7 +28,7 @@ export const EAS_FIXTURES_FILE = path.join(FIXTURES_DIR, EAS_FIXTURES_BASENAME);
 
 const UID_PATTERN = /^0x[0-9a-fA-F]{64}$/;
 // 사전 기록 JSON에서 읽는 필드 (그 밖의 값은 버린다)
-const EAS_FIXTURE_FIELDS = ["uid", "txHash", "chainId", "attester", "schemaUID", "contract", "blockNumber", "recordedAt", "reportHash", "payload"];
+const EAS_FIXTURE_FIELDS = ["uid", "txHash", "chainId", "attester", "schemaUID", "schemaVersion", "contract", "blockNumber", "recordedAt", "reportHash", "payload"];
 
 // 응답용: 기록 당시 canonical 스냅샷은 내보내지 않고 존재 여부만 알린다
 export function publicRecord(rec) {
@@ -89,8 +89,10 @@ export function createAttestManager({ options = {}, projectRoot, getJob, loadRep
       return;
     }
     for (const [name, entry] of Object.entries(data && typeof data === "object" ? data : {})) {
+      // 스키마 UID가 지금 스키마(v2)와 다른 기록(이전 형식)은 비교할 수 없으므로 무시한다
       const valid = SCENARIOS[name] && entry && typeof entry === "object" && UID_PATTERN.test(entry.uid ?? "") &&
-        entry.chainId === backend.chainId && String(entry.contract).toLowerCase() === backend.easAddress && entry.payload;
+        entry.chainId === backend.chainId && String(entry.contract).toLowerCase() === backend.easAddress && entry.payload &&
+        String(entry.schemaUID).toLowerCase() === String(backend.schemaUID).toLowerCase();
       if (!valid) { easFixtures.ignored += 1; continue; }
       const { report } = readFixture(name);
       const stale = String(entry.reportHash).toLowerCase() !== `0x${reportHash(report)}`;
@@ -260,7 +262,7 @@ export function createAttestManager({ options = {}, projectRoot, getJob, loadRep
 
     // body: { backend?, uid?, tamper? }. tamper는 메모리 사본만 바꾸며 어떤 것도 저장하지 않는다.
     async verify(reportId, body = {}) {
-      const { report, csvText } = loadReport(reportId);
+      const { report, envelope, csvText } = loadReport(reportId);
       const backend = requireBackend(body.backend);
       const id = backend.id;
       const rec = recordFor(id, reportId);
@@ -278,7 +280,7 @@ export function createAttestManager({ options = {}, projectRoot, getJob, loadRep
       let result;
       try {
         result = verifyAgainstChain({
-          report, rows: toTimeseries(csvText), onChain: onChain.payload,
+          report, envelope, rows: toTimeseries(csvText), onChain: onChain.payload,
           snapshot: findSnapshot(id, uid), tamper: body.tamper ?? null, analyzerVersion: version
         });
       } catch (err) {

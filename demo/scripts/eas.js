@@ -15,7 +15,8 @@ import { toTimeseries } from "../lib/timeseries.js";
 import { easConfigFromEnv, EAS_FIXTURES_BASENAME } from "../lib/attest/config.js";
 import { createEasBackend } from "../lib/attest/eas.js";
 import { reportHash } from "../lib/attest/jcs.js";
-import { buildPayload, SCHEMA } from "../lib/attest/schema.js";
+import { buildPayload, SCHEMA, SCHEMA_VERSION } from "../lib/attest/schema.js";
+import { verifyAgainstChain } from "../lib/attest/verify.js";
 import { analyzerVersion } from "../lib/attest/version.js";
 import { redact } from "../lib/attest/redact.js";
 
@@ -128,6 +129,9 @@ async function check(args, backend) {
       if (entry.chainId !== config.chainId || String(entry.contract).toLowerCase() !== config.easAddress.toLowerCase()) {
         rows.push([`기록 ${name}`, "다른 체인", `chainId ${entry.chainId}, EAS ${entry.contract}`]); failed = true; continue;
       }
+      if (String(entry.schemaUID).toLowerCase() !== backend.schemaUID.toLowerCase()) {
+        rows.push([`기록 ${name}`, "이전 형식", `스키마 UID ${String(entry.schemaUID).slice(0, 10)}… (지금 v${SCHEMA_VERSION} ${backend.schemaUID.slice(0, 10)}…) — record-fixtures로 다시 기록`]); failed = true; continue;
+      }
       let onChain;
       try {
         onChain = await backend.read(entry.uid);
@@ -136,14 +140,19 @@ async function check(args, backend) {
       }
       if (!onChain) { rows.push([`기록 ${name}`, "체인에 없음", entry.uid]); failed = true; continue; }
       if (!onChain.payload) { rows.push([`기록 ${name}`, "스키마 다름", entry.uid]); failed = true; continue; }
-      const current = `0x${reportHash(readFixture(args.fixturesDir, name).report)}`;
+      const fixture = readFixture(args.fixturesDir, name);
+      const current = `0x${reportHash(fixture.report)}`;
       const chainHash = onChain.payload.reportHash;
       if (chainHash !== String(entry.reportHash).toLowerCase()) {
         rows.push([`기록 ${name}`, "파일과 체인 다름", `파일 ${String(entry.reportHash).slice(0, 10)} / 체인 ${chainHash.slice(0, 10)}`]); failed = true;
       } else if (chainHash !== current) {
         rows.push([`기록 ${name}`, "불일치", `체인 ${chainHash.slice(0, 10)} / 현재 fixture ${current.slice(0, 10)}`]); failed = true; stale.push(name);
       } else {
-        rows.push([`기록 ${name}`, "일치", `uid ${entry.uid.slice(0, 10)}…, reportHash ${chainHash.slice(0, 10)}`]);
+        // 해시 말고 다른 기록 필드(입력 해시, 코드·거래·지갑 값)도 지금 fixture에서 다시 만든 값과 같은지
+        const v = verifyAgainstChain({ ...fixture, onChain: onChain.payload, analyzerVersion: analyzerVersion(PROJECT_ROOT) });
+        const bad = v.fields.filter(f => !f.informational && !f.match).map(f => f.name);
+        if (bad.length) { rows.push([`기록 ${name}`, "필드 불일치", bad.join(", ")]); failed = true; }
+        else rows.push([`기록 ${name}`, "일치", `uid ${entry.uid.slice(0, 10)}…, reportHash ${chainHash.slice(0, 10)}`]);
       }
     }
   }
@@ -194,12 +203,17 @@ async function recordFixtures(args, backend) {
     if (current !== envelope.report_sha256) { say(`${name}: report.json과 envelope.json의 해시가 다릅니다. fixture를 다시 만든 뒤 실행하세요.`); return EXIT.fail; }
     const payload = buildPayload({ report, envelope, rows, analyzerVersion: version });
     const prev = existing[name];
-    const sameChain = prev && prev.chainId === config.chainId && String(prev.contract).toLowerCase() === config.easAddress.toLowerCase();
+    // 같은 체인·같은 EAS·같은 스키마(v2)의 기록만 "이미 기록됨"으로 본다. 이전 형식 기록은 다시 기록한다.
+    const sameChain = prev && prev.chainId === config.chainId && String(prev.contract).toLowerCase() === config.easAddress.toLowerCase() &&
+      String(prev.schemaUID).toLowerCase() === backend.schemaUID.toLowerCase();
     let skip = false;
     if (sameChain && prev.reportHash === payload.reportHash && !args.force) {
       skip = Boolean(await backend.read(prev.uid).catch(() => null));
     }
-    plan.push({ name, payload, skip, reason: skip ? "이미 기록됨 (같은 reportHash)" : prev && sameChain ? (args.force ? "--force" : "해시가 바뀜 또는 체인에 없음") : "새로 기록" });
+    const reason = skip ? "이미 기록됨 (같은 reportHash)"
+      : prev && sameChain ? (args.force ? "--force" : "해시가 바뀜 또는 체인에 없음")
+        : prev ? "이전 형식·다른 체인의 기록 → 새로 기록" : "새로 기록";
+    plan.push({ name, payload, skip, reason });
   }
   const todo = plan.filter(x => !x.skip);
   table(plan.map(x => [x.name, x.skip ? "건너뜀" : "기록", x.reason]));
@@ -217,7 +231,7 @@ async function recordFixtures(args, backend) {
   for (const x of todo) {
     const r = await backend.attest(x.payload);
     records[x.name] = {
-      scenario: x.name, uid: r.uid, txHash: r.txHash, chainId: r.chainId, attester: r.attester, schemaUID: r.schemaUID,
+      scenario: x.name, uid: r.uid, txHash: r.txHash, chainId: r.chainId, attester: r.attester, schemaUID: r.schemaUID, schemaVersion: SCHEMA_VERSION,
       contract: r.contract, blockNumber: r.blockNumber, recordedAt: r.recordedAt, reportHash: x.payload.reportHash, payload: x.payload
     };
     writeRecords(args.outFile, records);

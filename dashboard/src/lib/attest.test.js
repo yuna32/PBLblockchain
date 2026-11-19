@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   FIELD_ORDER, FIELD_LABELS, backendOptions, attestPhase, lookupPlan, onchainFlowState, onchainBadge, verifySummary, recordKey, explorerLinks,
-  recordRows, formatField, payloadRows, pathLabel, verifyView, getPath, tamperPresets, attestError
+  recordRows, formatField, payloadRows, pathLabel, verifyView, getPath, tamperPresets, attestError, onchainSummary, isSimulationSubject
 } from "./attest.js";
 import { fmtDateTime, shortMiddle } from "./format.js";
 import { FIELD_NAMES, buildPayload } from "../../../demo/lib/attest/schema.js";
@@ -26,14 +26,18 @@ function recordOf(name, extra = {}) {
 function verifyResponse(name, tamper = null) {
   const { report, envelope, rows } = loadFixture(name);
   const onChain = buildPayload({ report, envelope, rows, analyzerVersion: VERSION });
-  const result = verifyAgainstChain({ report, rows, onChain, snapshot: canonicalize(hashableReport(report)), tamper, analyzerVersion: VERSION });
+  const result = verifyAgainstChain({ report, envelope, rows, onChain, snapshot: canonicalize(hashableReport(report)), tamper, analyzerVersion: VERSION });
   return { uid: `0x${"ab".repeat(32)}`, backend: "local", ...result };
 }
 
 describe("기록 필드와 기록 방식", () => {
-  it("필드 7개가 서버 스키마와 같은 순서, 모두 한글 라벨", () => {
+  it("필드 12개(스키마 v2)가 서버 스키마와 같은 순서, 모두 한글 라벨, 신뢰 점수·종합 등급 없음", () => {
     expect(FIELD_ORDER).toEqual(FIELD_NAMES);
-    expect(FIELD_ORDER.map(f => FIELD_LABELS[f])).toEqual(["컨트랙트 주소", "리포트 해시", "코드 위험 등급", "신뢰 점수", "최저 지갑 신뢰 점수", "스캔 시각", "분석기 버전"]);
+    expect(FIELD_ORDER.map(f => FIELD_LABELS[f])).toEqual([
+      "기록 형식 버전", "분석 대상 네트워크", "컨트랙트 주소", "분석 결과 지문(리포트 해시)", "입력 자료 지문(입력 해시)",
+      "코드 위험 수준", "거래 패턴", "지갑 분석", "배포자 위험 점수", "배포자 위험 자료", "분석 시각", "분석기 버전"
+    ]);
+    expect(Object.values(FIELD_LABELS).join(" ")).not.toMatch(/신뢰 점수|종합/);
   });
 
   it("backendOptions: local 사용 가능, eas-sepolia 미설정, 시작 중 구분", () => {
@@ -66,14 +70,16 @@ describe("기록 필드와 기록 방식", () => {
     expect(recordKey("eas-sepolia", "r1")).toBe("eas-sepolia:r1");
   });
 
-  it("explorerLinks: local은 없음, eas는 기록·스키마 링크와 형식 미확인 표시", () => {
+  it("explorerLinks: local은 없음, eas는 경로 확인(explorerUrlVerified=true) 전까지 링크 없음", () => {
     expect(explorerLinks(recordOf("ponzi"))).toBe(null);
     const uid = `0x${"ab".repeat(32)}`;
-    const rec = recordOf("ponzi", {
+    const rec = verified => recordOf("ponzi", {
       backend: "eas-sepolia", explorerUrl: `https://sepolia.easscan.org/attestation/view/${uid}`,
-      meta: { explorerUrlVerified: false, schemaUrl: "https://sepolia.easscan.org/schema/view/0x1" }
+      meta: { explorerUrlVerified: verified, schemaUrl: "https://sepolia.easscan.org/schema/view/0x1" }
     });
-    expect(explorerLinks(rec)).toEqual({ attestation: `https://sepolia.easscan.org/attestation/view/${uid}`, verified: false, schema: "https://sepolia.easscan.org/schema/view/0x1" });
+    expect(explorerLinks(rec(false))).toBe(null);
+    expect(explorerLinks(rec(undefined))).toBe(null);
+    expect(explorerLinks(rec(true))).toEqual({ attestation: `https://sepolia.easscan.org/attestation/view/${uid}`, verified: true, schema: "https://sepolia.easscan.org/schema/view/0x1" });
   });
 });
 
@@ -130,18 +136,33 @@ describe("온체인 상태 도출", () => {
     expect(verifySummary(null)).toBe(null);
     expect(verifySummary({ status: "running" })).toBe(null);
     expect(verifySummary({ status: "done", result: verifyResponse("ponzi") })).toEqual({ tone: "safe", label: "일치", text: "검증 일치", tamperDemo: false });
-    expect(verifySummary({ status: "done", result: verifyResponse("ponzi", { path: "trust.overall_trust_score", value: 95 }) }))
+    expect(verifySummary({ status: "done", result: verifyResponse("ponzi", { path: "prevention.risk_level", value: "LOW" }) }))
       .toEqual({ tone: "danger", label: "불일치", text: "검증 불일치", tamperDemo: true });
     // 정적 모드: 무결성 검증은 온체인 표현을 쓰지 않는다
     expect(verifySummary({ status: "done", kind: "integrity", result: { verified: false, tamperDemo: true } }).text).toBe("무결성 검증 불일치");
-    expect(verifySummary({ status: "done", kind: "onchain", result: { verified: true } }).text).toBe("온체인 기록과 일치");
+    expect(verifySummary({ status: "done", kind: "onchain", result: { verified: true } }).text).toBe("블록체인 기록과 일치");
   });
 
-  it("정적 모드 상태: Sepolia 기록 있음 / 온체인 기록 대기 중", () => {
-    expect(onchainFlowState("attested")).toEqual({ state: "done", sub: "Sepolia 기록 있음" });
-    expect(onchainFlowState("pending_onchain")).toEqual({ state: "pending", sub: "기록 대기 중" });
-    expect(onchainBadge("attested").label).toBe("Sepolia 기록 있음");
-    expect(onchainBadge("pending_onchain")).toEqual({ tone: "neutral", label: "온체인 기록 대기 중", extra: null });
+  it("정적 모드 상태: 블록체인에 기록됨 / 기록 대기", () => {
+    expect(onchainFlowState("attested")).toEqual({ state: "done", sub: "블록체인에 기록됨" });
+    expect(onchainFlowState("pending_onchain")).toEqual({ state: "pending", sub: "기록 대기" });
+    expect(onchainBadge("attested").label).toBe("블록체인에 기록됨");
+    expect(onchainBadge("pending_onchain")).toEqual({ tone: "neutral", label: "기록 대기", extra: null });
+  });
+
+  it("onchainSummary (개요 요약 박스): 기록 대기·기록됨·일치·다름·확인 못 함, 변조 시연과 파일 검증은 무시", () => {
+    expect(onchainSummary("pending_onchain")).toMatchObject({ text: "기록 대기", tone: "neutral" });
+    expect(onchainSummary("none")).toMatchObject({ text: "기록 대기" });
+    expect(onchainSummary("attested")).toMatchObject({ text: "블록체인에 기록됨", tone: "primary" });
+    expect(onchainSummary("checking")).toMatchObject({ text: "확인 중" });
+    expect(onchainSummary(null)).toMatchObject({ text: "확인 중" });
+    expect(onchainSummary("offline")).toMatchObject({ text: "지금은 확인 못 함", tone: "caution" });
+    const done = (kind, verified, tamperDemo = false) => ({ status: "done", kind, result: { verified, tamperDemo } });
+    expect(onchainSummary("attested", done("onchain", true))).toMatchObject({ text: "기록과 일치", tone: "safe" });
+    expect(onchainSummary("attested", done("onchain", false))).toMatchObject({ text: "기록과 다름", tone: "danger" });
+    expect(onchainSummary("recorded", done(undefined, true))).toMatchObject({ text: "기록과 일치" });
+    expect(onchainSummary("attested", done("onchain", false, true))).toMatchObject({ text: "블록체인에 기록됨" });
+    expect(onchainSummary("pending_onchain", done("integrity", false))).toMatchObject({ text: "기록 대기" });
   });
 });
 
@@ -155,24 +176,33 @@ describe("기록 카드 표시", () => {
   });
 
   for (const name of SCENARIO_IDS) {
-    it(`payloadRows ${name}: 7필드 한글 라벨과 형식`, () => {
+    it(`payloadRows ${name}: 12필드 한글 라벨과 형식, 시연용 로컬 주소`, () => {
       const rec = recordOf(name);
       const rows = payloadRows(rec.payload, GLOSSARY);
       expect(rows.map(r => r.name)).toEqual(FIELD_ORDER);
       const by = Object.fromEntries(rows.map(r => [r.name, r]));
       expect(by.reportHash.full).toBe(`0x${loadFixture(name).envelope.report_sha256}`);
       expect(by.reportHash.text).toBe(shortMiddle(by.reportHash.full));
+      expect(by.inputHash.mono).toBe(true);
       expect(by.contractAddress.mono).toBe(true);
-      expect(by.trustScore.text).toBe(`${rec.payload.trustScore}점`);
-      expect(by.codeRiskGrade.text).toBe(name === "normal" ? "LOW · 낮음" : "CRITICAL · 매우 높음");
+      expect(by.subjectChainId.text).toBe("시연용 로컬 체인 (31337)");
+      expect(isSimulationSubject(rec.payload)).toBe(true);
+      expect(by.codeRiskLevel.text).toBe(name === "normal" ? "LOW · 낮음" : "CRITICAL · 매우 높음");
+      expect(by.walletLayerStatus.text).toBe(name === "laundering" ? "분석함 (evaluated)" : "해당 없음 (not_applicable)");
+      expect([by.walletRiskScore.text, by.walletRiskAvailable.text]).toEqual(["데이터 없음", "데이터 없음"]);
       expect(by.scanTimestamp.text).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
       expect(by.analyzerVersion.text).toBe(VERSION);
+      expect(rows.map(r => `${r.label} ${r.text}`).join(" ")).not.toMatch(/신뢰 점수/);
     });
   }
 
   it("formatField·포맷 보조", () => {
-    expect(formatField("trustScore", null)).toEqual({ text: "-", full: null, mono: false });
-    expect(formatField("codeRiskGrade", "WEIRD", GLOSSARY).text).toBe("WEIRD");
+    expect(formatField("walletRiskScore", null)).toEqual({ text: "-", full: null, mono: false });
+    expect(formatField("walletRiskScore", 40, GLOSSARY, { walletRiskAvailable: true }).text).toBe("40점 · 높을수록 위험");
+    expect(formatField("subjectChainId", 1).text).toBe("이더리움 메인넷 (1)");
+    expect(formatField("txPatternHint", "").text).toBe("없음");
+    expect(isSimulationSubject({ subjectChainId: 1 })).toBe(false);
+    expect(formatField("codeRiskLevel", "WEIRD", GLOSSARY).text).toBe("WEIRD");
     expect(shortMiddle(`0x${"ab".repeat(32)}`)).toBe("0xabababab…abababab");
     expect(shortMiddle("0x1234")).toBe("0x1234");
     const ms = Date.UTC(2026, 9, 25, 3, 48, 14);
@@ -184,36 +214,37 @@ describe("기록 카드 표시", () => {
 });
 
 describe("검증 결과 뷰모델", () => {
-  it("일치: 배지·해시 같음·7행·참고용 2개", () => {
+  it("일치: 배지·해시 같음·12행·참고용 2개", () => {
     const v = verifyView(verifyResponse("ponzi"), GLOSSARY);
     expect([v.verified, v.tone, v.label, v.tamperDemo, v.hash.match]).toEqual([true, "safe", "일치", false, true]);
     expect(v.hash.onChain).toBe(v.hash.current);
-    expect(v.rows).toHaveLength(7);
-    expect(v.rows.filter(r => r.informational).map(r => r.label)).toEqual(["스캔 시각", "분석기 버전"]);
+    expect(v.rows).toHaveLength(12);
+    expect(v.rows.filter(r => r.informational).map(r => r.label)).toEqual(["분석 시각", "분석기 버전"]);
     expect(v.rows.every(r => r.match)).toBe(true);
+    expect(v.rows.find(r => r.name === "walletRiskScore").onChain.text).toBe("데이터 없음");
     expect(v.changedPaths).toEqual([]);
     expect(v.summary).toBe("체인에 기록된 값과 현재 리포트가 같습니다.");
   });
 
   it("변조: 불일치, 해시 다름, 바뀐 경로와 라벨", () => {
-    const v = verifyView(verifyResponse("ponzi", { path: "trust.overall_trust_score", value: 95 }), GLOSSARY);
+    const v = verifyView(verifyResponse("ponzi", { path: "prevention.risk_level", value: "LOW" }), GLOSSARY);
     expect([v.verified, v.tone, v.label, v.tamperDemo, v.hash.match]).toEqual([false, "danger", "불일치", true, false]);
-    expect(v.rows.filter(r => !r.match).map(r => r.name)).toEqual(["reportHash", "trustScore"]);
-    expect(v.rows.find(r => r.name === "trustScore").current.text).toBe("95점");
-    expect(v.changedPaths).toEqual([{ path: "trust.overall_trust_score", label: "신뢰 점수" }]);
+    expect(v.rows.filter(r => !r.match).map(r => r.name)).toEqual(["reportHash", "codeRiskLevel"]);
+    expect(v.rows.find(r => r.name === "codeRiskLevel").current.text).toBe("LOW · 낮음");
+    expect(v.changedPaths).toEqual([{ path: "prevention.risk_level", label: "코드 위험 수준" }]);
   });
 
   it("참고용 필드만 다르면 일치 유지 (timestamp 변조)", () => {
     const v = verifyView(verifyResponse("pumpdump", { path: "timestamp", value: "2030-01-01T00:00:00.000Z" }), GLOSSARY);
     expect([v.verified, v.hash.match, v.tamperDemo]).toEqual([true, true, true]);
-    expect(v.informationalMismatch).toEqual(["스캔 시각"]);
+    expect(v.informationalMismatch).toEqual(["분석 시각"]);
   });
 
   it("pathLabel: 용어집 → 기록 필드 → 없음", () => {
     expect(pathLabel("prevention.risk_level", GLOSSARY)).toBe("코드 위험 수준");
     expect(pathLabel("trust.wallet_scores.3.trust_score", GLOSSARY)).toBe("지갑 신뢰 점수");
     expect(pathLabel("trust.wallet_scores.3.breakdown.flow_pattern", GLOSSARY)).toBe("자금 이동 패턴");
-    expect(pathLabel("trust.overall_trust_score", GLOSSARY)).toBe("신뢰 점수");
+    expect(pathLabel("wallet_layer.status", GLOSSARY)).toBe("지갑 분석");
     expect(pathLabel("dynamic.metrics.total_in_eth", GLOSSARY)).toBe(null);
     expect(verifyView(null)).toBe(null);
   });
@@ -224,7 +255,7 @@ describe("변조 시연 프리셋", () => {
     it(`${name}: 실제 값에서 만들고, 서버 규칙으로 적용하면 해시가 달라진다`, () => {
       const { report } = loadFixture(name);
       const presets = tamperPresets(report, GLOSSARY);
-      expect(presets.map(p => p.id)).toEqual(["trust", "risk", "type", "wallet"]);
+      expect(presets.map(p => p.id)).toEqual(["risk", "type", "outflow"]);
       for (const p of presets) {
         expect(getPath(report, p.path)).toEqual({ exists: true, value: p.from });
         expect(p.value).not.toEqual(p.from);
@@ -236,25 +267,25 @@ describe("변조 시연 프리셋", () => {
       const by = Object.fromEntries(presets.map(p => [p.id, p]));
       expect(by.risk.value).toBe(name === "normal" ? "CRITICAL" : "LOW");
       expect(by.type.value).toBe(name === "normal" ? "ponzi_scheme" : "normal_staking");
-      const min = Math.min(...report.trust.wallet_scores.map(w => w.trust_score));
-      expect(by.wallet.from).toBe(min);
+      expect(by.outflow.value).toBe(report.dynamic.metrics.total_out_eth + 1);
+      // 옛 지갑 신뢰 점수 프리셋은 없다
+      expect(presets.some(p => p.path.startsWith("trust."))).toBe(false);
     });
   }
 
   it("normal 표시 문구와 ponzi 값", () => {
     const n = Object.fromEntries(tamperPresets(loadFixture("normal").report, GLOSSARY).map(p => [p.id, p]));
-    expect([n.trust.from, n.trust.value, n.trust.toText]).toEqual([86, 46, "46점"]);
     expect([n.type.label, n.type.fromText]).toEqual(["감지 유형을 폰지 사기(으)로", "정상 스테이킹 (normal_staking)"]);
     const p = Object.fromEntries(tamperPresets(loadFixture("ponzi").report, GLOSSARY).map(x => [x.id, x]));
-    expect([p.trust.value, p.risk.label, p.type.label]).toEqual([95, "코드 위험 등급을 LOW로", "감지 유형을 정상 스테이킹(으)로"]);
+    expect([p.risk.label, p.type.label, p.outflow.label, p.outflow.fromText, p.outflow.toText]).toEqual(["코드 위험 수준을 LOW로", "감지 유형을 정상 스테이킹(으)로", "출금 합계를 다른 값으로", "10 ETH", "11 ETH"]);
   });
 
   it("경로가 없으면 그 프리셋은 숨긴다", () => {
     const { report } = loadFixture("ponzi");
     const partial = structuredClone(report);
     delete partial.dynamic.fraud_type_hint;
-    partial.trust.wallet_scores = [];
-    expect(tamperPresets(partial, GLOSSARY).map(p => p.id)).toEqual(["trust", "risk"]);
+    delete partial.dynamic.metrics;
+    expect(tamperPresets(partial, GLOSSARY).map(p => p.id)).toEqual(["risk"]);
     expect(tamperPresets({}, GLOSSARY)).toEqual([]);
     expect(tamperPresets(null, GLOSSARY)).toEqual([]);
     expect(getPath(report, "trust.wallet_scores.99.trust_score").exists).toBe(false);
