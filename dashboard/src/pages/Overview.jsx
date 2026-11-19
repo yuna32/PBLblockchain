@@ -1,4 +1,5 @@
-// 개요: 판정 카드(헤드라인·근거·결론 배지·하단 요약 메타) | 위험 단계·확인 권고·확인해 볼 것 → "이렇게 판단했습니다" 3카드 → 상세 분석 접이식 줄.
+// 개요: 1행 판정 카드(헤드라인·근거·결론 배지·하단 메타 4열) | 위험 단계 열(세로 3칸) → 2행 전체 폭 확인 권고·확인해 볼 것(가로 4열)
+//   → "이렇게 판단했습니다" 3카드 → 상세 분석 접이식 줄.
 // 문구·숫자는 view.decision. 종합 등급(overall_grade)은 어디에도 표시하지 않는다.
 // 예전 분석 수치 블록(요약 띠·매트릭스·핵심 수치·패턴·경고)은 components/AnalysisNumbers.jsx에 보존했다(S7에서 원자료로 옮김).
 import { useMemo, useState } from "react";
@@ -10,7 +11,7 @@ import { useAttest } from "../state/AttestContext.jsx";
 import { onchainSummary } from "../lib/attest.js";
 import { ICON, ReportGate } from "../components/ui.jsx";
 import BalanceStory from "../components/BalanceStory.jsx";
-import { HeadlineCard, JudgeCard, RiskActionCard, SummaryBox } from "../components/OverviewParts.jsx";
+import { ActionGuideBox, HeadlineCard, JudgeCard, RiskLadder, SummaryBox } from "../components/OverviewParts.jsx";
 import { buildBlockSeries } from "../lib/series.js";
 import { codeConclusion, codeLines, flowLine } from "../lib/overview.js";
 import { DETAIL_PAGES, pagePath, term } from "../lib/terms.js";
@@ -55,10 +56,10 @@ function OverviewBody({ data }) {
             onchain={onchain}
             onchainAction={<Link className="summary-link" to={`${pagePath("report")}${query}`} aria-label="블록체인 기록 화면으로"><ChevronRight {...ICON} size={15} /></Link>} />
         } />
-        <div className="overview-side">
-          <RiskActionCard conclusion={decision.conclusion} checks={checks} renderLink={checkLink} />
-        </div>
+        <RiskLadder conclusion={decision.conclusion} />
       </div>
+
+      <ActionGuideBox conclusion={decision.conclusion} checks={checks} renderLink={checkLink} />
 
       <section className="judge-section">
       <h2 className="section-title">이렇게 판단했습니다</h2>
