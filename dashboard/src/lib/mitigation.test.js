@@ -3,7 +3,7 @@ import { describe, it, expect } from "vitest";
 import { createElement as h } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { RiskActionCard } from "../components/OverviewParts.jsx";
-import { checkItems, CHECK_DISCLAIMER, CHECK_STATUS, ITEMS_BY_CONCLUSION, NONE_NOTE } from "./mitigation.js";
+import { checkItems, CHECK_DISCLAIMER, CHECK_GUIDE, CHECK_STATUS, ITEMS_BY_CONCLUSION, NONE_NOTE } from "./mitigation.js";
 import { riskForScenario } from "./risk.js";
 import { loadFixture, SCENARIO_IDS } from "./testFixtures.js";
 import { buildViewModel } from "../../../demo/lib/viewmodel.js";
@@ -42,7 +42,8 @@ describe("확인해 볼 것: 시나리오 5개", () => {
         expect(i.tone).not.toBe("safe"); // "이상 없음"에 안전색을 쓰지 않는다
         expect(i.value).toBeTruthy();
         expect(["/trade", "/detail/raw", "/trust"]).toContain(i.link.path);
-        for (const re of BANNED) expect(`${i.question} ${i.value} ${i.sub ?? ""}`).not.toMatch(re);
+        expect(i.guide).toBe(CHECK_GUIDE[i.key]);
+        for (const re of BANNED) expect(`${i.question} ${i.guide} ${i.value} ${i.sub ?? ""}`).not.toMatch(re);
       }
       // 데이터 없음은 배포자 한 항목뿐
       expect(items.filter(i => i.status === "nodata").map(i => i.key)).toEqual(["deployer"]);
@@ -108,17 +109,31 @@ describe("확인해 볼 것: 스냅샷에 없는 결론(합성)", () => {
 });
 
 describe("카드 렌더링·문구", () => {
-  it("항목·상태 배지·링크·안내 문구를 그린다(링크는 페이지가 넘긴다)", () => {
+  it("행동형 안내: 결과 서술·수치 없이 '확인/살펴보세요'로 끝난다", () => {
+    for (const g of Object.values(CHECK_GUIDE)) {
+      expect(g).toMatch(/(확인해 보세요|살펴보세요)\.$/);
+      expect(g).not.toMatch(/\d|%|했습니다|갔습니다|감지|위험/);
+    }
+  });
+
+  it("질문·안내 한 줄·링크만 그리고 상태 배지·결과 문구는 그리지 않는다(링크는 페이지가 넘긴다)", () => {
     const { view, items } = itemsOf("ponzi");
     const html = renderToStaticMarkup(h(RiskActionCard, {
       conclusion: view.decision.conclusion, checks: items,
       renderLink: i => h("a", { href: `#${i.link.path}` }, i.link.label)
     }));
     expect(html).toContain("확인해 볼 것");
-    expect((html.match(/class="check-item /g) ?? []).length).toBe(4);
-    expect(html).toContain(">감지<");
-    expect(html).toContain(">이상 없음<");
-    expect(html).toContain(">데이터 없음<");
+    expect((html.match(/class="check-item"/g) ?? []).length).toBe(4);
+    expect((html.match(/class="check-num"/g) ?? []).length).toBe(4);
+    for (const i of items) {
+      expect(html).toContain(i.question);
+      expect(html).toContain(i.guide);
+      expect(html).not.toContain(i.value);
+    }
+    expect(html).not.toContain(">감지<");
+    expect(html).not.toContain(">이상 없음<");
+    expect(html).not.toContain(">데이터 없음<");
+    expect(html).not.toContain("check-detected");
     expect(html).toContain('href="#/trade"');
     expect(html).toContain('href="#/trust"');
     expect(html).toContain(CHECK_DISCLAIMER);
