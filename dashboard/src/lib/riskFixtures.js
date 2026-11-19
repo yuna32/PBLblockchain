@@ -18,7 +18,7 @@ export const RISK_FIXTURES = {
       { key: "wallet_maturity", points: 0, cap: 20 },
       { key: "past_scam_deployments", points: 25, cap: 30 },
       { key: "external_flags", points: 0, cap: 10 },
-      { key: "past_rug_recovery", points: 0, cap: 10 }
+      { key: "fund_flow", points: 0, cap: 10 }
     ],
     evidence: [
       { indicator_key: "past_scam_deployments", strength: "strong", text: "과거 배포 컨트랙트 1건이 공개 라벨에서 사기로 분류됨(예시)", source: SRC, points: 25 },
@@ -39,7 +39,7 @@ export const RISK_FIXTURES = {
       { key: "wallet_maturity", points: 15, cap: 20 },
       { key: "past_scam_deployments", points: 0, cap: 30 },
       { key: "external_flags", points: 0, cap: 10 },
-      { key: "past_rug_recovery", points: 0, cap: 10 }
+      { key: "fund_flow", points: 0, cap: 10 }
     ],
     evidence: [
       { indicator_key: "first_funding", strength: "weak", text: "첫 자금이 믹서(예시)에서 바로 들어옴", source: SRC, points: 25 },
@@ -57,7 +57,7 @@ export const RISK_FIXTURES = {
       { key: "wallet_maturity", points: 0, cap: 20 },
       { key: "past_scam_deployments", points: 0, cap: 30 },
       { key: "external_flags", points: 0, cap: 10 },
-      { key: "past_rug_recovery", points: 0, cap: 10 }
+      { key: "fund_flow", points: 0, cap: 10 }
     ],
     evidence: [],
     first_funding: { hops: 1, category: "exchange" },
@@ -72,7 +72,7 @@ export const RISK_FIXTURES = {
       { key: "wallet_maturity", points: null, cap: 20 },
       { key: "past_scam_deployments", points: null, cap: 30 },
       { key: "external_flags", points: null, cap: 10 },
-      { key: "past_rug_recovery", points: null, cap: 10 }
+      { key: "fund_flow", points: null, cap: 10 }
     ],
     evidence: [],
     first_funding: null,
@@ -87,7 +87,7 @@ export const RISK_FIXTURES = {
       { key: "wallet_maturity", points: 0, cap: 20 },
       { key: "past_scam_deployments", points: 0, cap: 30 },
       { key: "external_flags", points: null, cap: 10 },
-      { key: "past_rug_recovery", points: null, cap: 10 }
+      { key: "fund_flow", points: null, cap: 10 }
     ],
     evidence: [
       { indicator_key: "first_funding", strength: "weak", text: "첫 자금이 분류되지 않은 주소(예시)에서 중간 지갑 1개를 거쳐 들어옴", source: SRC, points: 20 }

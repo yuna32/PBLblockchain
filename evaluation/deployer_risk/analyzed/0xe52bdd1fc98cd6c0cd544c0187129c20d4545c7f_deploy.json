@@ -1,0 +1,87 @@
+{
+  "contract": "0xe52bdd1fc98cd6c0cd544c0187129c20d4545c7f",
+  "at": "deploy",
+  "rules": "v1 (조정용 절반으로 정한 기준)",
+  "facts": {
+    "deployer": "0x4bafd8c32d9a8585af0bb6872482a76150f528b7",
+    "contract": "0xe52bdd1fc98cd6c0cd544c0187129c20d4545c7f",
+    "asOf": {
+      "block": 19821254,
+      "date": "2024-05-07"
+    },
+    "activity": {
+      "firstTxDate": "2024-05-07",
+      "days": 0,
+      "txCount": 1,
+      "counterparties": 0
+    },
+    "firstFunding": {
+      "from": "0x21a31ee1afc51d94c2efccaa2092ad1028285549",
+      "category": "other",
+      "date": "2024-05-07",
+      "knownAs": null
+    },
+    "pastDeployments": [],
+    "passThroughEvents": 0,
+    "goplus": null,
+    "failures": [],
+    "sources": [
+      "Etherscan(이더리움 메인넷)",
+      "XBlock 폰지 라벨"
+    ],
+    "reason": "실제 컨트랙트의 배포자를, 그 컨트랙트를 배포하기 직전까지의 기록만으로 분석했습니다."
+  },
+  "result": {
+    "level": "none",
+    "score": 0,
+    "score_max": 100,
+    "summary": "확인할 기록이 거의 없어(거래 1건) 판단 근거가 부족합니다. 위험 근거가 없다는 뜻이 아닙니다",
+    "target": {
+      "deployer": "0x4bafd8c32d9a8585af0bb6872482a76150f528b7",
+      "contract": "0xe52bdd1fc98cd6c0cd544c0187129c20d4545c7f"
+    },
+    "indicators": [
+      {
+        "key": "first_funding",
+        "points": 0,
+        "cap": 30
+      },
+      {
+        "key": "wallet_maturity",
+        "status": "info",
+        "points": null,
+        "cap": 20,
+        "note": "새 지갑: 이 컨트랙트를 만들 때 지갑을 쓴 지 0일. 정상 배포자에게도 흔해(사기 배포자와 1.3배 차이) 점수에는 넣지 않습니다"
+      },
+      {
+        "key": "past_scam_deployments",
+        "points": 0,
+        "cap": 30
+      },
+      {
+        "key": "fund_flow",
+        "points": 0,
+        "cap": 10
+      }
+    ],
+    "evidence": [],
+    "first_funding": {
+      "hops": 1,
+      "category": "other"
+    },
+    "past_deployments": [],
+    "scope": {
+      "activity_days": 0,
+      "tx_count": 1,
+      "as_of": "2024-05-07 (컨트랙트 배포 직전)",
+      "failures": [
+        "기록 부족(거래 5건 미만)"
+      ],
+      "sources": [
+        "Etherscan(이더리움 메인넷)",
+        "XBlock 폰지 라벨"
+      ],
+      "reason": "실제 컨트랙트의 배포자를, 그 컨트랙트를 배포하기 직전까지의 기록만으로 분석했습니다."
+    }
+  }
+}

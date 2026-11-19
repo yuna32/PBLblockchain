@@ -1,0 +1,113 @@
+{
+  "contract": "0x634847d6b650b9f442b3b582971f859e6e65eb53",
+  "at": "now",
+  "rules": "v1 (조정용 절반으로 정한 기준)",
+  "facts": {
+    "deployer": "0xdc25868db509603e1d315c8f2ababca650c454ae",
+    "contract": "0x634847d6b650b9f442b3b582971f859e6e65eb53",
+    "asOf": {
+      "block": 999999999,
+      "date": "2026-11-16"
+    },
+    "activity": {
+      "firstTxDate": "2023-10-17",
+      "days": 1126,
+      "txCount": 996,
+      "counterparties": 23
+    },
+    "firstFunding": {
+      "from": "0xe72889f88f279043206698c50b752fc6eb47b63f",
+      "category": "other",
+      "date": "2023-10-17",
+      "knownAs": null
+    },
+    "pastDeployments": [],
+    "passThroughEvents": 242,
+    "goplus": {
+      "deployer": {
+        "direct": [],
+        "doubt": [],
+        "mixer": false,
+        "maliciousContracts": 0,
+        "source": "GoPlus"
+      },
+      "funder": {
+        "direct": [],
+        "doubt": [],
+        "mixer": false,
+        "maliciousContracts": 0,
+        "source": "GoPlus"
+      }
+    },
+    "failures": [],
+    "sources": [
+      "Etherscan(이더리움 메인넷)",
+      "XBlock 폰지 라벨"
+    ],
+    "reason": "실제 컨트랙트의 배포자를, 지금까지의 기록과 보안 서비스의 현재 정보로 분석했습니다."
+  },
+  "result": {
+    "level": "some",
+    "score": 26,
+    "score_max": 100,
+    "summary": "뚜렷한 위험 근거는 없지만 확인이 필요한 신호가 있습니다: 받은 돈을 바로 내보내는 패턴",
+    "target": {
+      "deployer": "0xdc25868db509603e1d315c8f2ababca650c454ae",
+      "contract": "0x634847d6b650b9f442b3b582971f859e6e65eb53"
+    },
+    "indicators": [
+      {
+        "key": "first_funding",
+        "points": 0,
+        "cap": 30
+      },
+      {
+        "key": "wallet_maturity",
+        "status": "info",
+        "points": null,
+        "cap": 20,
+        "note": "새 지갑 아님: 이 컨트랙트를 만들 때 지갑을 쓴 지 1126일. 정상 배포자에게도 흔해(사기 배포자와 1.3배 차이) 점수에는 넣지 않습니다"
+      },
+      {
+        "key": "past_scam_deployments",
+        "points": 0,
+        "cap": 30
+      },
+      {
+        "key": "external_flags",
+        "points": 0,
+        "cap": 10
+      },
+      {
+        "key": "fund_flow",
+        "points": 10,
+        "cap": 10
+      }
+    ],
+    "evidence": [
+      {
+        "indicator_key": "fund_flow",
+        "points": 10,
+        "source": "Etherscan",
+        "strength": "weak",
+        "text": "받은 돈의 80% 이상을 30분 안에 다른 곳으로 보낸 일이 242번 있습니다"
+      }
+    ],
+    "first_funding": {
+      "hops": 1,
+      "category": "other"
+    },
+    "past_deployments": [],
+    "scope": {
+      "activity_days": 1126,
+      "tx_count": 996,
+      "as_of": "2026-11-16 (지금)",
+      "failures": [],
+      "sources": [
+        "Etherscan(이더리움 메인넷)",
+        "XBlock 폰지 라벨"
+      ],
+      "reason": "실제 컨트랙트의 배포자를, 지금까지의 기록과 보안 서비스의 현재 정보로 분석했습니다."
+    }
+  }
+}

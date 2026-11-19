@@ -13,11 +13,13 @@ import { riskForScenario } from "../lib/risk.js";
 import { PREVIEW_KEYS, previewRisk } from "../lib/riskFixtures.js";
 import { term } from "../lib/terms.js";
 
-function PageHead() {
+function PageHead({ realCase = false }) {
   return (
     <header className="page-head">
       <h1 className="page-title">배포자 위험도</h1>
-      <p className="page-desc">이 컨트랙트를 배포한 지갑의 이력을 봅니다. 거래 패턴 판정과는 별개의 분석입니다.</p>
+      <p className="page-desc">{realCase
+        ? "컨트랙트를 배포한 지갑의 이력을 봅니다. 사기 계좌 조회처럼, 배포자가 과거에 무엇을 했는지 확인합니다. 거래 패턴 판정과는 별개의 분석입니다."
+        : "이 컨트랙트를 배포한 지갑의 이력을 봅니다. 거래 패턴 판정과는 별개의 분석입니다."}</p>
     </header>
   );
 }
@@ -44,7 +46,7 @@ function DeployerBody({ data }) {
   const codeText = codeLines(view.codeAssessment, codeC, term(glossary, view.codeAssessment?.preventionRiskLevel).label);
   return (
     <div className="page deployer">
-      <PageHead />
+      <PageHead realCase={Boolean(risk.target?.realCase)} />
       <DeployerRiskView risk={risk} code={{ conclusion: codeC, ...codeText }} />
     </div>
   );
