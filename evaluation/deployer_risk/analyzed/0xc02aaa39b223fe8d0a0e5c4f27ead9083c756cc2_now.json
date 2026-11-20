@@ -1,0 +1,765 @@
+{
+  "contract": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+  "at": "now",
+  "rules": "v1 (조정용 절반으로 정한 기준)",
+  "facts": {
+    "deployer": "0x4f26ffbe5f04ed43630fdc30a87638d53d0b0876",
+    "contract": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+    "asOf": {
+      "block": 999999999,
+      "date": "2026-11-16"
+    },
+    "activity": {
+      "firstTxDate": "2017-05-22",
+      "days": 3464,
+      "txCount": 642,
+      "counterparties": 64
+    },
+    "firstFunding": {
+      "from": "0x059affd447ed098f04a80f102c2a8503cc5847f1",
+      "category": "other",
+      "date": "2017-05-22",
+      "knownAs": null
+    },
+    "pastDeployments": [
+      {
+        "contract": "0xc778417e063141139fce010982780140aa0cd5ab",
+        "deployedAt": "2017-05-23",
+        "deployedTs": 1495543615,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0xa71a6c19f38cd9de95ac9c96dd949a5623905627",
+        "deployedAt": "2017-05-23",
+        "deployedTs": 1495543768,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x362b56f1c85862365709162ffdc7b72eb09dfce6",
+        "deployedAt": "2017-05-23",
+        "deployedTs": 1495544500,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0xf88cbc83716e852d8125b8ca0c522a1669c08ff4",
+        "deployedAt": "2017-05-23",
+        "deployedTs": 1495544620,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x5b49976ea0ccbb38362f634922e571cd4d5c76c8",
+        "deployedAt": "2017-05-23",
+        "deployedTs": 1495544751,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x56de9e98b9e61dcda45ae69611299d22c1fa51a0",
+        "deployedAt": "2017-05-23",
+        "deployedTs": 1495546034,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0xf68393d5d42c04bc92e6bb00a6141615008fbf14",
+        "deployedAt": "2017-05-23",
+        "deployedTs": 1495552049,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x2c6f750aac54239af9af6b85a3049f6ca535b507",
+        "deployedAt": "2017-05-23",
+        "deployedTs": 1495552056,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x3ad977780f0ecd41bd564898ffd46418d198f8a1",
+        "deployedAt": "2017-05-23",
+        "deployedTs": 1495552075,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x84f162e108238b3b3029ab106e4bab0635cbf197",
+        "deployedAt": "2017-05-23",
+        "deployedTs": 1495552098,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x411ea383b0e5936ce667f51772c82ee37e9e93b9",
+        "deployedAt": "2017-05-23",
+        "deployedTs": 1495552192,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x15f73a951d029a29fb6729bbf5600ac1646f5605",
+        "deployedAt": "2017-05-23",
+        "deployedTs": 1495552206,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x9fcb310dbbe5667f0fe7b0ea0947f365a335be6a",
+        "deployedAt": "2017-05-23",
+        "deployedTs": 1495552274,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x0d126cd55c7a0e7c1340c5d185a8f0d254c00c60",
+        "deployedAt": "2017-05-23",
+        "deployedTs": 1495552495,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x20bdda5f938b3b7661776e158e5b91457d9a55b7",
+        "deployedAt": "2017-05-23",
+        "deployedTs": 1495552525,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x20826bbe30d3ff32a189959cb702389c81363058",
+        "deployedAt": "2017-07-14",
+        "deployedTs": 1500039600,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0xd3f3c5ffbc4a608a542999b244cf9485738a8a89",
+        "deployedAt": "2017-07-14",
+        "deployedTs": 1500039606,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x9e978ecff9725e2df7c61798523f9a241673fdd1",
+        "deployedAt": "2017-07-14",
+        "deployedTs": 1500039606,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0xf85903e3d4d1eb5c05ba2a1e6b1e9c09b6287c11",
+        "deployedAt": "2017-07-14",
+        "deployedTs": 1500039606,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0xf50db8be83e113b81c0bbaf922fe8e285d785f99",
+        "deployedAt": "2017-07-14",
+        "deployedTs": 1500039632,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x8b00a817b80c701da371e4dacf0eba98d0af293b",
+        "deployedAt": "2017-07-14",
+        "deployedTs": 1500039632,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x1837391a853bc36387129f2da1f839bf53a98908",
+        "deployedAt": "2017-07-14",
+        "deployedTs": 1500039640,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x76d8a54e2f9c871e51a1176c37ca9f166eb14646",
+        "deployedAt": "2017-07-14",
+        "deployedTs": 1500039640,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x98bc796072cd82d2e9b9912ead0682b5eb4cf142",
+        "deployedAt": "2017-07-14",
+        "deployedTs": 1500039640,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x46695cacf9e477117e7dc399cae168219c003ee7",
+        "deployedAt": "2017-07-14",
+        "deployedTs": 1500039710,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0xef0594b910f5018f29d55f8bd414a5bc205e8173",
+        "deployedAt": "2017-07-14",
+        "deployedTs": 1500039746,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x402fa0075e1dcc1753019f89520a37694b2584b1",
+        "deployedAt": "2017-07-14",
+        "deployedTs": 1500039791,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0xcbc21c06bb6abc64f5c950eacc4879da35efe931",
+        "deployedAt": "2017-07-14",
+        "deployedTs": 1500039828,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0xc882b9d816de5b1367cc4e6da4957f32502b0d9d",
+        "deployedAt": "2017-07-14",
+        "deployedTs": 1500040221,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x31d6878dc1438ee0f06ea611395f0551afcda740",
+        "deployedAt": "2017-07-14",
+        "deployedTs": 1500040221,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x127f3c698dff1d39381b833da162f6bec4a9199b",
+        "deployedAt": "2017-07-14",
+        "deployedTs": 1500040240,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0xff0eb53f908fe6a7d4ff82c408e931d2a6489010",
+        "deployedAt": "2017-07-14",
+        "deployedTs": 1500040254,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0xe6eaa212ff5e40ac0561d63be1ea978b4ea68e1d",
+        "deployedAt": "2017-07-14",
+        "deployedTs": 1500040258,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x0d64d867100d35944fead1319f64d07ee250fbd1",
+        "deployedAt": "2017-07-14",
+        "deployedTs": 1500040258,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x4c9ad5204b6baca8beee9c5a674701b4261c9acd",
+        "deployedAt": "2017-07-14",
+        "deployedTs": 1500040258,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x4c209ab99e0e6f73c8d9d241558aa74ae8223d28",
+        "deployedAt": "2017-07-14",
+        "deployedTs": 1500040294,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x9843e51c952c581a7d317977bd035b65dcbd50ac",
+        "deployedAt": "2017-07-14",
+        "deployedTs": 1500040294,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x8cbd1d8dd4fc5ad3d130b09264656fc4edaeed7a",
+        "deployedAt": "2017-07-14",
+        "deployedTs": 1500040372,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x471208c52f227dc11e3fbbdf18f22055c20a8732",
+        "deployedAt": "2017-07-14",
+        "deployedTs": 1500040400,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x5b4ba410df5eebba5ea416e4f95ae604a5789c09",
+        "deployedAt": "2017-07-14",
+        "deployedTs": 1500040450,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x9f4ef828791d2b2fd8aba69c551eda066457df75",
+        "deployedAt": "2017-07-14",
+        "deployedTs": 1500040527,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x102560295c69121ba4365a2d0c9a2aef765df38b",
+        "deployedAt": "2017-07-14",
+        "deployedTs": 1500050221,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x59adcf176ed2f6788a41b8ea4c4904518e62b6a4",
+        "deployedAt": "2017-07-16",
+        "deployedTs": 1500221947,
+        "publicLabel": "normal",
+        "sameDay": false
+      },
+      {
+        "contract": "0x2c67395bbbd658c239f54fb99487aefbbcf95636",
+        "deployedAt": "2017-07-16",
+        "deployedTs": 1500221987,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x97bf1ff371ceabbb9e821480d31dd743c4b71e0e",
+        "deployedAt": "2017-07-16",
+        "deployedTs": 1500221990,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x0cbd5573275996b72e3e1e281d4acba8ae390940",
+        "deployedAt": "2017-07-16",
+        "deployedTs": 1500221993,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0xc61d918177970398234c7d4e9f9f2ab98ff4a581",
+        "deployedAt": "2017-07-16",
+        "deployedTs": 1500221993,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x89f800b075b58dfa0729448c9cbb66c86b389aa3",
+        "deployedAt": "2017-07-16",
+        "deployedTs": 1500221993,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x068083069ed92da4c5291dba52d8912abfcc5523",
+        "deployedAt": "2017-07-16",
+        "deployedTs": 1500222112,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x2ff889b73359f02d1cd4259aa6fe9d65e1b8854d",
+        "deployedAt": "2017-07-16",
+        "deployedTs": 1500222120,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x1ff103858f7954a95df7d43a7d04ff23a926f4da",
+        "deployedAt": "2017-07-16",
+        "deployedTs": 1500222144,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x9f6de35668006a721f93ce6a4e702ee2351f2423",
+        "deployedAt": "2017-07-16",
+        "deployedTs": 1500222146,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x3bd1eeeffcbd8c922cadd5d76b2182debb3ca5af",
+        "deployedAt": "2017-07-16",
+        "deployedTs": 1500222197,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0xe819300b6f3d0625632b47196233fe6671a59891",
+        "deployedAt": "2017-07-16",
+        "deployedTs": 1500222219,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x897c798c096d44e511a275153da9de6139ebc249",
+        "deployedAt": "2017-07-16",
+        "deployedTs": 1500222262,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x92bfd0e786e284429c96cf6a6e4a3ecf46fb3e9a",
+        "deployedAt": "2017-07-16",
+        "deployedTs": 1500222316,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x2305576962e33102b01d8f3dfda2fa640137b15e",
+        "deployedAt": "2017-07-17",
+        "deployedTs": 1500275932,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x353f8931ce1c52f643121be129985aab09c4bf52",
+        "deployedAt": "2017-11-29",
+        "deployedTs": 1511941765,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0xaec71b3be50bc4cd99b44ea84fcf1ecc913bc33d",
+        "deployedAt": "2017-11-29",
+        "deployedTs": 1511947794,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x5503e7690e550045e984c2b55902d8986ca2808e",
+        "deployedAt": "2017-11-29",
+        "deployedTs": 1511955262,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x9dc6c56296e91466fc12d31a694639699e4c37e5",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513504760,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x7cf03cd77094e913f17fef07bb7d261fd955ea3f",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513504771,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0xf5b59c107f3f7b1c2a7c3d09234bd0a055ad8d55",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513505830,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x1e7ca05e174a523709e556080e227f734a8f1483",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513507377,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x69076e44a9c70a67d5b79d95795aba299083c275",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513526975,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x9aed7a25f2d928225e6fb2388055c7363ad6727b",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513527014,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x8e2a84d6ade1e7fffee039a35ef5f19f13057152",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513527055,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0xc0562baaad3ef9e78ac449e3508a4a31c9395e57",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513527131,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x431e935209d79706b5866eb42137a3491d845692",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513530165,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x414b1da0bb6e948dc0559d14ebde9fa9572499bf",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513530176,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0xb3b67099121e1fbde6276b2802048d1a7dd1b987",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513530194,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x521c420c2a2b461034becbb41d4888b68951f14f",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513530201,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x9dda491445b0b33976527ed741e0476a16380c49",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513530265,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x4a67d9b00c077b093ddfb67de2a1c66a70bac0fe",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513530278,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0xe5df61285e8492d1d4dd6e4651821383512f012f",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513530324,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x552f355ccb9b91c8fb47d9c011abad5b72ec30e9",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513538140,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x68fd0899fedeeee08b77c189d2f8ac38466ea216",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513538187,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0xec4d29fd22066e75746eb68cb51d8a7df7d28356",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513538197,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0xc2baca5300b95ab18eddd9ef3070a0945298ab50",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513538207,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x0eda20f7499aae7bdadc4e52fd72e49663733ed4",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513538223,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x141a206ece672e3198086c5d21f7858ad03669ea",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513538290,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x01c1103d765f62a0d909499d7b615c382cdb072d",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513538292,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x3359266b2232bf63710eb0651bb39c13f0f90c3a",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513538526,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0xf07674f6ac6632e253c291b694f9c2e2ed69ebbb",
+        "deployedAt": "2017-12-18",
+        "deployedTs": 1513566626,
+        "publicLabel": null,
+        "sameDay": false
+      }
+    ],
+    "passThroughEvents": 0,
+    "goplus": {
+      "deployer": {
+        "direct": [],
+        "doubt": [],
+        "mixer": false,
+        "maliciousContracts": 0,
+        "source": "GoPlus"
+      },
+      "funder": {
+        "direct": [],
+        "doubt": [],
+        "mixer": false,
+        "maliciousContracts": 0,
+        "source": "GoPlus"
+      }
+    },
+    "failures": [],
+    "sources": [
+      "Etherscan(이더리움 메인넷)",
+      "XBlock 폰지 라벨"
+    ],
+    "reason": "실제 컨트랙트의 배포자를, 지금까지의 기록과 보안 서비스의 현재 정보로 분석했습니다."
+  },
+  "result": {
+    "level": "none",
+    "score": 0,
+    "score_max": 100,
+    "summary": "확인한 범위(활동 3464일, 이전 배포 84개)에서 이 배포자의 위험 근거는 보이지 않습니다. 안전하다는 뜻은 아닙니다",
+    "target": {
+      "deployer": "0x4f26ffbe5f04ed43630fdc30a87638d53d0b0876",
+      "contract": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+    },
+    "indicators": [
+      {
+        "key": "first_funding",
+        "points": 0,
+        "cap": 30
+      },
+      {
+        "key": "wallet_maturity",
+        "status": "info",
+        "points": null,
+        "cap": 20,
+        "note": "새 지갑 아님: 이 컨트랙트를 만들 때 지갑을 쓴 지 3464일. 정상 배포자에게도 흔해(사기 배포자와 1.3배 차이) 점수에는 넣지 않습니다"
+      },
+      {
+        "key": "past_scam_deployments",
+        "points": 0,
+        "cap": 30
+      },
+      {
+        "key": "external_flags",
+        "points": 0,
+        "cap": 10
+      },
+      {
+        "key": "fund_flow",
+        "points": 0,
+        "cap": 10
+      }
+    ],
+    "evidence": [],
+    "first_funding": {
+      "hops": 1,
+      "category": "other"
+    },
+    "past_deployments": [
+      {
+        "contract": "0xe5df61285e8492d1d4dd6e4651821383512f012f",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513530324,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x552f355ccb9b91c8fb47d9c011abad5b72ec30e9",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513538140,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x68fd0899fedeeee08b77c189d2f8ac38466ea216",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513538187,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0xec4d29fd22066e75746eb68cb51d8a7df7d28356",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513538197,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0xc2baca5300b95ab18eddd9ef3070a0945298ab50",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513538207,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x0eda20f7499aae7bdadc4e52fd72e49663733ed4",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513538223,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x141a206ece672e3198086c5d21f7858ad03669ea",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513538290,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x01c1103d765f62a0d909499d7b615c382cdb072d",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513538292,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0x3359266b2232bf63710eb0651bb39c13f0f90c3a",
+        "deployedAt": "2017-12-17",
+        "deployedTs": 1513538526,
+        "publicLabel": null,
+        "sameDay": false
+      },
+      {
+        "contract": "0xf07674f6ac6632e253c291b694f9c2e2ed69ebbb",
+        "deployedAt": "2017-12-18",
+        "deployedTs": 1513566626,
+        "publicLabel": null,
+        "sameDay": false
+      }
+    ],
+    "scope": {
+      "activity_days": 3464,
+      "tx_count": 642,
+      "as_of": "2026-11-16 (지금)",
+      "failures": [],
+      "sources": [
+        "Etherscan(이더리움 메인넷)",
+        "XBlock 폰지 라벨"
+      ],
+      "reason": "실제 컨트랙트의 배포자를, 지금까지의 기록과 보안 서비스의 현재 정보로 분석했습니다. 기준 시점 이전 배포 84개 중 10개(사기 라벨과 최근 배포)만 표에 표시합니다."
+    }
+  }
+}

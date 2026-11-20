@@ -1,11 +1,11 @@
 // 배포자 위험도 화면 조각. 상태(Context)를 쓰지 않는 순수 컴포넌트라 테스트에서 그대로 렌더링한다.
 // risk는 lib/risk.js의 정규화된 모양. 수준·점수·근거는 risk에 있는 값만 쓰고 화면에서 계산하지 않는다.
 import { useState } from "react";
-import { Check, CircleAlert, Copy, Info, LoaderCircle } from "lucide-react";
+import { Check, ChevronDown, Circle, CircleAlert, CircleDashed, Copy, Info, ListChecks, LoaderCircle, Shield, ShieldAlert, ShieldQuestion, TriangleAlert } from "lucide-react";
 import { CONCLUSIONS } from "../lib/conclusion.js";
 import {
-  FUNDING_CATEGORIES, INDICATOR_STATUS, PREVIEW_BANNER, PUBLIC_LABELS, RISK_COPY, RISK_ERROR_COPY, RISK_LEVELS,
-  RISK_LOADING_COPY, STRENGTH_LABELS, indicatorRatio, levelBasis, partialScore, riskSummary, scoreText, scoreValue
+  FUNDING_CATEGORIES, INDICATOR_STATUS, PREVIEW_BANNER, PUBLIC_LABELS, RISK_ACTIONS, RISK_COPY, RISK_ERROR_COPY, RISK_LEVELS,
+  RISK_LOADING_COPY, STRENGTH_LABELS, indicatorRatio, partialScore, riskSummary, scoreText, scoreValue
 } from "../lib/risk.js";
 import { shortAddr } from "../lib/format.js";
 import ConclusionBadge from "./ConclusionBadge.jsx";
@@ -33,7 +33,7 @@ function AddressCopy({ value }) {
   const Icon = copied ? Check : Copy;
   return (
     <span className="risk-addr">
-      <code className="mono">{value}</code>
+      <code className="mono" title={value}>{shortAddr(value)}</code>
       <button type="button" className="icon-btn risk-copy" onClick={copy} aria-label={copied ? "복사됨" : "주소 복사"} title={copied ? "복사됨" : "주소 복사"}>
         <Icon {...ICON} size={15} />
       </button>
@@ -46,6 +46,15 @@ export function PreviewBanner() {
   return (
     <p className="risk-preview-banner" role="note">
       <Info {...ICON} size={16} aria-hidden="true" />{PREVIEW_BANNER}
+    </p>
+  );
+}
+
+// 실제 사례 안내 배너 (시나리오에 같은 유형의 실제 사례를 연결했을 때만)
+export function RealCaseBanner() {
+  return (
+    <p className="risk-realcase-banner" role="note">
+      <Info {...ICON} size={16} aria-hidden="true" />{RISK_COPY.realCaseBanner}
     </p>
   );
 }
@@ -67,29 +76,39 @@ function RiskStatusCard({ risk }) {
   );
 }
 
-// 판정 카드: 수준 배지 · 한 줄 요약 · 수준을 정한 근거 · 대상 주소 · 점수(부분 합계 표시)
+// ① 결과(지갑 경고처럼): 아이콘 · 단계 배지 · 결론 한 문장 · 핵심 숫자(사기 계좌 조회처럼) · 대상 주소
+const HERO_ICON = { strong: ShieldAlert, some: TriangleAlert, none: Shield, nodata: ShieldQuestion };
 export function RiskVerdictCard({ risk }) {
   if (risk.status !== "ready") return <RiskStatusCard risk={risk} />;
   const l = levelOf(risk);
-  const basis = levelBasis(risk);
-  const partial = partialScore(risk);
+  const Icon = HERO_ICON[risk.level] ?? ShieldQuestion;
+  const s = risk.scope ?? {};
+  const pastScam = Array.isArray(risk.pastDeployments) ? risk.pastDeployments.filter(p => p.publicLabel === "scam").length : null;
+  const tiles = [
+    { k: "사기로 확인된 이전 배포", v: pastScam === null ? "—" : `${pastScam}건`, hot: pastScam > 0 },
+    { k: "지갑을 쓴 기간", v: typeof s.activityDays === "number" ? `${s.activityDays}일` : "—" },
+    { k: "거래", v: typeof s.txCount === "number" ? `${s.txCount}건` : "—" }
+  ];
   return (
-    <section className={`card verdict risk-verdict verdict-${l.tone}`} data-level={risk.level}>
-      <div className="verdict-top">
-        <RiskBadge level={risk.level} />
-        <EstimateTag>휴리스틱</EstimateTag>
+    <section className={`card verdict risk-verdict risk-hero risk-hero-${risk.level}`} data-level={risk.level} data-tone={l.tone}>
+      <div className="risk-hero-head">
+        <span className="risk-hero-icon"><Icon {...ICON} size={26} aria-hidden="true" /></span>
+        <div className="risk-hero-tags">
+          <RiskBadge level={risk.level} />
+          {risk.target?.realCase && <EstimateTag>{RISK_COPY.realCaseTag}</EstimateTag>}
+          <EstimateTag>{RISK_COPY.estimateTag}</EstimateTag>
+        </div>
       </div>
       <p className="risk-summary">{riskSummary(risk)}</p>
-      {basis && (
-        <p className="risk-basis">
-          <span className="risk-basis-label">수준을 정한 근거</span>
-          <Badge tone={basis.strength === "strong" ? "danger" : "caution"}>{STRENGTH_LABELS[basis.strength] ?? "근거"}</Badge>
-          <span>{basis.text}</span>
-        </p>
+      {risk.level === "nodata" && s.reason && <p className="risk-verdict-reason">{s.reason}</p>}
+      {tiles.some(x => x.v !== "—") && (
+        <dl className="risk-scope-tiles">
+          {tiles.map(x => <div key={x.k} className={x.hot ? "hot" : ""}><dt>{x.k}</dt><dd className="num">{x.v}</dd></div>)}
+        </dl>
       )}
       <dl className="risk-target">
         <div>
-          <dt>{risk.target?.simulated ? RISK_COPY.simulatedDeployer : "배포자"}</dt>
+          <dt>{risk.target?.simulated ? RISK_COPY.simulatedDeployer : risk.target?.realCase ? RISK_COPY.realCaseDeployer : "배포자"}</dt>
           <dd><AddressCopy value={risk.target?.deployer} /></dd>
         </div>
         <div>
@@ -97,17 +116,38 @@ export function RiskVerdictCard({ risk }) {
           <dd><AddressCopy value={risk.target?.contract} /></dd>
         </div>
       </dl>
-      <div className="risk-score">
-        <span className="risk-score-label">점수</span>
-        <span className="risk-score-text" aria-label={scoreText(risk)}>
-          <strong className="risk-score-value num">{scoreValue(risk)}</strong>
-          <span className="risk-score-unit"> · {RISK_COPY.scoreUnit}</span>
-        </span>
-        {partial && <Badge tone="neutral">부분 합계</Badge>}
-      </div>
-      {partial && <p className="risk-score-note risk-partial-note">{partial.note}</p>}
-      <p className="risk-score-note">{RISK_COPY.scoreNote}</p>
     </section>
+  );
+}
+
+// ② 이유: 발견된 근거만 문장으로 (근거가 없으면 이 카드는 없다)
+export function ReasonCard({ risk }) {
+  const ev = risk.evidence ?? [];
+  if (risk.level === "none" || risk.level === "nodata" || ev.length === 0) return null;
+  return (
+    <Card title={RISK_COPY.basisLabel} className="risk-reasons">
+      <ul className="risk-reason-list">
+        {ev.map((e, i) => (
+          <li key={i} className={`risk-reason-item risk-reason-${e.strength ?? "weak"}`}>
+            <Badge tone={e.strength === "strong" ? "danger" : "caution"}>{STRENGTH_LABELS[e.strength] ?? "근거"}</Badge>
+            <div className="risk-reason-body">
+              <p className="risk-reason-text">{e.text}</p>
+              {e.source && <p className="risk-reason-src">출처: {e.source}</p>}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+// ③ 할 일
+export function ActionCard({ risk }) {
+  const items = RISK_ACTIONS[risk.level] ?? RISK_ACTIONS.nodata;
+  return (
+    <Card title="이렇게 확인하세요" className="risk-actions">
+      <ol className="risk-action-list">{items.map((a, i) => <li key={i}>{a}</li>)}</ol>
+    </Card>
   );
 }
 
@@ -115,40 +155,55 @@ const pointsText = ind => (ind.status === "nodata" || typeof ind.points !== "num
   ? "—"
   : typeof ind.cap === "number" ? `${ind.points} / ${ind.cap}` : `${ind.points}`);
 
-// 근거 목록: 지표 5개(상태 · 점수/상한 막대) 아래에 그 지표의 근거 문장
+// ④ 확인한 항목(토큰 검사 사이트처럼): 발견된 항목을 맨 위로, 한 줄씩. 점수는 여기서 함께 보여 준다.
+const STATUS_ICON = { evidence: CircleAlert, none: Circle, info: Info, nodata: CircleDashed };
+const STATUS_ORDER = { evidence: 0, none: 1, info: 2, nodata: 3 };
 export function EvidenceList({ risk }) {
   const evidence = risk.evidence ?? [];
+  const partial = partialScore(risk);
+  const strongN = evidence.filter(e => e.strength === "strong").length;
+  const found = risk.indicators.filter(i => i.status === "evidence").length;
+  const rows = [...risk.indicators].sort((a, b) => (STATUS_ORDER[a.status] ?? 3) - (STATUS_ORDER[b.status] ?? 3));
   return (
-    <Card title="근거" aside={<span className="muted small">지표 {risk.indicators.length}개</span>}>
+    <Card
+      title={<span className="risk-check-title"><ListChecks {...ICON} size={18} aria-hidden="true" />확인한 항목 {risk.indicators.length}개 중 {found}개 발견</span>}
+      aside={
+        <span className="risk-score-text" aria-label={scoreText(risk)}>
+          <span className="risk-score-label">위험 점수 </span>
+          <strong className="risk-score-value num">{scoreValue(risk)}</strong>
+          <span className="risk-score-unit"> · {RISK_COPY.scoreUnit}</span>
+        </span>
+      }
+    >
+      <div className="risk-check-meta">
+        <span>{evidence.length ? `발견된 근거 ${evidence.length}개${strongN ? ` (강한 근거 ${strongN}개)` : ""}` : "발견된 근거 없음"}</span>
+        {partial && <Badge tone="neutral">{RISK_COPY.partialBadge}</Badge>}
+      </div>
+      {partial && <p className="risk-score-note risk-partial-note">{partial.note}</p>}
+      <p className="risk-score-note">{RISK_COPY.scoreNote}</p>
       <ul className="risk-inds">
-        {risk.indicators.map(ind => {
+        {rows.map(ind => {
           const st = INDICATOR_STATUS[ind.status] ?? INDICATOR_STATUS.nodata;
-          const ratio = indicatorRatio(ind);
-          const items = evidence.filter(e => e.indicatorKey === ind.key);
+          const ratio = ind.status === "evidence" ? indicatorRatio(ind) : null;
+          const strong = evidence.some(e => e.indicatorKey === ind.key && e.strength === "strong");
+          const Icon = STATUS_ICON[ind.status] ?? CircleDashed;
           return (
-            <li key={ind.key} className={`risk-ind risk-ind-${ind.status}`} data-indicator={ind.key} data-status={ind.status}>
+            <li key={ind.key} className={`risk-ind risk-ind-${ind.status} ${strong ? "risk-ind-strong" : ""}`} data-indicator={ind.key} data-status={ind.status}>
               <div className="risk-ind-head">
-                <span className="risk-ind-name">
-                  {ind.extension && <span className="risk-ext">확장</span>}
-                  {ind.label}
-                </span>
-                <Badge tone={st.tone}>{st.label}</Badge>
+                <Icon {...ICON} size={20} className="risk-ind-icon" aria-hidden="true" />
+                <div className="risk-ind-text">
+                  <span className="risk-ind-name">
+                    {ind.extension && <span className="risk-ext">확장</span>}
+                    {ind.label}
+                  </span>
+                  {ind.desc && <p className="risk-ind-desc">{ind.desc}</p>}
+                  {ind.note && <p className="risk-ind-note">{ind.note}</p>}
+                </div>
+                <Badge tone={strong ? "danger" : st.tone}>{st.label}</Badge>
                 <span className="risk-ind-points num">{pointsText(ind)}</span>
               </div>
               {ratio !== null && (
-                <div className={`risk-cap risk-cap-${st.tone}`} role="presentation"><span style={{ width: `${ratio * 100}%` }} /></div>
-              )}
-              {items.length > 0 && (
-                <ul className="risk-evs">
-                  {items.map((e, i) => (
-                    <li key={i} className="risk-ev">
-                      <Badge tone={e.strength === "strong" ? "danger" : "caution"}>{STRENGTH_LABELS[e.strength] ?? "근거"}</Badge>
-                      <span className="risk-ev-text">{e.text}</span>
-                      {typeof e.points === "number" && <span className="risk-ev-points num">+{e.points}</span>}
-                      {e.source && <span className="risk-ev-source">출처: {e.source}</span>}
-                    </li>
-                  ))}
-                </ul>
+                <div className={`risk-cap risk-cap-${st.tone} ${strong ? "risk-cap-danger" : ""}`} role="presentation"><span style={{ width: `${ratio * 100}%` }} /></div>
               )}
             </li>
           );
@@ -179,7 +234,7 @@ export function FundingDiagram({ risk }) {
     { key: "dep", label: "배포자", sub: risk.target?.simulated ? "시뮬레이션(추정)" : null, kind: "deployer" }
   ];
   return (
-    <Card title="첫 자금 흐름" aside={!empty ? <span className="muted small num">{hops}홉</span> : null}>
+    <Card title="처음 받은 돈의 흐름" aside={!empty ? <span className="muted small num">{hops}홉</span> : null}>
       <div className={`risk-fund ${empty ? "risk-fund-empty" : ""}`} data-category={f.category ?? "none"}
         role="img" aria-label={empty ? RISK_COPY.noFunding : `첫 자금: ${nodes.map(n => n.label).join(" → ")}`}>
         {nodes.map((n, i) => (
@@ -197,27 +252,27 @@ export function FundingDiagram({ risk }) {
   );
 }
 
-const verdictLabel = v => (CONCLUSIONS[v]?.label ?? "미분석");
+const verdictLabel = v => (CONCLUSIONS[v]?.label ?? RISK_COPY.notAnalyzed);
 
 // 과거 배포 목록: 공개 라벨과 그 컨트랙트의 거래 판정(기존 결론 배지)을 다른 열로. null(가져오지 않음)과 0건을 구분한다.
 export function PastDeployments({ risk }) {
   const rows = risk.pastDeployments;
   return (
-    <Card title="과거 배포" aside={Array.isArray(rows) ? <span className="muted small num">{rows.length}건</span> : null} pad={Array.isArray(rows) && rows.length > 0 ? false : true}>
+    <Card title="이 배포자가 전에 만든 컨트랙트" aside={Array.isArray(rows) ? <span className="muted small num">{rows.length}건</span> : null} pad={Array.isArray(rows) && rows.length > 0 ? false : true}>
       {!Array.isArray(rows) && <p className="risk-empty">{RISK_COPY.noPast}</p>}
       {Array.isArray(rows) && rows.length === 0 && <p className="risk-empty">{RISK_COPY.zeroPast}</p>}
       {Array.isArray(rows) && rows.length > 0 && (
         <div className="table-wrap">
           <table className="table risk-table">
             <thead>
-              <tr><th>컨트랙트</th><th>배포일</th><th>공개 라벨</th><th>이 컨트랙트의 거래 판정</th></tr>
+              <tr><th>컨트랙트</th><th>만든 날</th><th>알려진 판정(연구 데이터)</th><th>우리 시스템 판정</th></tr>
             </thead>
             <tbody>
               {rows.map((r, i) => (
                 <tr key={`${r.contract}-${i}`}>
                   <td><code className="mono" title={r.contract ?? ""}>{r.contract ? shortAddr(r.contract) : "—"}</code></td>
                   <td className="num">{r.deployedAt ?? "—"}</td>
-                  <td>{PUBLIC_LABELS[r.publicLabel] ?? "없음"}</td>
+                  <td>{PUBLIC_LABELS[r.publicLabel] ?? RISK_COPY.noPublicLabel}</td>
                   <td>{r.ourVerdict && CONCLUSIONS[r.ourVerdict] ? <ConclusionBadge conclusion={r.ourVerdict} /> : verdictLabel(r.ourVerdict)}</td>
                 </tr>
               ))}
@@ -236,13 +291,13 @@ export function ScopeCard({ risk }) {
   const s = risk.scope ?? {};
   const failures = s.failures ?? [], sources = s.sources ?? [];
   return (
-    <Card title="확인 범위" className="risk-scope">
+    <Card title="어디까지 확인했나요" className="risk-scope">
       <dl className="risk-scope-list">
-        <div><dt>활동 일수</dt><dd className="num">{typeof s.activityDays === "number" ? `${s.activityDays}일` : "—"}</dd></div>
-        <div><dt>거래 수</dt><dd className="num">{typeof s.txCount === "number" ? `${s.txCount}건` : "—"}</dd></div>
-        <div><dt>분석 기준 시점</dt><dd className="num">{dash(s.asOf)}</dd></div>
-        <div><dt>수집 실패 항목</dt><dd>{failures.length ? failures.join(", ") : "—"}</dd></div>
-        <div><dt>출처</dt><dd>{sources.length ? sources.join(", ") : "—"}</dd></div>
+        <div><dt>지갑을 쓴 기간</dt><dd className="num">{typeof s.activityDays === "number" ? `${s.activityDays}일` : "—"}</dd></div>
+        <div><dt>거래</dt><dd className="num">{typeof s.txCount === "number" ? `${s.txCount}건` : "—"}</dd></div>
+        <div><dt>확인 기준일</dt><dd className="num">{dash(s.asOf)}</dd></div>
+        <div><dt>못 가져온 정보</dt><dd>{failures.length ? failures.join(", ") : "없음"}</dd></div>
+        <div><dt>자료 출처</dt><dd>{sources.length ? sources.join(", ") : "—"}</dd></div>
       </dl>
       {s.reason && <p className="risk-reason">{s.reason}</p>}
       {s.assumption && <p className="risk-assume">{s.assumption}</p>}
@@ -306,20 +361,29 @@ export function DeployerRiskView({ risk, code, preview = false }) {
       </>
     );
   }
+  // 결론 → 이유 → 할 일 → 확인한 항목 → 전에 만든 컨트랙트 → (자세히 보기) 자금 흐름·확인 범위·코드와 배포자
   return (
-    <>
+    <div className="risk-stack">
       {preview && <PreviewBanner />}
-      <div className="risk-top">
-        <RiskVerdictCard risk={risk} />
-        <ScopeCard risk={risk} />
-      </div>
-      <div className="risk-mid">
-        <EvidenceList risk={risk} />
-        <FundingDiagram risk={risk} />
-      </div>
+      {risk.target?.realCase && <RealCaseBanner />}
+      <RiskVerdictCard risk={risk} />
+      <ReasonCard risk={risk} />
+      <ActionCard risk={risk} />
+      <EvidenceList risk={risk} />
       <PastDeployments risk={risk} />
-      <CodeVsDeployer risk={risk} code={code} />
+      <details className="risk-more">
+        <summary className="risk-more-summary">
+          <span>자세히 보기</span>
+          <span className="muted small">처음 받은 돈의 흐름 · 확인 범위 · 코드와 배포자</span>
+          <ChevronDown {...ICON} size={18} className="risk-more-chevron" aria-hidden="true" />
+        </summary>
+        <div className="risk-more-body">
+          <FundingDiagram risk={risk} />
+          <ScopeCard risk={risk} />
+          <CodeVsDeployer risk={risk} code={code} />
+        </div>
+      </details>
       <RiskNotes />
-    </>
+    </div>
   );
 }

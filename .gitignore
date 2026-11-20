@@ -11,3 +11,8 @@ dashboard/dist/
 !.env.example
 
 *Zone.Identifier
+evaluation/deployer_risk/cache/
+evaluation/deployer_risk/_preview/
+evaluation/rugpull_sok/
+evaluation/rphunter/
+evaluation/deployer_risk/candidates__merged.json

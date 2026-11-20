@@ -9,6 +9,7 @@ import {
   indicatorRatio, levelBasis, normalizeRisk, partialScore, riskForScenario, scoreText
 } from "./risk.js";
 import { PREVIEW_KEYS, RISK_FIXTURES, previewRisk } from "./riskFixtures.js";
+import { DEPLOYER_RISK_BY_SCENARIO } from "./deployerRiskData.js";
 import { codeConclusion, codeLines } from "./overview.js";
 import { term } from "./terms.js";
 import { CHECK_CARDS } from "./hero.js";
@@ -24,7 +25,8 @@ function scenario(name) {
   const view = buildViewModel(fx);
   const codeC = codeConclusion(view.codeAssessment, view.warnings);
   const code = { conclusion: codeC, ...codeLines(view.codeAssessment, codeC, term(GLOSSARY, view.codeAssessment.preventionRiskLevel).label) };
-  return { view, rows: fx.rows, code, risk: riskForScenario(view, fx.rows) };
+  // 실제 사례 연결 여부와 상관없이 기본값(데이터 없음)을 시험하려고 실제 사례 표를 비운다
+  return { view, rows: fx.rows, code, risk: riskForScenario(view, fx.rows, {}) };
 }
 
 describe("배포자 위험도: 시나리오 기본값(데이터 없음)", () => {
@@ -185,14 +187,14 @@ describe("normalizeRisk", () => {
     expect([ind(r, "wallet_maturity").status, ind(r, "wallet_maturity").points]).toEqual(["evidence", 5]);
     expect(r.evidence).toEqual([{ indicatorKey: "wallet_maturity", strength: "weak", text: "b", source: null, points: 5 }]);
     expect(r.firstFunding).toEqual({ hops: null, category: "exchange" });
-    expect(r.scope.failures).toEqual(["x 실패", "첫 자금원(형식 오류)", "점수(형식 오류)", "활동 일수(형식 오류)"]);
+    expect(r.scope.failures).toEqual(["x 실패", "처음 받은 돈의 출처(형식 오류)", "점수(형식 오류)", "활동 일수(형식 오류)"]);
     expect(r).not.toHaveProperty("extra");
   });
 
   it("partial: 일부 지표만 null이면 부분 합계", () => {
     const p = previewRisk("partial");
-    expect(p.indicators.filter(i => i.status === "nodata").map(i => i.key)).toEqual(["external_flags", "past_rug_recovery"]);
-    expect(partialScore(p)).toEqual({ missing: 2, note: "데이터 없음 지표 2개는 합계에 들어가지 않았습니다" });
+    expect(p.indicators.filter(i => i.status === "nodata").map(i => i.key)).toEqual(["external_flags", "fund_flow"]);
+    expect(partialScore(p)).toEqual({ missing: 2, note: "확인하지 않은 항목 2개는 점수에 들어가지 않았습니다" });
     expect(partialScore(previewRisk("strong"))).toBe(null);
     expect(partialScore(previewRisk("nodata"))).toBe(null); // 점수가 없으면 부분 합계도 아님
   });
@@ -223,18 +225,18 @@ describe("배포자 위험도: 상태별 렌더", () => {
   it("상태별 차이: 점수·막대·부분 합계·과거 배포·첫 자금", () => {
     const strong = render(previewRisk("strong"));
     expect(strong).toContain('aria-label="35 / 100 · 높을수록 위험"');
-    expect(strong).toContain("수준을 정한 근거");
+    expect(strong).toContain(RISK_COPY.basisLabel);
     expect(strong).toContain("risk-cap-caution");
     expect(strong).toContain('data-category="mixer"');
-    expect(strong).toContain("공개 라벨");
-    expect(strong).toContain("<th>이 컨트랙트의 거래 판정</th>");
+    expect(strong).toContain("알려진 판정(연구 데이터)");
+    expect(strong).toContain("<th>우리 시스템 판정</th>");
     expect(strong).not.toContain("우리 판정");
-    expect(strong).toContain("미분석");
-    expect(strong).not.toContain("부분 합계");
+    expect(strong).toContain(RISK_COPY.notAnalyzed);
+    expect(strong).not.toContain(RISK_COPY.partialBadge);
     const none = render(previewRisk("none"));
     expect(none).toContain('aria-label="0 / 100 · 높을수록 위험"');
     expect(none).toContain(RISK_COPY.zeroPast);
-    expect(none).not.toContain("수준을 정한 근거");
+    expect(none).not.toContain(RISK_COPY.basisLabel);
     expect((none.match(/data-status="none"/g) ?? []).length).toBe(5);
     const nodata = render(previewRisk("nodata"));
     expect(nodata).toContain('aria-label="— · 높을수록 위험"');
@@ -242,8 +244,8 @@ describe("배포자 위험도: 상태별 렌더", () => {
     expect(nodata).toContain(RISK_COPY.noFunding);
     expect(nodata).toContain("배포자 거래 기록을 가져오지 못해 평가하지 않았습니다(예시)");
     const partial = render(previewRisk("partial"));
-    expect(partial).toContain("부분 합계");
-    expect(partial).toContain("데이터 없음 지표 2개는 합계에 들어가지 않았습니다");
+    expect(partial).toContain(RISK_COPY.partialBadge);
+    expect(partial).toContain("확인하지 않은 항목 2개는 점수에 들어가지 않았습니다");
     expect(partial).toContain("외부 위험 플래그 수집 실패(예시)");
   });
 
@@ -258,7 +260,7 @@ describe("배포자 위험도: 상태별 렌더", () => {
       expect(html).toContain(RISK_ERROR_COPY[kind]);
       expect(html).toContain(RISK_COPY.disclaimer);
       expect(html).not.toContain("risk-inds");
-      expect(html).not.toContain("첫 자금 흐름");
+      expect(html).not.toContain("처음 받은 돈의 흐름");
     }
     expect(render(previewRisk("error-format"))).toContain("사유: 알 수 없는 수준 값");
     // 실제 화면(미리보기 아님)에는 배너가 없다
@@ -286,5 +288,70 @@ describe("배포자 위험도: 상태별 렌더", () => {
       const s = fs.readFileSync(f, "utf8");
       expect([path.basename(f), /error-missing|error-format|[?&]preview|preview:\s*["'`]|set\(\s*["'`]preview/.test(s)]).toEqual([path.basename(f), false]);
     }
+  });
+});
+
+// ── 실제 사례 배포자 연결 (scripts/deployer/score.js 출력 → normalizeRisk) ──
+import { scoreDeployer } from "../../../scripts/deployer/score.js";
+import { RISK_ACTIONS } from "./risk.js";
+
+describe("배포자 위험도: 같은 유형의 실제 사례", () => {
+  const facts = {
+    deployer: "0x7df1702da741da556d57646bbb8bb8026d0082c2", contract: "0x75f97d98eb49989f9af40c49a7a1eb32767214f5",
+    asOf: { block: 4155163, date: "2017-08-14" }, activity: { firstTxDate: "2017-05-01", days: 105, txCount: 12 },
+    firstFunding: { from: "0xabc", category: "other", date: "2017-05-01" },
+    pastDeployments: [{ contract: "0x1ce7986760ade2bf0f322f5ef39ce0de3bd0c82b", deployedAt: "2017-05-10", publicLabel: "scam" }],
+    passThroughEvents: 0, failures: [], sources: ["Etherscan(이더리움 메인넷)"], reason: "같은 유형의 실제 사례(시험)"
+  };
+  const raw = scoreDeployer(facts);
+
+  it("계산: 단계별 점수 구간, 강한 근거면 strong(76점부터), GoPlus는 데이터 없음", () => {
+    expect(raw.level).toBe("strong");
+    expect(raw.score).toBe(76); // 강한 근거 구간(76~100)의 시작점
+    expect(raw.score_max).toBe(100);
+    const r = normalizeRisk(raw);
+    expect(r.status).toBe("ready");
+    expect(r.indicators.map(i => i.key)).toEqual(INDICATORS.map(i => i.key));
+    expect(r.indicators.find(i => i.key === "external_flags").status).toBe("nodata");
+    expect(r.indicators.find(i => i.key === "past_scam_deployments").status).toBe("evidence");
+    // 지갑 성숙도는 구분력이 낮아 점수에 넣지 않고 참고로만
+    const wm = r.indicators.find(i => i.key === "wallet_maturity");
+    expect(wm.status).toBe("info");
+    expect(wm.points).toBe(null);
+    expect(wm.note).toContain("점수에는 넣지 않습니다");
+  });
+
+  it("시나리오에 실제 사례가 있으면 그 결과, 없으면 기본값(데이터 없음)", () => {
+    const { view, rows } = scenario("ponzi");
+    const real = riskForScenario(view, rows, { ponzi: raw });
+    expect(real.level).toBe("strong");
+    expect(real.target).toMatchObject({ deployer: facts.deployer, contract: facts.contract, simulated: false, realCase: true });
+    expect(deployerCard(real).sub).toBe(DEPLOYER_CARD_COPY.realCaseSub);
+    const html = renderToStaticMarkup(h(DeployerRiskView, { risk: real, code: null }));
+    expect(html).toContain(RISK_COPY.realCaseTag);
+    expect(html).toContain(RISK_COPY.realCaseDeployer);
+    expect(html).toContain(facts.reason);
+    expect(html).toContain(RISK_COPY.realCaseBanner);
+    // 결론 → 이유 → 할 일: 이유 카드에 근거 문장, 할 일 카드에 단계별 안내
+    expect(html).toContain(RISK_COPY.basisLabel);
+    expect(html).toContain(RISK_ACTIONS.strong[2]);
+    expect(html.indexOf(RISK_COPY.basisLabel)).toBeLessThan(html.indexOf(RISK_ACTIONS.strong[0].replaceAll('"', "&quot;")));
+    expect(html).toContain(real.summary);
+    // 거래 판정 열은 미분석이어도 그대로 보여 준다(하지 않은 분석을 숨기지 않는다)
+    expect(html).toContain("<th>우리 시스템 판정</th>");
+    // 지표의 "근거 없음"은 회색(초록이 아님)
+    expect(html).not.toMatch(/badge-safe">근거 없음/);
+    expect(riskForScenario(view, rows, { normal: raw }).level).toBe("nodata");
+  });
+
+  it("생성된 실제 사례: 러그풀 시나리오는 믹서 자금원 배포자(라벨 없는 강한 근거), 폰지·정상도 연결", () => {
+    const { view, rows } = scenario("rugpull");
+    const real = riskForScenario(view, rows, DEPLOYER_RISK_BY_SCENARIO);
+    expect(real.level).toBe("strong");
+    expect(real.target.realCase).toBe(true);
+    expect(real.indicators.find(i => i.key === "first_funding").status).toBe("evidence");
+    expect(DEPLOYER_RISK_BY_SCENARIO.rugpull.evidence.every(e => !e.label_based)).toBe(true);
+    expect(real.summary).toContain("믹서");
+    expect(Object.keys(DEPLOYER_RISK_BY_SCENARIO).sort()).toEqual(["normal", "ponzi", "rugpull"]);
   });
 });
